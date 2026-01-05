@@ -117,13 +117,17 @@ Owner files:
 Rationale: Quantum photonic systems require explicit coherence window tracking, quantum state representation, and measurement-conditioned control. Omitting this now blocks all quantum workflows and forces retrofit later.
 
 Definition of Done:
-- [ ] Formal spec: photonic state space (classical modes vs quantum modes), coherence window semantics, decoherence models
-- [ ] AEP-0009 created with conformance requirements for state preparation, evolution, measurement, feedback
-- [ ] Runtime interfaces: `QuantumState`, `CoherenceWindow`, `MeasurementOutcome`, `StateEvolver` traits
-- [ ] Reference implementation: stateless simulator for quantum states (path amplitudes, measurement probabilities)
-- [ ] Integration: Engine tracks coherence windows per IR subgraph and enforces temporal constraints
-- [ ] Tests: state evolution correctness, coherence window bounds checking, measurement outcome sampling
-- [ ] CI: quality gate + integration validates state artifacts and coherence metadata
+- [x] Formal spec: photonic state space (classical modes vs quantum modes), coherence window semantics, decoherence models
+- [x] AEP-0009 created with conformance requirements for state preparation, evolution, measurement, feedback
+- [x] Runtime interfaces: `QuantumState`, `CoherenceWindow`, `MeasurementOutcome`, `StateEvolver` traits
+- [x] Reference implementation: stateless simulator for quantum states (unitary gate evolution, destructive measurement with seeded RNG)
+- [x] Integration: Engine tracks coherence windows per IR subgraph and enforces temporal constraints
+- [x] Tests: state evolution correctness, coherence window bounds checking, measurement outcome sampling (`test_quantum_state_artifact_created`)
+- [x] CI: quality gate + integration validates state artifacts and coherence metadata
+- [x] IR Schema: measurement-conditioned feedback support (`ConditionalBranch`, `measure_mode` in Node)
+- [x] Artifacts: quantum_states.json, measurements.json created per run with full provenance
+
+Status: DONE (CI validated)
 
 Verification Commands (copy-paste):
 ```bash
@@ -134,12 +138,16 @@ cargo test --all-features
 
 # After implementation, validate quantum state artifacts
 cargo build --workspace --release
-# Quantum IR example (to be created) will emit state snapshots
+./target/release/awenctl run example_ir.json --seed 42
+# Verify artifacts: quantum_states.json, measurements.json in awen_run_* directory
+ls awen_run_*/quantum_states.json
+ls awen_run_*/measurements.json
 ```
 
 Owner files:
 - awen-runtime/src/state/*
+- awen-runtime/src/ir/mod.rs (ConditionalBranch, IR validation)
 - awen-spec/aeps/AEP-0009-quantum-coherence.md
 - awen-spec/specs/quantum-coherence.md
-- awen-runtime/src/engine/mod.rs (coherence tracking)
+- awen-runtime/src/engine/mod.rs (coherence tracking, gate evolution, measurement)
 - awen-runtime/.github/workflows/*.yml
