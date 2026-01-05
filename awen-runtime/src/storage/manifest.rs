@@ -1,7 +1,6 @@
 //! Artifact manifest schema
 
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 
 /// Artifact bundle manifest
 #[derive(Clone, Debug, Serialize, Deserialize)]

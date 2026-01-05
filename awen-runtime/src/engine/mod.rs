@@ -2,7 +2,6 @@
 
 use crate::ir::Graph;
 use crate::plugins::run_reference_simulator;
-use crate::storage::save_artifact;
 use anyhow::Result;
 use uuid::Uuid;
 use std::path::PathBuf;
@@ -219,8 +218,8 @@ impl Engine {
         observability::write_timeline(&out_dir, &all_events)?;
         observability::write_metrics(&out_dir, &metrics)?;
 
-        // Save metadata using storage helper
-        save_artifact(&out_dir);
+        // TODO: Phase 2.6.2 - Build and persist ArtifactBundle with full provenance
+        // save_artifact(&bundle, &artifacts_dir)?;
 
         Ok(out_dir)
     }
@@ -314,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_ir_validation_fails_on_invalid_branches() {
-        let mut graph = ir::Graph {
+        let graph = ir::Graph {
             nodes: vec![
                 ir::Node {
                     id: "m0".to_string(),

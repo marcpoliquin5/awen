@@ -1,7 +1,6 @@
 //! Environment capture for reproducibility
 
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 
 /// Runtime environment information
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -71,12 +70,8 @@ fn capture_runtime() -> RuntimeInfo {
         build_profile: if cfg!(debug_assertions) { "debug" } else { "release" }.to_string(),
         rust_version: option_env!("RUSTC_VERSION").unwrap_or("unknown").to_string(),
         features: vec![
-            #[cfg(feature = "observability")]
+            "runtime".to_string(),
             "observability".to_string(),
-            #[cfg(feature = "gradients")]
-            "gradients".to_string(),
-            #[cfg(feature = "quantum")]
-            "quantum".to_string(),
         ],
         plugins: vec![
             PluginInfo {

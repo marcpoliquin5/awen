@@ -4,7 +4,7 @@
 
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use anyhow::Result;
 
 use crate::ir::Graph;
@@ -332,7 +332,7 @@ mod tests {
     
     #[test]
     fn test_bundle_builder() {
-        let ir = Graph { nodes: vec![], edges: vec![] };
+        let ir = Graph { nodes: vec![], edges: vec![], metadata: std::collections::HashMap::new() };
         let mut params = HashMap::new();
         params.insert("test_param".to_string(), 1.0);
         

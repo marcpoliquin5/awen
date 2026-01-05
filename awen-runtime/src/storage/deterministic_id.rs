@@ -74,7 +74,7 @@ mod tests {
     
     #[test]
     fn test_deterministic_id_same_inputs() {
-        let ir = Graph { nodes: vec![], edges: vec![] };
+        let ir = Graph { nodes: vec![], edges: vec![], metadata: std::collections::HashMap::new() };
         let mut params = HashMap::new();
         params.insert("a".to_string(), 1.0);
         params.insert("b".to_string(), 2.0);
@@ -89,7 +89,7 @@ mod tests {
     
     #[test]
     fn test_deterministic_id_different_params() {
-        let ir = Graph { nodes: vec![], edges: vec![] };
+        let ir = Graph { nodes: vec![], edges: vec![], metadata: std::collections::HashMap::new() };
         let mut params1 = HashMap::new();
         params1.insert("a".to_string(), 1.0);
         
@@ -104,7 +104,7 @@ mod tests {
     
     #[test]
     fn test_deterministic_id_param_order_invariant() {
-        let ir = Graph { nodes: vec![], edges: vec![] };
+        let ir = Graph { nodes: vec![], edges: vec![], metadata: std::collections::HashMap::new() };
         
         let mut params1 = HashMap::new();
         params1.insert("a".to_string(), 1.0);
