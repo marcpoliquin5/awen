@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use crate::hal::{self, LabDevice};
 use std::collections::HashMap;
 use crate::observability;
-use std::path::Path;
 use chrono::Utc;
 use crate::state::{StateEvolver, CoherenceManager, ReferenceStateEvolver, ReferenceCoherenceManager, QuantumState, QuantumMode};
 
@@ -31,12 +30,12 @@ impl Engine {
 
         // Create coherence window for this execution
         // Assume graph execution takes ~1 microsecond per node (realistic for photonic systems)
-        let execution_duration_ns = (graph.nodes.len() as u64) * 1_000; // 1µs per node
+        let _execution_duration_ns = (graph.nodes.len() as u64) * 1_000; // 1µs per node
         let coherence_window = coherence_mgr.create_window(0, 10_000_000, "gaussian")?; // 10ms coherence
 
         // Initialize quantum state: one mode per node (simplified; real systems track physical modes)
         let initial_modes: Vec<QuantumMode> = graph.nodes.iter().enumerate()
-            .map(|(i, n)| QuantumMode {
+            .map(|(i, _n)| QuantumMode {
                 mode_id: format!("mode_{}", i),
                 mode_type: "quantum_fock".to_string(),
                 photon_numbers: Some(vec![0, 1, 2]),

@@ -168,7 +168,7 @@ impl StateEvolver for ReferenceStateEvolver {
                 if let Some(mode) = out.modes.iter_mut().find(|m| m.mode_id == pump_id) {
                     if let Some(ref mut amps) = mode.amplitudes {
                         for a in amps.iter_mut() {
-                            *a *= (1.0 + nonlinearity); // simplified entanglement generation
+                            *a *= 1.0 + nonlinearity; // simplified entanglement generation
                         }
                     }
                 }

@@ -135,7 +135,7 @@ pub fn build_basic_observability(run_id: &str, node_ids: &[String], seed: Option
     let mut metrics = Metrics::default();
 
     let now = Utc::now();
-    let mut t0 = now.timestamp_millis() as u128;
+    let t0 = now.timestamp_millis() as u128;
     let mut idx = 0u64;
     for nid in node_ids {
         let start = t0 + (idx as u128) * 5;

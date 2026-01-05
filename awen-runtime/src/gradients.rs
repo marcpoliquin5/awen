@@ -112,7 +112,7 @@ impl GradientProvider for ReferenceGradientProvider {
         let mut stds = HashMap::new();
 
         // baseline cost
-        let baseline = self.evaluate_cost(&graph, Some(seed_base))?;
+        let _baseline = self.evaluate_cost(&graph, Some(seed_base))?;
 
         for pname in params {
             // find parameter location: for simplicity, search nodes for param name

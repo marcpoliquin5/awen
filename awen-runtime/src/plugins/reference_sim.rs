@@ -2,7 +2,6 @@ use crate::ir::Graph;
 use anyhow::Result;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::Serialize;
-use std::collections::HashMap;
 
 /// Extended node simulation result includes measurement outcomes and loss tracking.
 #[derive(Serialize)]
@@ -32,6 +31,7 @@ pub struct SimulationResult {
 /// - RING: applies frequency-dependent transfer approximation via `coupling` and `loss`
 /// - DETECTOR: produces measurement outcomes (analog & optional digital probabilistic outcome)
 /// - LOSS: multiply amplitude by (1 - loss)
+#[allow(unused_assignments)]
 pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<SimulationResult> {
     let seed = seed.unwrap_or(0xDEADBEEF_u64);
     let mut rng = StdRng::seed_from_u64(seed);
@@ -44,7 +44,7 @@ pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<Simul
 
     let mut results = Vec::new();
     let mut current = (input_amp, 0.0_f64); // real, imag
-    let mut accumulated_loss = 0.0_f64;
+    let mut _accumulated_loss = 0.0_f64;
 
     for node in &graph.nodes {
         let node_type = node.node_type.to_lowercase();
@@ -64,7 +64,7 @@ pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<Simul
                 let new_im = re * sin + im * cos;
                 current = (new_re, new_im);
                 power_loss = node.params.get("loss").cloned().unwrap_or(0.0_f64);
-                accumulated_loss += power_loss;
+                _accumulated_loss += power_loss;
             }
 
             "ring" => {
@@ -78,7 +78,7 @@ pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<Simul
                 let sin = effective.sin();
                 current = (re * cos - im * sin, re * sin + im * cos);
                 power_loss = node.params.get("loss").cloned().unwrap_or(0.0_f64);
-                accumulated_loss += power_loss;
+                _accumulated_loss += power_loss;
             }
 
             "loss" => {
@@ -86,7 +86,7 @@ pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<Simul
                 let factor = 1.0 - loss.clamp(0.0, 1.0);
                 current = (current.0 * factor, current.1 * factor);
                 power_loss = loss;
-                accumulated_loss += power_loss;
+                _accumulated_loss += power_loss;
             }
 
             "detector" => {
