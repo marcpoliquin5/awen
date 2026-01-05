@@ -6,7 +6,7 @@ use crate::storage::save_artifact;
 use anyhow::Result;
 use uuid::Uuid;
 use std::path::PathBuf;
-use crate::hal;
+use crate::hal::{self, LabDevice};
 use std::collections::HashMap;
 use crate::observability;
 use std::path::Path;
@@ -21,7 +21,7 @@ impl Engine {
     /// Run the provided IR graph, optionally with a seed for deterministic replay.
     pub fn run_graph(&self, graph: &Graph, seed: Option<u64>) -> Result<PathBuf> {
         // Validate IR: check conditional branches reference valid nodes
-        crate::ir::validate_graph(graph)?;
+        crate::ir::validate_graph(graph).map_err(|e| anyhow::anyhow!(e))?;
 
         let run_seed = seed.unwrap_or(42);
 
@@ -68,8 +68,12 @@ impl Engine {
         // Build a set of nodes to execute, starting with root nodes
         let mut nodes_to_execute: Vec<String> = graph.nodes.iter().map(|n| n.id.clone()).collect();
         let mut executed_nodes = std::collections::HashSet::new();
+        let mut idx = 0usize;
 
-        for (idx, node_id) in nodes_to_execute.iter().enumerate() {
+        while idx < nodes_to_execute.len() {
+            let node_id = &nodes_to_execute[idx];
+            idx += 1;
+            
             if executed_nodes.contains(node_id) {
                 continue; // skip already executed nodes
             }
@@ -83,7 +87,8 @@ impl Engine {
             coherence_mgr.validate_coherence(&quantum_state, current_time_ns)?;
 
             // Apply gate evolution based on node type
-            if let Some(params) = &node.params {
+            if !node.params.is_empty() {
+                let params = &node.params;
                 match node.node_type.as_str() {
                     "MZI" => {
                         // MZI acts as a beam splitter; couple modes
@@ -225,7 +230,7 @@ impl Engine {
     pub fn apply_calibration(&self, mapping: &HashMap<String, f64>, safety: Option<&hal::SafetyLimits>) -> Result<hal::CalibrationResult> {
         // In a realistic runtime this would select a real device from a registry. For now use the simulated device.
         let dev = hal::SimulatedDevice::new();
-        let res = dev.apply_calibration(mapping, safety).map_err(|e| anyhow::anyhow!(e))?;
+        let res = dev.apply_calibration(mapping, safety).map_err(|e: String| anyhow::anyhow!(e))?;
         Ok(res)
     }
 }

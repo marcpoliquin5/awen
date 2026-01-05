@@ -122,11 +122,10 @@ impl GradientProvider for ReferenceGradientProvider {
                 (graph.nodes.iter().position(|n| n.id==parts.next().unwrap().to_string()), Some(parts.next().unwrap().to_string()))
             } else {
                 // search first node containing key
-                let mut found = None;
-                for (i, n) in graph.nodes.iter().enumerate() {
-                    if n.params.contains_key(pname) { found = Some((i, pname.clone())); break; }
-                }
-                (found.map(|(i, _)| i), if found.is_some() { Some(pname.clone()) } else { None })
+                let found = graph.nodes.iter().enumerate()
+                    .find(|(_, n)| n.params.contains_key(pname))
+                    .map(|(i, _)| (i, pname.clone()));
+                (found.as_ref().map(|(i, _)| *i), found.map(|(_, k)| k))
             };
 
             if node_idx_opt.is_none() || key_opt.is_none() {
@@ -182,12 +181,6 @@ impl GradientProvider for ReferenceGradientProvider {
             provenance,
         })
     }
-}
-
-/// Register default providers (to be called by runtime startup)
-pub fn register_default_providers(registry: &GradientRegistry) {
-    let provider = Arc::new(ReferenceGradientProvider::new());
-    registry.register("reference-fd", provider);
 }
 
 /// Analytic/adjoint gradient provider (reference). Currently supports analytic adjoint
@@ -308,11 +301,10 @@ impl GradientProvider for ReferenceAdjointProvider {
                 let mut parts = pname.splitn(2, ':');
                 (graph.nodes.iter().position(|n| n.id==parts.next().unwrap().to_string()), Some(parts.next().unwrap().to_string()))
             } else {
-                let mut found = None;
-                for (i, n) in graph.nodes.iter().enumerate() {
-                    if n.params.contains_key(pname) { found = Some((i, pname.clone())); break; }
-                }
-                (found.map(|(i, _)| i), if found.is_some() { Some(pname.clone()) } else { None })
+                let found = graph.nodes.iter().enumerate()
+                    .find(|(_, n)| n.params.contains_key(pname))
+                    .map(|(i, _)| (i, pname.clone()));
+                (found.as_ref().map(|(i, _)| *i), found.map(|(_, k)| k))
             };
 
             if node_idx_opt.is_none() || key_opt.is_none() {

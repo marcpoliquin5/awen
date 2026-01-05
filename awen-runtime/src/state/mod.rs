@@ -114,13 +114,25 @@ impl StateEvolver for ReferenceStateEvolver {
                 let idx2 = out.modes.iter().position(|m| m.mode_id == mode2);
 
                 if let (Some(i1), Some(i2)) = (idx1, idx2) {
-                    if let (Some(amp1), Some(amp2)) = 
-                        (out.modes[i1].amplitudes.as_mut(), out.modes[i2].amplitudes.as_mut()) {
-                        if amp1.len() > 0 && amp2.len() > 0 {
-                            let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
-                            let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
-                            amp1[0] = a1;
-                            amp2[0] = a2;
+                    if i1 < i2 {
+                        let (first, second) = out.modes.split_at_mut(i2);
+                        if let (Some(amp1), Some(amp2)) = (first[i1].amplitudes.as_mut(), second[0].amplitudes.as_mut()) {
+                            if amp1.len() > 0 && amp2.len() > 0 {
+                                let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
+                                let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
+                                amp1[0] = a1;
+                                amp2[0] = a2;
+                            }
+                        }
+                    } else if i2 < i1 {
+                        let (first, second) = out.modes.split_at_mut(i1);
+                        if let (Some(amp1), Some(amp2)) = (second[0].amplitudes.as_mut(), first[i2].amplitudes.as_mut()) {
+                            if amp1.len() > 0 && amp2.len() > 0 {
+                                let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
+                                let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
+                                amp1[0] = a1;
+                                amp2[0] = a2;
+                            }
                         }
                     }
                 }

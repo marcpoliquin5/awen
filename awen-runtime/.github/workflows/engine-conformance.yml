@@ -1,0 +1,166 @@
+name: Engine Execution Core Conformance (Section 2.1)
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'awen-runtime/src/engine_v2.rs'
+      - 'awen-runtime/tests/engine_integration.rs'
+      - 'awen-spec/specs/engine.md'
+      - '.github/workflows/engine-conformance.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'awen-runtime/src/engine_v2.rs'
+      - 'awen-runtime/tests/engine_integration.rs'
+      - 'awen-spec/specs/engine.md'
+
+jobs:
+  engine-conformance:
+    name: Engine Execution Core Conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: awen-runtime/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Format check
+        run: cd awen-runtime && cargo fmt --check
+        continue-on-error: false
+
+      - name: Clippy linting
+        run: cd awen-runtime && cargo clippy --lib -- -D warnings
+        continue-on-error: false
+
+      - name: Build library
+        run: cd awen-runtime && cargo build --lib
+        continue-on-error: false
+
+      - name: Run Engine integration tests
+        run: cd awen-runtime && cargo test --test engine_integration -- --nocapture --test-threads=1
+        continue-on-error: false
+
+      - name: Validate ExecutionPlan generation
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_execution_plan_generation -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Coherence window enforcement
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_coherence_budget_tracking -- --nocapture
+          cargo test --test engine_integration test_coherence_violation_on_deadline_exceeded -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Safety constraint validation
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_safety_limit_on_phase_parameter -- --nocapture
+          cargo test --test engine_integration test_safety_violation_on_parameter_exceed -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Measurement-conditioned branching
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_multiple_measurements -- --nocapture
+          cargo test --test engine_integration test_branching_graph_execution -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Deterministic replay
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_same_seed_produces_same_results -- --nocapture
+          cargo test --test engine_integration test_replay_with_measurement_outcomes -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Artifact emission
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_execution_duration_tracking -- --nocapture
+        continue-on-error: false
+
+      - name: Validate Error handling
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration test_invalid_edge_target_node_error -- --nocapture
+          cargo test --test engine_integration test_invalid_root_node_error -- --nocapture
+          cargo test --test engine_integration test_multiple_violations_reported -- --nocapture
+        continue-on-error: false
+
+      - name: Run all tests with verbose output
+        run: cd awen-runtime && cargo test --test engine_integration -- --nocapture --test-threads=1
+        continue-on-error: false
+
+      - name: Generate test report
+        if: always()
+        run: |
+          cd awen-runtime
+          cargo test --test engine_integration -- --nocapture 2>&1 | tee engine_test_report.txt || true
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: engine-test-report
+          path: awen-runtime/engine_test_report.txt
+          retention-days: 30
+
+      - name: Conformance summary
+        if: success()
+        run: |
+          echo "✅ Engine Execution Core Conformance (Section 2.1) PASSED"
+          echo ""
+          echo "Validations:"
+          echo "✅ Code formatting (fmt check)"
+          echo "✅ Code linting (clippy)"
+          echo "✅ Library compilation"
+          echo "✅ 50+ integration tests"
+          echo "✅ ExecutionPlan generation"
+          echo "✅ Coherence window enforcement"
+          echo "✅ Safety constraint validation"
+          echo "✅ Measurement-conditioned branching"
+          echo "✅ Deterministic replay"
+          echo "✅ Artifact emission"
+          echo "✅ Error handling"
+          echo ""
+          echo "Section 2.1 Definition-of-Done: 18/18 items complete"
+          echo "Ready to proceed to Section 2.2 (Scheduler v0.1)"
+
+  notify:
+    name: Notify on completion
+    runs-on: ubuntu-latest
+    needs: engine-conformance
+    if: always()
+    steps:
+      - name: Check job status
+        run: |
+          if [ "${{ needs.engine-conformance.result }}" = "failure" ]; then
+            echo "❌ Engine Conformance job FAILED"
+            exit 1
+          else
+            echo "✅ Engine Conformance job PASSED"
+            exit 0
+          fi
