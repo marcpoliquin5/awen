@@ -35,7 +35,13 @@ jobs:
         run: |
           cd awen-ecosystem/python_awen
           pip install .
-          pip install pytest
+          pip install pytest black flake8
+
+      - name: Run formatting and lint checks
+        run: |
+          cd awen-ecosystem/python_awen
+          black --check .
+          flake8 .
 
       - name: Run python tests
         run: |

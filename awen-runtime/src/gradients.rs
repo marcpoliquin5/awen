@@ -4,10 +4,10 @@
 //! and noise-aware gradient estimators. Implementations may be provided by plugins/backends.
 
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use once_cell::sync::Lazy;
 
 use crate::ir;
 use crate::plugins::run_reference_simulator;
@@ -43,10 +43,18 @@ pub struct GradientResult {
 pub trait GradientProvider: Send + Sync + 'static {
     /// Compute gradients for the given IR snapshot and parameter list.
     /// `ir_json` is a serialized IR snapshot; `params` lists parameter names to differentiate.
-    fn compute_gradients(&self, ir_json: &str, params: &[String], noise: &NoiseModel, opts: &GradientOptions) -> Result<GradientResult>;
+    fn compute_gradients(
+        &self,
+        ir_json: &str,
+        params: &[String],
+        noise: &NoiseModel,
+        opts: &GradientOptions,
+    ) -> Result<GradientResult>;
 
     /// Optional: compute adjoint analytically when available for higher efficiency.
-    fn supports_adjoint(&self) -> bool { false }
+    fn supports_adjoint(&self) -> bool {
+        false
+    }
 }
 
 /// Registry: runtime holds a registry of gradient providers keyed by backend name. Providers are stored as Arc.
@@ -56,7 +64,9 @@ pub struct GradientRegistry {
 
 impl GradientRegistry {
     pub fn new() -> Self {
-        Self { providers: std::sync::RwLock::new(HashMap::new()) }
+        Self {
+            providers: std::sync::RwLock::new(HashMap::new()),
+        }
     }
 
     pub fn register(&self, name: &str, provider: Arc<dyn GradientProvider>) {
@@ -70,10 +80,15 @@ impl GradientRegistry {
     }
 }
 
+impl Default for GradientRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Global registry accessible to runtime and CLI. Initialized lazily.
-pub static GLOBAL_GRADIENT_REGISTRY: Lazy<Arc<GradientRegistry>> = Lazy::new(|| {
-    Arc::new(GradientRegistry::new())
-});
+pub static GLOBAL_GRADIENT_REGISTRY: Lazy<Arc<GradientRegistry>> =
+    Lazy::new(|| Arc::new(GradientRegistry::new()));
 
 /// Helper to register default providers into the global registry.
 pub fn register_defaults_to_global() {
@@ -85,7 +100,9 @@ pub fn register_defaults_to_global() {
 pub struct ReferenceGradientProvider {}
 
 impl ReferenceGradientProvider {
-    pub fn new() -> Self { Self {} }
+    pub fn new() -> Self {
+        Self {}
+    }
 
     fn evaluate_cost(&self, graph: &ir::Graph, seed: Option<u64>) -> Result<f64> {
         let sim = run_reference_simulator(graph, seed)?;
@@ -99,8 +116,20 @@ impl ReferenceGradientProvider {
     }
 }
 
+impl Default for ReferenceGradientProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GradientProvider for ReferenceGradientProvider {
-    fn compute_gradients(&self, ir_json: &str, params: &[String], _noise: &NoiseModel, opts: &GradientOptions) -> Result<GradientResult> {
+    fn compute_gradients(
+        &self,
+        ir_json: &str,
+        params: &[String],
+        _noise: &NoiseModel,
+        opts: &GradientOptions,
+    ) -> Result<GradientResult> {
         // parse IR
         let mut graph: ir::Graph = serde_json::from_str(ir_json)?;
 
@@ -112,21 +141,27 @@ impl GradientProvider for ReferenceGradientProvider {
         let mut stds = HashMap::new();
 
         // baseline cost
-        let baseline = self.evaluate_cost(&graph, Some(seed_base))?;
+        let _baseline = self.evaluate_cost(&graph, Some(seed_base))?;
 
         for pname in params {
             // find parameter location: for simplicity, search nodes for param name
             // We support parameters named like "node_id:param" or global param names located in first matching node.
-            let (node_idx_opt, key_opt) = if pname.contains(":" ) {
+            // Robustly parse parameter spec. Support "node_id:key" or plain "key".
+            let (node_idx_opt, key_opt) = if pname.contains(":") {
                 let mut parts = pname.splitn(2, ':');
-                (graph.nodes.iter().position(|n| n.id==parts.next().unwrap().to_string()), Some(parts.next().unwrap().to_string()))
+                let node_part = parts.next().unwrap_or("").to_string();
+                let key_part = parts.next().map(|s| s.to_string());
+                let idx = graph.nodes.iter().position(|n| n.id == node_part);
+                (idx, key_part)
             } else {
                 // search first node containing key
-                let mut found = None;
-                for (i, n) in graph.nodes.iter().enumerate() {
-                    if n.params.contains_key(pname) { found = Some((i, pname.clone())); break; }
-                }
-                (found.map(|(i, _)| i), if found.is_some() { Some(pname.clone()) } else { None })
+                let found = graph
+                    .nodes
+                    .iter()
+                    .enumerate()
+                    .find(|(_, n)| n.params.contains_key(pname))
+                    .map(|(i, _)| (i, pname.clone()));
+                (found.as_ref().map(|(i, _)| *i), found.map(|(_, k)| k))
             };
 
             if node_idx_opt.is_none() || key_opt.is_none() {
@@ -146,8 +181,14 @@ impl GradientProvider for ReferenceGradientProvider {
             let mut grads_acc = 0.0_f64;
             let mut vals = Vec::new();
             for s in 0..samples {
-                let seed1 = seed_base.wrapping_add(s as u64).wrapping_mul(2).wrapping_add(1);
-                let seed2 = seed_base.wrapping_add(s as u64).wrapping_mul(2).wrapping_add(2);
+                let seed1 = seed_base
+                    .wrapping_add(s as u64)
+                    .wrapping_mul(2)
+                    .wrapping_add(1);
+                let seed2 = seed_base
+                    .wrapping_add(s as u64)
+                    .wrapping_mul(2)
+                    .wrapping_add(2);
 
                 graph.nodes[node_idx].params.insert(key.clone(), orig + eps);
                 let f_plus = self.evaluate_cost(&graph, Some(seed1))?;
@@ -166,8 +207,14 @@ impl GradientProvider for ReferenceGradientProvider {
             let avg = grads_acc / (samples as f64);
             // compute std
             let mut var = 0.0_f64;
-            for v in &vals { var += (v - avg) * (v - avg); }
-            let std = if samples > 1 { (var / (samples as f64 - 1.0)).sqrt() } else { 0.0_f64 };
+            for v in &vals {
+                var += (v - avg) * (v - avg);
+            }
+            let std = if samples > 1 {
+                (var / (samples as f64 - 1.0)).sqrt()
+            } else {
+                0.0_f64
+            };
 
             gradients.insert(pname.clone(), avg);
             stds.insert(pname.clone(), std);
@@ -184,12 +231,6 @@ impl GradientProvider for ReferenceGradientProvider {
     }
 }
 
-/// Register default providers (to be called by runtime startup)
-pub fn register_default_providers(registry: &GradientRegistry) {
-    let provider = Arc::new(ReferenceGradientProvider::new());
-    registry.register("reference-fd", provider);
-}
-
 /// Analytic/adjoint gradient provider (reference). Currently supports analytic adjoint
 /// gradients for `mzi` node parameter `phase`. For unsupported parameters it falls back
 /// to the finite-difference reference provider.
@@ -198,19 +239,33 @@ pub struct ReferenceAdjointProvider {
 }
 
 impl ReferenceAdjointProvider {
-    pub fn new() -> Self { Self { fd_fallback: ReferenceGradientProvider::new() } }
+    pub fn new() -> Self {
+        Self {
+            fd_fallback: ReferenceGradientProvider::new(),
+        }
+    }
 
     /// Compute analytic gradient of final output power with respect to a single parameter
     /// located in node `node_idx` and key `key`. Returns None if analytic unsupported.
-    fn analytic_grad_for_param(&self, graph: &ir::Graph, node_idx: usize, key: &str) -> Option<f64> {
+    fn analytic_grad_for_param(
+        &self,
+        graph: &ir::Graph,
+        node_idx: usize,
+        key: &str,
+    ) -> Option<f64> {
         // We support only `mzi` node 'phase' analytic gradients for now.
-        if node_idx >= graph.nodes.len() { return None; }
+        if node_idx >= graph.nodes.len() {
+            return None;
+        }
         let target_node = &graph.nodes[node_idx];
-        if target_node.node_type.to_lowercase() != "mzi" || key != "phase" { return None; }
+        if target_node.node_type.to_lowercase() != "mzi" || key != "phase" {
+            return None;
+        }
 
         // Forward propagate complex amplitude and sensitivity vector s = d(a)/dparam
         let mut current = (
-            graph.metadata
+            graph
+                .metadata
                 .get("input_amplitude")
                 .and_then(|s| s.parse::<f64>().ok())
                 .unwrap_or(1.0_f64),
@@ -226,19 +281,31 @@ impl ReferenceAdjointProvider {
                     let cos = phi.cos();
                     let sin = phi.sin();
                     // Rotation R(phi)
-                    let r00 = cos; let r01 = -sin;
-                    let r10 = sin; let r11 = cos;
+                    let r00 = cos;
+                    let r01 = -sin;
+                    let r10 = sin;
+                    let r11 = cos;
                     // dR/dphi
-                    let dr00 = -sin; let dr01 = -cos;
-                    let dr10 = cos;  let dr11 = -sin;
+                    let dr00 = -sin;
+                    let dr01 = -cos;
+                    let dr10 = cos;
+                    let dr11 = -sin;
 
                     // If this is the target node, the parameter appears here; otherwise dr* term is zero.
                     let is_target = i == node_idx;
 
                     // compute s_new = dR/dp * current + R * s
                     let (cx, cy) = current;
-                    let s_new_x = (if is_target { dr00 * cx + dr01 * cy } else { 0.0 }) + (r00 * s.0 + r01 * s.1);
-                    let s_new_y = (if is_target { dr10 * cx + dr11 * cy } else { 0.0 }) + (r10 * s.0 + r11 * s.1);
+                    let s_new_x = (if is_target {
+                        dr00 * cx + dr01 * cy
+                    } else {
+                        0.0
+                    }) + (r00 * s.0 + r01 * s.1);
+                    let s_new_y = (if is_target {
+                        dr10 * cx + dr11 * cy
+                    } else {
+                        0.0
+                    }) + (r10 * s.0 + r11 * s.1);
 
                     // update current = R * current
                     let new_x = r00 * cx + r01 * cy;
@@ -262,9 +329,15 @@ impl ReferenceAdjointProvider {
                     let effective = (coupling * (1.0 / (1.0 + detuning.abs()))).clamp(-PI, PI);
                     let cos = effective.cos();
                     let sin = effective.sin();
-                    let r00 = cos; let r01 = -sin; let r10 = sin; let r11 = cos;
+                    let r00 = cos;
+                    let r01 = -sin;
+                    let r10 = sin;
+                    let r11 = cos;
                     // For analytic derivatives wrt ring params we don't support yet, set dr=0
-                    let dr00 = 0.0_f64; let dr01 = 0.0_f64; let dr10 = 0.0_f64; let dr11 = 0.0_f64;
+                    let dr00 = 0.0_f64;
+                    let dr01 = 0.0_f64;
+                    let dr10 = 0.0_f64;
+                    let dr11 = 0.0_f64;
 
                     let (cx, cy) = current;
                     let s_new_x = (dr00 * cx + dr01 * cy) + (r00 * s.0 + r01 * s.1);
@@ -295,8 +368,21 @@ impl ReferenceAdjointProvider {
     }
 }
 
+impl Default for ReferenceAdjointProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GradientProvider for ReferenceAdjointProvider {
-    fn compute_gradients(&self, ir_json: &str, params: &[String], noise: &NoiseModel, opts: &GradientOptions) -> Result<GradientResult> {
+    #[allow(clippy::cloned_ref_to_slice_refs)]
+    fn compute_gradients(
+        &self,
+        ir_json: &str,
+        params: &[String],
+        noise: &NoiseModel,
+        opts: &GradientOptions,
+    ) -> Result<GradientResult> {
         let graph: ir::Graph = serde_json::from_str(ir_json)?;
 
         let mut gradients = HashMap::new();
@@ -304,15 +390,21 @@ impl GradientProvider for ReferenceAdjointProvider {
 
         for pname in params {
             // locate parameter
-            let (node_idx_opt, key_opt) = if pname.contains(":" ) {
+            // Robustly parse parameter spec. Support "node_id:key" or plain "key".
+            let (node_idx_opt, key_opt) = if pname.contains(":") {
                 let mut parts = pname.splitn(2, ':');
-                (graph.nodes.iter().position(|n| n.id==parts.next().unwrap().to_string()), Some(parts.next().unwrap().to_string()))
+                let node_part = parts.next().unwrap_or("").to_string();
+                let key_part = parts.next().map(|s| s.to_string());
+                let idx = graph.nodes.iter().position(|n| n.id == node_part);
+                (idx, key_part)
             } else {
-                let mut found = None;
-                for (i, n) in graph.nodes.iter().enumerate() {
-                    if n.params.contains_key(pname) { found = Some((i, pname.clone())); break; }
-                }
-                (found.map(|(i, _)| i), if found.is_some() { Some(pname.clone()) } else { None })
+                let found = graph
+                    .nodes
+                    .iter()
+                    .enumerate()
+                    .find(|(_, n)| n.params.contains_key(pname))
+                    .map(|(i, _)| (i, pname.clone()));
+                (found.as_ref().map(|(i, _)| *i), found.map(|(_, k)| k))
             };
 
             if node_idx_opt.is_none() || key_opt.is_none() {
@@ -331,18 +423,31 @@ impl GradientProvider for ReferenceAdjointProvider {
             }
 
             // fallback to finite-difference provider
-            let res = self.fd_fallback.compute_gradients(ir_json, &[pname.clone()], noise, opts)?;
-            if let Some(v) = res.gradients.get(pname) { gradients.insert(pname.clone(), *v); }
+            let res = self
+                .fd_fallback
+                .compute_gradients(ir_json, &[pname.clone()], noise, opts)?;
+            if let Some(v) = res.gradients.get(pname) {
+                gradients.insert(pname.clone(), *v);
+            }
             if let Some(smap) = &res.gradient_std {
-                if let Some(sv) = smap.get(pname) { stds.insert(pname.clone(), *sv); }
+                if let Some(sv) = smap.get(pname) {
+                    stds.insert(pname.clone(), *sv);
+                }
             }
         }
 
-        let mut prov = HashMap::new(); prov.insert("provider".to_string(), "reference-adjoint".to_string());
-        Ok(GradientResult { gradients, gradient_std: Some(stds), provenance: prov })
+        let mut prov = HashMap::new();
+        prov.insert("provider".to_string(), "reference-adjoint".to_string());
+        Ok(GradientResult {
+            gradients,
+            gradient_std: Some(stds),
+            provenance: prov,
+        })
     }
 
-    fn supports_adjoint(&self) -> bool { true }
+    fn supports_adjoint(&self) -> bool {
+        true
+    }
 }
 
 // Update register_defaults_to_global to add adjoint provider as well
@@ -363,9 +468,21 @@ mod tests {
         let ir = fs::read_to_string("example_ir.json").expect("read example_ir");
         let provider = ReferenceGradientProvider::new();
         let params = vec!["mzi_0:phase".to_string(), "mzi_1:phase".to_string()];
-        let noise = NoiseModel { shot_noise_std: None, thermal_noise_std: None, phase_noise_std: None, loss_variation: None, metadata: None };
-        let opts = GradientOptions { strategy: "finite_difference".to_string(), seed: Some(42), samples: Some(1) };
-        let res = provider.compute_gradients(&ir, &params, &noise, &opts).expect("compute gradients");
+        let noise = NoiseModel {
+            shot_noise_std: None,
+            thermal_noise_std: None,
+            phase_noise_std: None,
+            loss_variation: None,
+            metadata: None,
+        };
+        let opts = GradientOptions {
+            strategy: "finite_difference".to_string(),
+            seed: Some(42),
+            samples: Some(1),
+        };
+        let res = provider
+            .compute_gradients(&ir, &params, &noise, &opts)
+            .expect("compute gradients");
         assert!(res.gradients.contains_key("mzi_0:phase"));
     }
 
@@ -374,15 +491,33 @@ mod tests {
         // Compare analytic adjoint against finite-difference for MZI phase parameters
         let ir = fs::read_to_string("example_ir.json").expect("read example_ir");
         let params = vec!["mzi_0:phase".to_string(), "mzi_1:phase".to_string()];
-        let noise = NoiseModel { shot_noise_std: None, thermal_noise_std: None, phase_noise_std: None, loss_variation: None, metadata: None };
-        let fd_opts = GradientOptions { strategy: "finite_difference".to_string(), seed: Some(12345), samples: Some(3) };
-        let adj_opts = GradientOptions { strategy: "adjoint".to_string(), seed: Some(12345), samples: Some(1) };
+        let noise = NoiseModel {
+            shot_noise_std: None,
+            thermal_noise_std: None,
+            phase_noise_std: None,
+            loss_variation: None,
+            metadata: None,
+        };
+        let fd_opts = GradientOptions {
+            strategy: "finite_difference".to_string(),
+            seed: Some(12345),
+            samples: Some(3),
+        };
+        let adj_opts = GradientOptions {
+            strategy: "adjoint".to_string(),
+            seed: Some(12345),
+            samples: Some(1),
+        };
 
         let fd = ReferenceGradientProvider::new();
         let adj = ReferenceAdjointProvider::new();
 
-        let fd_res = fd.compute_gradients(&ir, &params, &noise, &fd_opts).expect("fd grad");
-        let adj_res = adj.compute_gradients(&ir, &params, &noise, &adj_opts).expect("adj grad");
+        let fd_res = fd
+            .compute_gradients(&ir, &params, &noise, &fd_opts)
+            .expect("fd grad");
+        let adj_res = adj
+            .compute_gradients(&ir, &params, &noise, &adj_opts)
+            .expect("adj grad");
 
         // Tolerances: allow small absolute error and small relative error
         let abs_tol = 1e-4_f64;
@@ -392,8 +527,20 @@ mod tests {
             let g_fd = fd_res.gradients.get(p).copied().unwrap_or(0.0);
             let g_adj = adj_res.gradients.get(p).copied().unwrap_or(0.0);
             let abs_err = (g_fd - g_adj).abs();
-            let rel_err = if g_fd.abs() > 0.0 { abs_err / g_fd.abs() } else { abs_err };
-            assert!(abs_err <= abs_tol || rel_err <= rel_tol, "gradient mismatch for {}: fd={} adj={} abs_err={} rel_err={}", p, g_fd, g_adj, abs_err, rel_err);
+            let rel_err = if g_fd.abs() > 0.0 {
+                abs_err / g_fd.abs()
+            } else {
+                abs_err
+            };
+            assert!(
+                abs_err <= abs_tol || rel_err <= rel_tol,
+                "gradient mismatch for {}: fd={} adj={} abs_err={} rel_err={}",
+                p,
+                g_fd,
+                g_adj,
+                abs_err,
+                rel_err
+            );
         }
     }
 }

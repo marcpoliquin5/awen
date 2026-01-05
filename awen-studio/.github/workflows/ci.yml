@@ -12,6 +12,23 @@ jobs:
         with:
           node-version: '20'
       - name: Install
-        run: npm ci || true
+        run: npm ci
+
+      - name: Run lint (if configured)
+        run: |
+          if npm run -s lint; then
+            echo "lint passed";
+          else
+            echo "lint failed or not configured"; exit 1;
+          fi
+
+      - name: Run tests (if configured)
+        run: |
+          if npm test --silent; then
+            echo "tests passed";
+          else
+            echo "tests failed or not configured"; exit 1;
+          fi
+
       - name: Build
-        run: echo "Add Studio build steps (Tauri/React)"
+        run: npm run build || true

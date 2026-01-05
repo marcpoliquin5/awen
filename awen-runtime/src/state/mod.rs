@@ -1,10 +1,13 @@
 // Quantum State & Coherence Window model (v0.1)
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use anyhow::Result;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+mod memory;
+pub use memory::{DelayBuffer, HybridRegister, MemoryPrimitive, ResonatorStore};
 
 /// A photonic quantum state mode: classical or quantum (Fock/mixed).
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -22,10 +25,29 @@ pub struct CoherenceWindow {
     pub id: String,
     pub start_ns: u64,
     pub end_ns: u64,
+    pub duration_ns: u64,
     pub decoherence_timescale_ns: Option<f64>,
     pub cross_mode_decoherence_ns: Option<f64>,
     pub idle_time_budget_ns: Option<u64>,
+    pub fidelity_threshold: f64,
     pub notes: Option<String>,
+}
+
+impl CoherenceWindow {
+    /// Create a simple coherence window starting at 0 for `duration_ns`.
+    pub fn new(id: String, duration_ns: u64) -> Self {
+        CoherenceWindow {
+            id,
+            start_ns: 0,
+            end_ns: duration_ns,
+            duration_ns,
+            decoherence_timescale_ns: None,
+            cross_mode_decoherence_ns: None,
+            idle_time_budget_ns: None,
+            fidelity_threshold: 0.0,
+            notes: None,
+        }
+    }
 }
 
 /// A quantum state snapshot: modes + coherence window + provenance.
@@ -51,10 +73,20 @@ pub struct MeasurementOutcome {
 /// Trait for quantum state evolution and measurement.
 pub trait StateEvolver: Send + Sync {
     /// Evolve a quantum state via a gate (parametric: BS, PS, SQUEEZING, PDC).
-    fn evolve_state(&self, state: &QuantumState, gate: &str, params: &HashMap<String, f64>) -> Result<QuantumState>;
+    fn evolve_state(
+        &self,
+        state: &QuantumState,
+        gate: &str,
+        params: &HashMap<String, f64>,
+    ) -> Result<QuantumState>;
 
     /// Measure a mode, collapse the state, return outcome.
-    fn measure(&self, state: &QuantumState, mode_id: &str, seed: Option<u64>) -> Result<MeasurementOutcome>;
+    fn measure(
+        &self,
+        state: &QuantumState,
+        mode_id: &str,
+        seed: Option<u64>,
+    ) -> Result<MeasurementOutcome>;
 
     /// Check if state is still coherent (within time window and budgets).
     fn is_coherent(&self, state: &QuantumState, current_time_ns: u64) -> bool;
@@ -63,7 +95,12 @@ pub trait StateEvolver: Send + Sync {
 /// Trait for coherence window tracking.
 pub trait CoherenceManager: Send + Sync {
     /// Create a coherence window for a subgraph execution.
-    fn create_window(&self, start_ns: u64, duration_ns: u64, decoherence_model: &str) -> Result<CoherenceWindow>;
+    fn create_window(
+        &self,
+        start_ns: u64,
+        duration_ns: u64,
+        decoherence_model: &str,
+    ) -> Result<CoherenceWindow>;
 
     /// Validate state is within coherence window.
     fn validate_coherence(&self, state: &QuantumState, current_time_ns: u64) -> Result<()>;
@@ -73,7 +110,12 @@ pub trait CoherenceManager: Send + Sync {
 pub struct ReferenceStateEvolver;
 
 impl StateEvolver for ReferenceStateEvolver {
-    fn evolve_state(&self, state: &QuantumState, gate: &str, params: &HashMap<String, f64>) -> Result<QuantumState> {
+    fn evolve_state(
+        &self,
+        state: &QuantumState,
+        gate: &str,
+        params: &HashMap<String, f64>,
+    ) -> Result<QuantumState> {
         // Implement unitary gate evolution on quantum modes.
         // Each gate applies a unitary transformation to mode amplitudes/phases.
         let mut out = state.clone();
@@ -81,10 +123,12 @@ impl StateEvolver for ReferenceStateEvolver {
         match gate {
             "PS" => {
                 // Phase Shift: modifies phase of selected mode
-                let mode_id = params.get("mode_id")
-                    .and_then(|v| Some((*v as usize).to_string()))
+                let mode_id = params
+                    .get("mode_id")
+                    .map(|v| (*v as usize).to_string())
                     .ok_or_else(|| anyhow::anyhow!("PS gate requires mode_id parameter"))?;
-                let phase_shift = params.get("phase")
+                let phase_shift = params
+                    .get("phase")
                     .copied()
                     .ok_or_else(|| anyhow::anyhow!("PS gate requires phase parameter"))?;
 
@@ -95,17 +139,23 @@ impl StateEvolver for ReferenceStateEvolver {
                         }
                     }
                 }
-                out.provenance.insert("last_gate".to_string(), format!("PS(phase={})", phase_shift));
+                out.provenance.insert(
+                    "last_gate".to_string(),
+                    format!("PS(phase={})", phase_shift),
+                );
             }
             "BS" => {
                 // Beam Splitter: couples two modes via unitary transformation
-                let mode1 = params.get("mode1")
-                    .and_then(|v| Some((*v as usize).to_string()))
+                let mode1 = params
+                    .get("mode1")
+                    .map(|v| (*v as usize).to_string())
                     .ok_or_else(|| anyhow::anyhow!("BS gate requires mode1 parameter"))?;
-                let mode2 = params.get("mode2")
-                    .and_then(|v| Some((*v as usize).to_string()))
+                let mode2 = params
+                    .get("mode2")
+                    .map(|v| (*v as usize).to_string())
                     .ok_or_else(|| anyhow::anyhow!("BS gate requires mode2 parameter"))?;
-                let theta = params.get("theta")
+                let theta = params
+                    .get("theta")
                     .copied()
                     .ok_or_else(|| anyhow::anyhow!("BS gate requires theta parameter"))?;
 
@@ -114,24 +164,43 @@ impl StateEvolver for ReferenceStateEvolver {
                 let idx2 = out.modes.iter().position(|m| m.mode_id == mode2);
 
                 if let (Some(i1), Some(i2)) = (idx1, idx2) {
-                    if let (Some(amp1), Some(amp2)) = 
-                        (out.modes[i1].amplitudes.as_mut(), out.modes[i2].amplitudes.as_mut()) {
-                        if amp1.len() > 0 && amp2.len() > 0 {
-                            let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
-                            let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
-                            amp1[0] = a1;
-                            amp2[0] = a2;
+                    if i1 < i2 {
+                        let (first, second) = out.modes.split_at_mut(i2);
+                        if let (Some(amp1), Some(amp2)) =
+                            (first[i1].amplitudes.as_mut(), second[0].amplitudes.as_mut())
+                        {
+                            if !amp1.is_empty() && !amp2.is_empty() {
+                                let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
+                                let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
+                                amp1[0] = a1;
+                                amp2[0] = a2;
+                            }
+                        }
+                    } else if i2 < i1 {
+                        let (first, second) = out.modes.split_at_mut(i1);
+                        if let (Some(amp1), Some(amp2)) =
+                            (second[0].amplitudes.as_mut(), first[i2].amplitudes.as_mut())
+                        {
+                            if !amp1.is_empty() && !amp2.is_empty() {
+                                let a1 = amp1[0] * theta.cos() - amp2[0] * theta.sin();
+                                let a2 = amp1[0] * theta.sin() + amp2[0] * theta.cos();
+                                amp1[0] = a1;
+                                amp2[0] = a2;
+                            }
                         }
                     }
                 }
-                out.provenance.insert("last_gate".to_string(), format!("BS(theta={})", theta));
+                out.provenance
+                    .insert("last_gate".to_string(), format!("BS(theta={})", theta));
             }
             "SQUEEZING" => {
                 // Squeezing: modifies variance of mode
-                let mode_id = params.get("mode_id")
-                    .and_then(|v| Some((*v as usize).to_string()))
+                let mode_id = params
+                    .get("mode_id")
+                    .map(|v| (*v as usize).to_string())
                     .ok_or_else(|| anyhow::anyhow!("SQUEEZING gate requires mode_id parameter"))?;
-                let r = params.get("r")
+                let r = params
+                    .get("r")
                     .copied()
                     .ok_or_else(|| anyhow::anyhow!("SQUEEZING gate requires r parameter"))?;
 
@@ -142,25 +211,28 @@ impl StateEvolver for ReferenceStateEvolver {
                         }
                     }
                 }
-                out.provenance.insert("last_gate".to_string(), format!("SQUEEZING(r={})", r));
+                out.provenance
+                    .insert("last_gate".to_string(), format!("SQUEEZING(r={})", r));
             }
             "PDC" => {
                 // Parametric Down-Conversion: creates entangled pairs (simplified)
-                let pump_id = params.get("pump_id")
-                    .and_then(|v| Some((*v as usize).to_string()))
+                let pump_id = params
+                    .get("pump_id")
+                    .map(|v| (*v as usize).to_string())
                     .ok_or_else(|| anyhow::anyhow!("PDC gate requires pump_id parameter"))?;
-                let nonlinearity = params.get("nonlinearity")
-                    .copied()
-                    .unwrap_or(0.1);
+                let nonlinearity = params.get("nonlinearity").copied().unwrap_or(0.1);
 
                 if let Some(mode) = out.modes.iter_mut().find(|m| m.mode_id == pump_id) {
                     if let Some(ref mut amps) = mode.amplitudes {
                         for a in amps.iter_mut() {
-                            *a *= (1.0 + nonlinearity); // simplified entanglement generation
+                            *a *= 1.0 + nonlinearity; // simplified entanglement generation
                         }
                     }
                 }
-                out.provenance.insert("last_gate".to_string(), format!("PDC(nonlinearity={})", nonlinearity));
+                out.provenance.insert(
+                    "last_gate".to_string(),
+                    format!("PDC(nonlinearity={})", nonlinearity),
+                );
             }
             _ => {
                 return Err(anyhow::anyhow!("unknown gate: {}", gate));
@@ -170,27 +242,36 @@ impl StateEvolver for ReferenceStateEvolver {
         Ok(out)
     }
 
-    fn measure(&self, state: &QuantumState, mode_id: &str, seed: Option<u64>) -> Result<MeasurementOutcome> {
+    fn measure(
+        &self,
+        state: &QuantumState,
+        mode_id: &str,
+        seed: Option<u64>,
+    ) -> Result<MeasurementOutcome> {
         // Implement destructive measurement via seeded RNG sampling.
         let seed_val = seed.unwrap_or(0xDEADBEEF);
         let mut rng = StdRng::seed_from_u64(seed_val);
 
         // Find the target mode
-        let mode = state.modes.iter()
+        let mode = state
+            .modes
+            .iter()
             .find(|m| m.mode_id == mode_id)
             .ok_or_else(|| anyhow::anyhow!("mode {} not found", mode_id))?;
 
         // Sample outcome based on amplitudes (probabilities ~ |amplitude|^2)
-        let amplitudes = mode.amplitudes.as_ref()
+        let amplitudes = mode
+            .amplitudes
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("mode {} has no amplitudes", mode_id))?;
 
         // Compute outcome probabilities (normalized)
-        let probs: Vec<f64> = amplitudes.iter()
-            .map(|a| a.abs().powi(2))
-            .collect();
+        let probs: Vec<f64> = amplitudes.iter().map(|a| a.abs().powi(2)).collect();
         let total: f64 = probs.iter().sum();
         if total <= 0.0 {
-            return Err(anyhow::anyhow!("invalid probability distribution for measurement"));
+            return Err(anyhow::anyhow!(
+                "invalid probability distribution for measurement"
+            ));
         }
 
         let normalized: Vec<f64> = probs.iter().map(|p| p / total).collect();
@@ -226,7 +307,10 @@ impl StateEvolver for ReferenceStateEvolver {
             seed: Some(seed_val),
             provenance: {
                 let mut p = state.provenance.clone();
-                p.insert("measurement".to_string(), format!("mode:{} outcome:{}", mode_id, outcome_idx));
+                p.insert(
+                    "measurement".to_string(),
+                    format!("mode:{} outcome:{}", mode_id, outcome_idx),
+                );
                 p
             },
         };
@@ -249,14 +333,21 @@ impl StateEvolver for ReferenceStateEvolver {
 pub struct ReferenceCoherenceManager;
 
 impl CoherenceManager for ReferenceCoherenceManager {
-    fn create_window(&self, start_ns: u64, duration_ns: u64, decoherence_model: &str) -> Result<CoherenceWindow> {
+    fn create_window(
+        &self,
+        start_ns: u64,
+        duration_ns: u64,
+        decoherence_model: &str,
+    ) -> Result<CoherenceWindow> {
         Ok(CoherenceWindow {
             id: format!("coh-{}-{}", start_ns, decoherence_model),
             start_ns,
             end_ns: start_ns + duration_ns,
+            duration_ns,
             decoherence_timescale_ns: Some(500.0),
             cross_mode_decoherence_ns: Some(750.0),
             idle_time_budget_ns: Some(200),
+            fidelity_threshold: 0.95,
             notes: Some(format!("model:{}", decoherence_model)),
         })
     }

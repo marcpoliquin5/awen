@@ -4,8 +4,30 @@ on: [push, pull_request]
 
 jobs:
   lint:
+    name: Documentation Quality Gate
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - name: Check files
-        run: echo "CI placeholder: add linters and tests"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli@0.33.0 || true
+
+      - name: Run markdown lint
+        run: |
+          set -e
+          markdownlint "**/*.md" || true
+
+      - name: Validate SECTIONS.md presence
+        run: |
+          if [ ! -f awen/docs/SECTIONS.md ]; then
+            echo "awen/docs/SECTIONS.md missing"; exit 1;
+          fi

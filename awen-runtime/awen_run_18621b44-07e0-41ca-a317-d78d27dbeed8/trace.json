@@ -1,0 +1,25 @@
+{
+  "run_seed": 42,
+  "node_results": [
+    {
+      "node_id": "mzi_0",
+      "out_amplitude": [
+        0.9949988612407273,
+        0.09988626597113259
+      ],
+      "phase_noise": 0.00005311481800554757,
+      "power_loss": 0.0,
+      "measurement": null
+    },
+    {
+      "node_id": "mzi_1",
+      "out_amplitude": [
+        0.9552955311266372,
+        0.29565258025167995
+      ],
+      "phase_noise": 0.00008545041980628776,
+      "power_loss": 0.0,
+      "measurement": null
+    }
+  ]
+}
