@@ -9,6 +9,8 @@
 **Status:** SPECIFICATION (In Development)  
 **Last Updated:** 2026-01-06
 
+## Overview
+
 ## 1. Overview
 
 The **Scheduler** is the execution planning layer that generates optimal schedules for photonic computation graphs within coherence windows. It transforms a computation graph into an ExecutionPlan suitable for execution by the Engine, respecting temporal constraints, coherence deadlines, and resource availability.
