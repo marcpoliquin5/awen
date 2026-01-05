@@ -33,18 +33,23 @@ jobs:
           rustup component add rustfmt --toolchain stable || true
 
       - name: Cargo fmt check
+        working-directory: ./awen-runtime
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
+        working-directory: ./awen-runtime
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run tests
+        working-directory: ./awen-runtime
         run: cargo test --all --no-fail-fast
 
       - name: Build release
+        working-directory: ./awen-runtime
         run: cargo build --workspace --release
 
       - name: Run awenctl gradient (finite difference) against example IR
+        working-directory: ./awen-runtime
         run: |
           ./target/release/awenctl gradient example_ir.json "mzi_0:phase,mzi_1:phase" --strategy finite_difference --seed 42 --samples 1
 
@@ -66,6 +71,7 @@ print('gradients.json OK')
 PY
 
       - name: Run awenctl gradient (auto) against example IR
+        working-directory: ./awen-runtime
         run: |
           ./target/release/awenctl gradient example_ir.json "mzi_0:phase,mzi_1:phase" --strategy auto --seed 42 --samples 1
 

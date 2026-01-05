@@ -33,22 +33,28 @@ jobs:
           rustup component add rustfmt --toolchain stable || true
 
       - name: Cargo fmt check
+        working-directory: ./awen-runtime
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
+        working-directory: ./awen-runtime
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run tests
+        working-directory: ./awen-runtime
         run: cargo test --all --no-fail-fast
 
       - name: Build release
+        working-directory: ./awen-runtime
         run: cargo build --workspace --release
 
       - name: Run awenctl with example IR
+        working-directory: ./awen-runtime
         run: |
           ./target/release/awenctl run example_ir.json --seed 42
 
       - name: Verify run artifacts contain results.json and ir.json
+        working-directory: ./awen-runtime
         run: |
           set -e
           DIR=$(ls -d awen_run_* | tail -n1)
