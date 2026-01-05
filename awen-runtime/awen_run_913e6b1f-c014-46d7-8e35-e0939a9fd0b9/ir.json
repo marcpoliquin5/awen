@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "mzi_0",
+      "type": "MZI",
+      "params": {
+        "phase": 0.1
+      },
+      "measure_mode": null,
+      "conditional_branches": null
+    },
+    {
+      "id": "mzi_1",
+      "type": "MZI",
+      "params": {
+        "phase": 0.2
+      },
+      "measure_mode": null,
+      "conditional_branches": null
+    }
+  ],
+  "edges": [],
+  "metadata": {
+    "author": "awen-scaffold",
+    "input_amplitude": "1.0"
+  }
+}
