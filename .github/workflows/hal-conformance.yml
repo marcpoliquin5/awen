@@ -491,7 +491,7 @@ jobs:
           cat /tmp/hal_conformance_report.txt
 
       - name: Upload conformance report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hal-conformance-report
           path: /tmp/hal_conformance_report.txt

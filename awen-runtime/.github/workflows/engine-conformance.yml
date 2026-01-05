@@ -122,7 +122,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: engine-test-report
           path: awen-runtime/engine_test_report.txt
