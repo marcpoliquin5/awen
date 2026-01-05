@@ -348,3 +348,15 @@ frontier research, engineering, and production deployment.
 **Status:** ✅ COMPLETE
 
 ═══════════════════════════════════════════════════════════════════════════════
+
+ADDITIONAL ACTIONS (2026-01-05)
+───────────────────────────────────────────────────────────────────────────────
+- Merged PR #2 (`chore/observability-v0.1-quality-gate`) into `main` and deleted the
+  feature branch. The observability quality-gate workflow ran green and uploaded
+  artifacts, satisfying the AWEN rule: green CI + uploaded artifacts = gated milestone.
+- Removed `awen-runtime/awen_run_*` run-artifact directories from `main` and committed
+  the cleanup (commit 97385cd).
+- Next recommended step: apply branch-protection rules to require the
+  observability quality-gate on `main` (requires repository admin privileges).
+
+Recorded by: AWEN Development Agent
