@@ -1,0 +1,7 @@
+/workspaces/awen/awen-runtime/target/tests/trybuild/x86_64-unknown-linux-gnu/debug/deps/clap-cc8465bb09c32ab6.d: /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/lib.rs /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.rs /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.md
+
+/workspaces/awen/awen-runtime/target/tests/trybuild/x86_64-unknown-linux-gnu/debug/deps/libclap-cc8465bb09c32ab6.rmeta: /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/lib.rs /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.rs /home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.md
+
+/home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/lib.rs:
+/home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.rs:
+/home/codespace/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/clap-4.5.54/src/../examples/demo.md:

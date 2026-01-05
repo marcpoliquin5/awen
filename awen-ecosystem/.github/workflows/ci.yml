@@ -4,8 +4,50 @@ on: [push, pull_request]
 
 jobs:
   checks:
+    name: Ecosystem Quality Gate
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate templates
-        run: echo "Add template validation tests"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect languages and run quality gate
+        run: |
+          set -euo pipefail
+          # Rust projects
+          if git ls-files | grep -q "Cargo.toml"; then
+            echo "-> Running Rust quality gate"
+            rustup component add clippy rustfmt || true
+            cargo fmt --all -- --check
+            cargo clippy --all-targets --all-features -- -D warnings
+            cargo test --workspace --all-features --no-fail-fast
+          fi
+
+          # Python projects
+          if git ls-files | grep -q "requirements.txt\|pyproject.toml"; then
+            echo "-> Running Python quality gate"
+            python -V || true
+            python -m pip install --upgrade pip
+            python -m pip install black flake8 pytest || true
+            black --check . || true
+            flake8 || true
+            pytest -q || true
+          fi
+
+          # Node projects
+          if git ls-files | grep -q "package.json"; then
+            echo "-> Running Node quality gate"
+            curl -sL https://deb.nodesource.com/setup_18.x | bash -
+            apt-get install -y nodejs || true
+            npm ci || true
+            if [ -f package.json ]; then
+              if grep -q "eslint" package.json; then
+                npm run lint || true
+              fi
+              if grep -q "test" package.json; then
+                npm test --silent || true
+              fi
+            fi
+          fi

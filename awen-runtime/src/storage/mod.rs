@@ -12,13 +12,17 @@ pub mod import;
 pub mod manifest;
 
 // Re-export key types for ergonomics
-pub use bundle::{ArtifactBundle, ArtifactType, BundleBuilder, ObservabilityData, ProvenanceData, CreatorInfo, EnvironmentSnapshot};
+pub use bundle::{
+    validate_bundle, ArtifactBundle, ArtifactType, BundleBuilder, CreatorInfo, EnvironmentSnapshot,
+    ObservabilityData, ProvenanceData,
+};
 pub use deterministic_id::{compute_deterministic_id, short_id};
-pub use environment::{capture_environment, RuntimeInfo, SystemInfo, DeviceInfo, DeviceCapabilities};
+pub use environment::{
+    capture_environment, DeviceCapabilities, DeviceInfo, RuntimeInfo, SystemInfo,
+};
 pub use export::{export_bundle, ExportFormat};
 pub use import::import_bundle;
 pub use manifest::Manifest;
-pub use self::ReplayComponents;
 
 /// Components needed for deterministic replay
 #[derive(Clone, Debug)]
@@ -29,8 +33,8 @@ pub struct ReplayComponents {
     pub environment: EnvironmentSnapshot,
 }
 
-use std::path::{Path, PathBuf};
 use anyhow::Result;
+use std::path::{Path, PathBuf};
 
 /// Initialize artifact storage
 ///
@@ -56,8 +60,8 @@ pub fn save_artifact(bundle: &ArtifactBundle, artifacts_dir: &Path) -> Result<Pa
 pub fn load_artifact_for_replay(artifact_path: &Path) -> Result<ReplayComponents> {
     let bundle = import_bundle(artifact_path)?;
     Ok(ReplayComponents {
-        ir: bundle.ir,
-        parameters: bundle.parameters,
+        ir: bundle.ir_original,
+        parameters: bundle.parameters_initial,
         seed: bundle.seed,
         environment: bundle.environment,
     })

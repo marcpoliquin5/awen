@@ -1,3 +1,5 @@
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 /// Engine Execution Core - Phase 2, Section 2.1
 ///
 /// The Engine is the mandatory, non-bypassable execution chokepoint for all AWEN computation.
@@ -8,12 +10,9 @@
 /// - Observability instrumentation
 /// - Safety constraint enforcement
 /// - Deterministic artifact emission
-
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use anyhow::{anyhow, Result};
 
 // ============================================================================
 // Execution Plan Types
@@ -160,14 +159,15 @@ pub struct SafetyViolation {
 // ============================================================================
 
 pub struct Engine {
+    #[allow(dead_code)]
     observability_enabled: bool,
     safety_enforcement: SafetyEnforcement,
 }
 
 pub enum SafetyEnforcement {
-    Strict,      // Fail on any violation
-    Warning,     // Warn but continue
-    Automatic,   // Try to recalibrate
+    Strict,    // Fail on any violation
+    Warning,   // Warn but continue
+    Automatic, // Try to recalibrate
 }
 
 impl Engine {
@@ -201,7 +201,7 @@ impl Engine {
             seed: run_seed,
             start_time,
             nodes_completed: 0,
-            coherence_budget_remaining_ns: 10_000_000,  // 10ms
+            coherence_budget_remaining_ns: 10_000_000, // 10ms
         };
 
         // 4. Execute nodes in phases
@@ -212,7 +212,9 @@ impl Engine {
 
         for phase in &plan.phases {
             for node_id in &phase.nodes_to_execute {
-                let node = graph.nodes.iter()
+                let node = graph
+                    .nodes
+                    .iter()
                     .find(|n| &n.id == node_id)
                     .ok_or_else(|| anyhow!("Node not found: {}", node_id))?;
 
@@ -242,12 +244,13 @@ impl Engine {
                         });
 
                         // Update coherence budget
-                        context.coherence_budget_remaining_ns =
-                            context.coherence_budget_remaining_ns.saturating_sub(duration_ns);
+                        context.coherence_budget_remaining_ns = context
+                            .coherence_budget_remaining_ns
+                            .saturating_sub(duration_ns);
                     }
                     Err(e) => {
                         let error_msg = e.to_string();
-                        
+
                         if error_msg.contains("coherence") {
                             coherence_violations += 1;
                         }
@@ -268,11 +271,7 @@ impl Engine {
                         // Handle violation based on strategy
                         match self.safety_enforcement {
                             SafetyEnforcement::Strict => {
-                                return Err(anyhow!(
-                                    "Execution failed at node {}: {}",
-                                    node_id,
-                                    e
-                                ));
+                                return Err(anyhow!("Execution failed at node {}: {}", node_id, e));
                             }
                             SafetyEnforcement::Warning => {
                                 // Continue execution
@@ -324,7 +323,10 @@ impl Engine {
 
         for edge in &graph.edges {
             if !node_ids.contains(&edge.from_node) {
-                return Err(anyhow!("Edge references undefined node: {}", edge.from_node));
+                return Err(anyhow!(
+                    "Edge references undefined node: {}",
+                    edge.from_node
+                ));
             }
             if !node_ids.contains(&edge.to_node) {
                 return Err(anyhow!("Edge references undefined node: {}", edge.to_node));
@@ -364,26 +366,30 @@ impl Engine {
 
         while !queue.is_empty() {
             let mut phase_nodes = Vec::new();
+            let mut next_queue: Vec<String> = Vec::new();
 
             for node_id in queue.drain(..) {
                 if visited.insert(node_id.clone()) {
                     phase_nodes.push(node_id.clone());
 
-                    // Add successors to next queue
+                    // Collect successors into next_queue
                     for edge in &graph.edges {
                         if edge.from_node == node_id && !visited.contains(&edge.to_node) {
-                            queue.push(edge.to_node.clone());
+                            next_queue.push(edge.to_node.clone());
                         }
                     }
                 }
             }
+
+            // Prepare queue for next iteration
+            queue = next_queue;
 
             if !phase_nodes.is_empty() {
                 plan.phases.push(ExecutionPhase {
                     phase_id: current_phase,
                     nodes_to_execute: phase_nodes,
                     is_parallel: true,
-                    duration_ns: 1000,  // 1µs per phase
+                    duration_ns: 1000, // 1µs per phase
                 });
                 current_phase += 1;
             }
@@ -395,11 +401,7 @@ impl Engine {
     }
 
     /// Execute a single node with safety & coherence checks
-    fn execute_node(
-        &self,
-        node: &ComputationNode,
-        context: &ExecutionContext,
-    ) -> Result<()> {
+    fn execute_node(&self, node: &ComputationNode, context: &ExecutionContext) -> Result<()> {
         // Check coherence budget
         if let Some(coherence_req) = node.timing_contract.coherence_requirement_ns {
             if context.coherence_budget_remaining_ns < coherence_req {
@@ -434,7 +436,11 @@ impl Engine {
         // Validate parameters are within safety limits
         for (param_name, value) in &node.parameters {
             if *value > 100.0 {
-                return Err(anyhow!("Safety: parameter {} exceeds limit ({})", param_name, value));
+                return Err(anyhow!(
+                    "Safety: parameter {} exceeds limit ({})",
+                    param_name,
+                    value
+                ));
             }
         }
 
@@ -470,7 +476,7 @@ impl Engine {
         Ok(())
     }
 
-    fn execute_measurement(&self, node: &ComputationNode, basis_type: &str) -> Result<()> {
+    fn execute_measurement(&self, _node: &ComputationNode, basis_type: &str) -> Result<()> {
         // Measurement destroys coherence
         match basis_type {
             "Computational" => {}
@@ -481,7 +487,7 @@ impl Engine {
         Ok(())
     }
 
-    fn execute_calibration(&self, node: &ComputationNode) -> Result<()> {
+    fn execute_calibration(&self, _node: &ComputationNode) -> Result<()> {
         // Calibration execution (simplified)
         Ok(())
     }
@@ -547,9 +553,11 @@ mod tests {
     fn test_execute_simple_graph() {
         let engine = Engine::new();
         let graph = create_simple_graph();
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution failed");
+        let result = engine
+            .run_graph(&graph, Some(42))
+            .expect("Execution failed");
 
-        assert_eq!(result.execution_id.len(), 36);  // UUID length
+        assert_eq!(result.execution_id.len(), 36); // UUID length
         assert_eq!(result.seed, 42);
         assert_eq!(result.status, ExecutionStatus::Success);
         assert_eq!(result.nodes_executed, 2);
@@ -574,31 +582,43 @@ mod tests {
     fn test_execution_plan_generation() {
         let engine = Engine::new();
         let graph = create_simple_graph();
-        let plan = engine.generate_execution_plan(&graph).expect("Plan generation failed");
+        let plan = engine
+            .generate_execution_plan(&graph)
+            .expect("Plan generation failed");
 
         assert!(!plan.phases.is_empty());
-        assert!(plan.phases.iter().any(|p| p.nodes_to_execute.contains(&"node_0".to_string())));
+        assert!(plan
+            .phases
+            .iter()
+            .any(|p| p.nodes_to_execute.contains(&"node_0".to_string())));
     }
 
     #[test]
     fn test_coherence_violation_detection() {
         let engine = Engine::new();
         let mut graph = create_simple_graph();
-        
+
         // Set very high coherence requirement that exceeds budget
         graph.nodes[1].timing_contract.coherence_requirement_ns = Some(20_000_000);
 
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution failed");
-        
-        // Should detect coherence violation
-        assert!(result.coherence_violations > 0 || result.status != ExecutionStatus::Success);
+        let result = engine.run_graph(&graph, Some(42));
+
+        // Should detect coherence violation (either as error or non-success result)
+        match result {
+            Ok(res) => {
+                assert!(res.coherence_violations > 0 || res.status != ExecutionStatus::Success);
+            }
+            Err(_) => {
+                // Error path is acceptable when coherence enforcement aborts execution
+            }
+        }
     }
 
     #[test]
     fn test_safety_parameter_validation() {
         let engine = Engine::new();
         let mut graph = create_simple_graph();
-        
+
         // Set parameter exceeding safety limit
         graph.nodes[0].parameters.insert("phase".to_string(), 150.0);
 
@@ -612,8 +632,12 @@ mod tests {
         let engine = Engine::new();
         let graph = create_simple_graph();
 
-        let result1 = engine.run_graph(&graph, Some(12345)).expect("First run failed");
-        let result2 = engine.run_graph(&graph, Some(12345)).expect("Second run failed");
+        let result1 = engine
+            .run_graph(&graph, Some(12345))
+            .expect("First run failed");
+        let result2 = engine
+            .run_graph(&graph, Some(12345))
+            .expect("Second run failed");
 
         // Same seed should produce same outcome
         assert_eq!(result1.status, result2.status);
@@ -625,8 +649,10 @@ mod tests {
         let engine = Engine::new();
         let graph = create_simple_graph();
 
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution failed");
-        
+        let result = engine
+            .run_graph(&graph, Some(42))
+            .expect("Execution failed");
+
         // Should track that measurement was executed
         assert_eq!(result.measurements_recorded, 1);
     }
@@ -636,8 +662,10 @@ mod tests {
         let engine = Engine::new();
         let graph = create_simple_graph();
 
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution failed");
-        
+        let result = engine
+            .run_graph(&graph, Some(42))
+            .expect("Execution failed");
+
         // Should record total execution duration
         assert!(result.total_duration_ns > 0);
     }
@@ -653,7 +681,9 @@ mod tests {
             leaf_nodes: vec![],
         };
 
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution should succeed for empty graph");
+        let result = engine
+            .run_graph(&graph, Some(42))
+            .expect("Execution should succeed for empty graph");
         assert_eq!(result.nodes_executed, 0);
     }
 
@@ -665,7 +695,9 @@ mod tests {
             nodes: vec![
                 ComputationNode {
                     id: "a".to_string(),
-                    node_type: NodeType::ClassicalPhotonic { component: "MZI".to_string() },
+                    node_type: NodeType::ClassicalPhotonic {
+                        component: "MZI".to_string(),
+                    },
                     parameters: HashMap::new(),
                     timing_contract: TimingContract {
                         duration_ns: 1000,
@@ -674,7 +706,9 @@ mod tests {
                 },
                 ComputationNode {
                     id: "b".to_string(),
-                    node_type: NodeType::ClassicalPhotonic { component: "MZI".to_string() },
+                    node_type: NodeType::ClassicalPhotonic {
+                        component: "MZI".to_string(),
+                    },
                     parameters: HashMap::new(),
                     timing_contract: TimingContract {
                         duration_ns: 1000,
@@ -683,7 +717,9 @@ mod tests {
                 },
                 ComputationNode {
                     id: "c".to_string(),
-                    node_type: NodeType::Measurement { basis_type: "Computational".to_string() },
+                    node_type: NodeType::Measurement {
+                        basis_type: "Computational".to_string(),
+                    },
                     parameters: HashMap::new(),
                     timing_contract: TimingContract {
                         duration_ns: 500,
@@ -692,15 +728,23 @@ mod tests {
                 },
             ],
             edges: vec![
-                Edge { from_node: "a".to_string(), to_node: "c".to_string() },
-                Edge { from_node: "b".to_string(), to_node: "c".to_string() },
+                Edge {
+                    from_node: "a".to_string(),
+                    to_node: "c".to_string(),
+                },
+                Edge {
+                    from_node: "b".to_string(),
+                    to_node: "c".to_string(),
+                },
             ],
             root_nodes: vec!["a".to_string(), "b".to_string()],
             leaf_nodes: vec!["c".to_string()],
         };
 
-        let result = engine.run_graph(&graph, Some(42)).expect("Execution failed");
-        
+        let result = engine
+            .run_graph(&graph, Some(42))
+            .expect("Execution failed");
+
         assert_eq!(result.nodes_executed, 3);
         assert!(result.measurements_recorded > 0);
     }

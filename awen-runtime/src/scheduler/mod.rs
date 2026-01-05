@@ -1,11 +1,11 @@
 // AWEN Scheduler Module
 // Timing, resource allocation, and coherence-aware execution planning
 
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use crate::ir::Graph;
 use crate::state::CoherenceWindow;
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Core Scheduler Trait
@@ -22,11 +22,7 @@ pub trait Scheduler: Send + Sync {
     ) -> Result<ExecutionPlan>;
 
     /// Validate existing plan against current resource state
-    fn validate_plan(
-        &self,
-        plan: &ExecutionPlan,
-        current_state: &ResourceState,
-    ) -> Result<()>;
+    fn validate_plan(&self, plan: &ExecutionPlan, current_state: &ResourceState) -> Result<()>;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -176,14 +172,14 @@ impl StaticScheduler {
         while changed {
             changed = false;
             for edge in &graph.edges {
-                let src_depth = node_depths.get(&edge.src).copied().unwrap_or(0);
-                let src_latency = node_latencies.get(&edge.src).copied().unwrap_or(100);
-                let edge_delay = edge.delay_ns.unwrap_or(0.0) as u64;
+                let src_depth = node_depths.get(&edge.src_node).copied().unwrap_or(0);
+                let src_latency = node_latencies.get(&edge.src_node).copied().unwrap_or(100);
+                let edge_delay = edge.delay.unwrap_or(0.0) as u64;
                 let new_depth = src_depth + src_latency + edge_delay;
 
-                let dst_depth = node_depths.get(&edge.dst).copied().unwrap_or(0);
+                let dst_depth = node_depths.get(&edge.dst_node).copied().unwrap_or(0);
                 if new_depth > dst_depth {
-                    node_depths.insert(edge.dst.clone(), new_depth);
+                    node_depths.insert(edge.dst_node.clone(), new_depth);
                     changed = true;
                 }
             }
@@ -203,7 +199,7 @@ impl StaticScheduler {
     /// Allocate resources for a node
     fn allocate_resources(
         &self,
-        node_id: &str,
+        _node_id: &str,
         start_time: u64,
         end_time: u64,
         resource_state: &mut ResourceState,
@@ -249,14 +245,13 @@ impl StaticScheduler {
                 .ok_or_else(|| anyhow!("Coherence window {} not found", window_id))?;
 
             // Check temporal containment
-            if scheduled_node.start_time_ns < window.start_time_ns {
+            if scheduled_node.start_time_ns < window.start_ns {
                 return Err(anyhow!(
                     "Node {} starts before coherence window",
                     scheduled_node.node_id
                 ));
             }
-
-            let window_end = window.start_time_ns + window.duration_ns;
+            let window_end = window.start_ns + window.duration_ns;
             if scheduled_node.end_time_ns > window_end {
                 return Err(anyhow!(
                     "Node {} ends after coherence window",
@@ -266,7 +261,7 @@ impl StaticScheduler {
 
             // Check fidelity threshold (exponential decay model)
             let duration = scheduled_node.end_time_ns - scheduled_node.start_time_ns;
-            let fidelity = (-1.0 * (duration as f64) / (window.duration_ns as f64)).exp();
+            let fidelity = (-(duration as f64) / (window.duration_ns as f64)).exp();
             if fidelity < window.fidelity_threshold {
                 return Err(anyhow!(
                     "Node {} fidelity {} below threshold {}",
@@ -287,13 +282,22 @@ impl StaticScheduler {
         constraints: &SchedulingConstraints,
     ) -> Result<()> {
         for feedback_loop in &constraints.feedback_loops {
-            let measurement_node = schedule
-                .get(&feedback_loop.measurement_node)
-                .ok_or_else(|| anyhow!("Measurement node {} not in schedule", feedback_loop.measurement_node))?;
+            let measurement_node =
+                schedule
+                    .get(&feedback_loop.measurement_node)
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Measurement node {} not in schedule",
+                            feedback_loop.measurement_node
+                        )
+                    })?;
 
-            let control_node = schedule
-                .get(&feedback_loop.control_node)
-                .ok_or_else(|| anyhow!("Control node {} not in schedule", feedback_loop.control_node))?;
+            let control_node = schedule.get(&feedback_loop.control_node).ok_or_else(|| {
+                anyhow!(
+                    "Control node {} not in schedule",
+                    feedback_loop.control_node
+                )
+            })?;
 
             let latency = control_node.start_time_ns - measurement_node.end_time_ns;
             if latency > feedback_loop.deadline_ns {
@@ -347,9 +351,9 @@ impl Scheduler for StaticScheduler {
             // Compute earliest start time based on dependencies
             let mut earliest_start = 0u64;
             for edge in &graph.edges {
-                if edge.dst == node.id {
-                    let src_end = node_end_times.get(&edge.src).copied().unwrap_or(0);
-                    let edge_delay = edge.delay_ns.unwrap_or(0.0) as u64;
+                if edge.dst_node == node.id {
+                    let src_end = node_end_times.get(&edge.src_node).copied().unwrap_or(0);
+                    let edge_delay = edge.delay.unwrap_or(0.0) as u64;
                     earliest_start = earliest_start.max(src_end + edge_delay);
                 }
             }
@@ -420,11 +424,7 @@ impl Scheduler for StaticScheduler {
         })
     }
 
-    fn validate_plan(
-        &self,
-        plan: &ExecutionPlan,
-        _current_state: &ResourceState,
-    ) -> Result<()> {
+    fn validate_plan(&self, plan: &ExecutionPlan, _current_state: &ResourceState) -> Result<()> {
         // Validate that schedule is consistent
         for (node_id, scheduled_node) in &plan.schedule {
             if scheduled_node.node_id != *node_id {
@@ -439,6 +439,12 @@ impl Scheduler for StaticScheduler {
     }
 }
 
+impl Default for StaticScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Unit Tests
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -446,30 +452,35 @@ impl Scheduler for StaticScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::{Node, Edge};
+    use crate::ir::{Edge, Node};
 
     #[test]
     fn test_static_scheduler_determinism() {
         let graph = Graph {
-            version: "0.2".to_string(),
-            metadata: HashMap::new(),
             nodes: vec![
                 Node {
                     id: "node_0".to_string(),
                     node_type: "Source".to_string(),
-                    params: None,
+                    params: HashMap::new(),
+                    measure_mode: None,
+                    conditional_branches: None,
                 },
                 Node {
                     id: "node_1".to_string(),
                     node_type: "MZI".to_string(),
-                    params: None,
+                    params: HashMap::new(),
+                    measure_mode: None,
+                    conditional_branches: None,
                 },
             ],
             edges: vec![Edge {
-                src: "node_0".to_string(),
-                dst: "node_1".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "node_0".to_string(),
+                src_port: None,
+                dst_node: "node_1".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             }],
+            metadata: HashMap::new(),
         };
 
         let constraints = SchedulingConstraints {
@@ -499,37 +510,46 @@ mod tests {
     #[test]
     fn test_critical_path_computation() {
         let graph = Graph {
-            version: "0.2".to_string(),
-            metadata: HashMap::new(),
             nodes: vec![
                 Node {
                     id: "a".to_string(),
                     node_type: "Source".to_string(),
-                    params: None,
+                    params: HashMap::new(),
+                    measure_mode: None,
+                    conditional_branches: None,
                 },
                 Node {
                     id: "b".to_string(),
                     node_type: "MZI".to_string(),
-                    params: None,
+                    params: HashMap::new(),
+                    measure_mode: None,
+                    conditional_branches: None,
                 },
                 Node {
                     id: "c".to_string(),
                     node_type: "Detector".to_string(),
-                    params: None,
+                    params: HashMap::new(),
+                    measure_mode: None,
+                    conditional_branches: None,
                 },
             ],
             edges: vec![
                 Edge {
-                    src: "a".to_string(),
-                    dst: "b".to_string(),
-                    delay_ns: Some(10.0),
+                    src_node: "a".to_string(),
+                    src_port: None,
+                    dst_node: "b".to_string(),
+                    dst_port: None,
+                    delay: Some(10.0),
                 },
                 Edge {
-                    src: "b".to_string(),
-                    dst: "c".to_string(),
-                    delay_ns: Some(20.0),
+                    src_node: "b".to_string(),
+                    src_port: None,
+                    dst_node: "c".to_string(),
+                    dst_port: None,
+                    delay: Some(20.0),
                 },
             ],
+            metadata: HashMap::new(),
         };
 
         let scheduler = StaticScheduler::new();

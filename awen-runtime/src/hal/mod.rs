@@ -25,16 +25,26 @@ pub trait Device {
     fn capabilities(&self) -> Vec<Capability>;
 
     /// Set a named parameter on the device (e.g., `mzi_3:phase`) to a value. Returns an error string on failure.
-    fn set_param(&self, name: &str, value: f64) -> Result<(), String> { let _ = (name, value); Ok(()) }
+    fn set_param(&self, name: &str, value: f64) -> Result<(), String> {
+        let _ = (name, value);
+        Ok(())
+    }
 
     /// Read a named sensor or observable (e.g., `detector_1:power`). Returns value or error.
-    fn read_sensor(&self, name: &str) -> Result<f64, String> { let _ = name; Ok(0.0) }
+    fn read_sensor(&self, name: &str) -> Result<f64, String> {
+        let _ = name;
+        Ok(0.0)
+    }
 }
 
 /// Lab-specific device trait exposing safety-constrained calibration primitives.
 pub trait LabDevice: Device {
     /// Apply a calibration map (parameter -> voltage/current) with optional safety limits.
-    fn apply_calibration(&self, mapping: &HashMap<String, f64>, safety: Option<&SafetyLimits>) -> Result<CalibrationResult, String>;
+    fn apply_calibration(
+        &self,
+        mapping: &HashMap<String, f64>,
+        safety: Option<&SafetyLimits>,
+    ) -> Result<CalibrationResult, String>;
 
     /// Query device health and status metadata for observability and reproducibility.
     fn health_report(&self) -> HashMap<String, String>;
@@ -64,19 +74,35 @@ pub struct CalibrationResult {
 /// go through runtime APIs (e.g., `Engine::apply_calibration`).
 pub(crate) struct SimulatedDevice;
 impl Device for SimulatedDevice {
-    fn id(&self) -> String { "simulated".into() }
+    fn id(&self) -> String {
+        "simulated".into()
+    }
     fn capabilities(&self) -> Vec<Capability> {
         vec![
-            Capability { name: "mzi".into(), channel: ChannelType::Optical, metadata: None },
-            Capability { name: "ring".into(), channel: ChannelType::Optical, metadata: None },
-            Capability { name: "detector".into(), channel: ChannelType::Optical, metadata: None },
+            Capability {
+                name: "mzi".into(),
+                channel: ChannelType::Optical,
+                metadata: None,
+            },
+            Capability {
+                name: "ring".into(),
+                channel: ChannelType::Optical,
+                metadata: None,
+            },
+            Capability {
+                name: "detector".into(),
+                channel: ChannelType::Optical,
+                metadata: None,
+            },
         ]
     }
 }
 
 impl SimulatedDevice {
     /// Convenience constructor (crate-private)
-    pub(crate) fn new() -> Self { Self {} }
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
 }
 
 /// Examples and enforcement: external attempts to construct `SimulatedDevice` should fail.
@@ -85,9 +111,12 @@ impl SimulatedDevice {
 /// // external code cannot construct the crate-private `SimulatedDevice` type
 /// let _ = awen_runtime::hal::SimulatedDevice::new();
 /// ```
-
 impl LabDevice for SimulatedDevice {
-    fn apply_calibration(&self, mapping: &HashMap<String, f64>, _safety: Option<&SafetyLimits>) -> Result<CalibrationResult, String> {
+    fn apply_calibration(
+        &self,
+        mapping: &HashMap<String, f64>,
+        _safety: Option<&SafetyLimits>,
+    ) -> Result<CalibrationResult, String> {
         // In simulation we apply safety limits if provided and echo back applied values.
         let mut applied = mapping.clone();
         let mut warnings: Vec<String> = Vec::new();
@@ -95,15 +124,25 @@ impl LabDevice for SimulatedDevice {
             for (k, v) in mapping.iter() {
                 let mut val = *v;
                 if let Some(max_v) = s.max_voltage {
-                    if val > max_v { warnings.push(format!("{} above max_voltage ({}), clamping", k, max_v)); val = max_v; }
+                    if val > max_v {
+                        warnings.push(format!("{} above max_voltage ({}), clamping", k, max_v));
+                        val = max_v;
+                    }
                 }
                 if let Some(min_v) = s.min_voltage {
-                    if val < min_v { warnings.push(format!("{} below min_voltage ({}), clamping", k, min_v)); val = min_v; }
+                    if val < min_v {
+                        warnings.push(format!("{} below min_voltage ({}), clamping", k, min_v));
+                        val = min_v;
+                    }
                 }
                 applied.insert(k.clone(), val);
             }
         }
-        Ok(CalibrationResult { success: true, applied, warnings })
+        Ok(CalibrationResult {
+            success: true,
+            applied,
+            warnings,
+        })
     }
 
     fn health_report(&self) -> HashMap<String, String> {

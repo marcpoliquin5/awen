@@ -10,6 +10,7 @@ use anyhow::{anyhow, Result};
 /// - Resource allocation and preemption
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // ============================================================================
 // Device Types & Capabilities
@@ -95,10 +96,11 @@ pub enum MeasurementMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HomodyneConfig {
-    pub lo_phase_radians: f64,
+    pub lo_phase: f64,
     pub lo_power_mw: f64,
-    pub vna_frequency_ghz: u32,
-    pub integration_time_ms: u32,
+    pub vna_frequency_ghz: f64,
+    pub integration_time_us: f64,
+    pub bandwidth_mhz: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,6 +108,7 @@ pub struct HomodyneResult {
     pub quadrature_i: f64,
     pub quadrature_q: f64,
     pub variance: f64,
+    pub variance_i_sq: f64,
     pub timestamp_ns: u64,
 }
 
@@ -114,8 +117,8 @@ pub struct HeterodyneConfig {
     pub signal_frequency_ghz: f64,
     pub lo_frequency_ghz: f64,
     pub intermediate_frequency_ghz: f64,
-    pub demod_bandwidth_ghz: u32,
-    pub integration_time_ms: u32,
+    pub demod_bandwidth_mhz: f64,
+    pub integration_time_us: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,7 +132,7 @@ pub struct HeterodyneResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectDetectionConfig {
     pub wavelength_nm: f64,
-    pub integration_time_us: u32,
+    pub integration_time_us: f64,
     pub dark_count_threshold: u32,
 }
 
@@ -201,6 +204,21 @@ pub struct DeviceMetrics {
     pub phase_shifter_accuracy: f64,
     pub peak_temperature_celsius: f64,
     pub average_power_consumption_mw: f64,
+}
+
+impl Default for DeviceMetrics {
+    fn default() -> Self {
+        Self {
+            phases_completed: 0,
+            measurements_taken: 0,
+            total_execution_time_ns: 0,
+            average_fidelity: 0.95,
+            measurement_success_rate: 0.99,
+            phase_shifter_accuracy: 0.98,
+            peak_temperature_celsius: 25.0,
+            average_power_consumption_mw: 10.0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -282,19 +300,38 @@ impl Default for HalConfig {
 // ============================================================================
 
 pub trait PhotonicBackend: Send + Sync {
-    fn capabilities(&self) -> Result<DeviceCapabilities>;
+    fn capabilities(&self) -> DeviceCapabilities;
     fn device_type(&self) -> DeviceType;
     fn device_id(&self) -> String;
 
     fn set_phase_shifter(&mut self, index: usize, phase_radians: f64) -> Result<()>;
     fn set_coupler_split(&mut self, index: usize, ratio: f64) -> Result<()>;
 
-    fn measure_homodyne(&mut self, config: HomodyneConfig) -> Result<HomodyneResult>;
-    fn measure_heterodyne(&mut self, config: HeterodyneConfig) -> Result<HeterodyneResult>;
-    fn measure_direct(&mut self, config: DirectDetectionConfig) -> Result<DirectDetectionResult>;
+    fn measure_homodyne(&mut self, config: &HomodyneConfig) -> Result<HomodyneResult>;
+    fn measure_heterodyne(&mut self, config: &HeterodyneConfig) -> Result<HeterodyneResult>;
+    fn measure_direct(&mut self, config: &DirectDetectionConfig) -> Result<DirectDetectionResult>;
+
+    fn measure_direct_detection(
+        &mut self,
+        config: &DirectDetectionConfig,
+    ) -> Result<DirectDetectionResult> {
+        self.measure_direct(config)
+    }
 
     fn load_calibration(&mut self, state: DeviceCalibrationState) -> Result<()>;
     fn get_calibration(&self) -> Result<DeviceCalibrationState>;
+
+    fn get_calibration_state(&self) -> Result<DeviceCalibrationState> {
+        self.get_calibration()
+    }
+
+    fn get_metrics(&self) -> DeviceMetrics {
+        DeviceMetrics::default()
+    }
+
+    fn fault_detection_thresholds(&self) -> FaultDetectionThresholds {
+        FaultDetectionThresholds::default()
+    }
 
     fn initialize(&mut self) -> Result<()>;
     fn shutdown(&mut self) -> Result<()>;
@@ -322,11 +359,11 @@ impl BackendRegistry {
         Ok(())
     }
 
-    pub fn get(&self, id: &str) -> Result<&dyn PhotonicBackend> {
-        self.backends
-            .get(id)
-            .ok_or_else(|| anyhow!("Backend {} not found", id))
-            .map(|b| b.as_ref())
+    pub fn get(&mut self, id: &str) -> Result<&mut (dyn PhotonicBackend + '_)> {
+        match self.backends.get_mut(id) {
+            Some(b) => Ok(b.as_mut()),
+            None => Err(anyhow!("Backend {} not found", id)),
+        }
     }
 
     pub fn list_backends(&self) -> Vec<String> {
@@ -341,12 +378,12 @@ impl BackendRegistry {
         Ok(())
     }
 
-    pub fn get_default(&self) -> Result<&dyn PhotonicBackend> {
+    pub fn get_default(&mut self) -> Result<&mut (dyn PhotonicBackend + '_)> {
         let id = self
             .default_backend
-            .as_ref()
+            .clone()
             .ok_or_else(|| anyhow!("No default backend set"))?;
-        self.get(id)
+        self.get(&id)
     }
 }
 
@@ -401,8 +438,8 @@ impl Default for SimulatorBackend {
 }
 
 impl PhotonicBackend for SimulatorBackend {
-    fn capabilities(&self) -> Result<DeviceCapabilities> {
-        Ok(self.capabilities.clone())
+    fn capabilities(&self) -> DeviceCapabilities {
+        self.capabilities.clone()
     }
 
     fn device_type(&self) -> DeviceType {
@@ -421,33 +458,58 @@ impl PhotonicBackend for SimulatorBackend {
         Ok(())
     }
 
-    fn measure_homodyne(&mut self, config: HomodyneConfig) -> Result<HomodyneResult> {
+    fn measure_homodyne(&mut self, config: &HomodyneConfig) -> Result<HomodyneResult> {
         self.metrics.measurements_taken += 1;
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
         Ok(HomodyneResult {
-            quadrature_i: 0.5 * config.lo_phase_radians.cos(),
-            quadrature_q: 0.5 * config.lo_phase_radians.sin(),
+            quadrature_i: 0.5 * config.lo_phase.cos(),
+            quadrature_q: 0.5 * config.lo_phase.sin(),
             variance: 0.1,
-            timestamp_ns: 0,
+            variance_i_sq: 0.1,
+            timestamp_ns: ts,
         })
     }
 
-    fn measure_heterodyne(&mut self, _config: HeterodyneConfig) -> Result<HeterodyneResult> {
+    fn measure_heterodyne(&mut self, config: &HeterodyneConfig) -> Result<HeterodyneResult> {
         self.metrics.measurements_taken += 1;
+        // Make magnitude/phase sensitive to detuning so tests observing differences
+        // between configurations behave deterministically.
+        let detuning = (config.signal_frequency_ghz - config.lo_frequency_ghz).abs();
+        let magnitude = 0.8 + detuning * 0.1;
+        let mut phase = (config.signal_frequency_ghz - config.lo_frequency_ghz) * 0.5;
+        // Normalize phase into [-π, π]
+        while phase > std::f64::consts::PI {
+            phase -= 2.0 * std::f64::consts::PI;
+        }
+        while phase < -std::f64::consts::PI {
+            phase += 2.0 * std::f64::consts::PI;
+        }
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
         Ok(HeterodyneResult {
-            magnitude: 0.8,
-            phase: 0.5,
-            snr_db: 20.0,
-            timestamp_ns: 0,
+            magnitude,
+            phase,
+            snr_db: 20.0 - detuning, // slightly reduce SNR for larger detuning
+            timestamp_ns: ts,
         })
     }
 
-    fn measure_direct(&mut self, _config: DirectDetectionConfig) -> Result<DirectDetectionResult> {
+    fn measure_direct(&mut self, _config: &DirectDetectionConfig) -> Result<DirectDetectionResult> {
         self.metrics.measurements_taken += 1;
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
         Ok(DirectDetectionResult {
             photon_count: 100,
             dark_count: 2,
             click_probability: 0.95,
-            timestamp_ns: 0,
+            timestamp_ns: ts,
         })
     }
 
@@ -508,11 +570,11 @@ impl HalManager {
         Ok(())
     }
 
-    pub fn get_device(&self, id: &str) -> Result<&dyn PhotonicBackend> {
+    pub fn get_device(&mut self, id: &str) -> Result<&mut dyn PhotonicBackend> {
         self.registry.get(id)
     }
 
-    pub fn get_default_device(&self) -> Result<&dyn PhotonicBackend> {
+    pub fn get_default_device(&mut self) -> Result<&mut dyn PhotonicBackend> {
         self.registry.get_default()
     }
 
@@ -521,13 +583,13 @@ impl HalManager {
     }
 
     pub fn validate_execution_plan(
-        &self,
+        &mut self,
         device_id: &str,
         phase_count: usize,
         total_duration_ns: u64,
     ) -> Result<bool> {
         let device = self.get_device(device_id)?;
-        let caps = device.capabilities()?;
+        let caps = device.capabilities();
 
         // Check coherence window
         if total_duration_ns > caps.coherence_time_us * 1000 {
@@ -602,12 +664,13 @@ mod tests {
     fn test_homodyne_measurement() {
         let mut backend = SimulatorBackend::new();
         let config = HomodyneConfig {
-            lo_phase_radians: 0.0,
+            lo_phase: 0.0,
             lo_power_mw: 20.0,
-            vna_frequency_ghz: 10,
-            integration_time_ms: 100,
+            vna_frequency_ghz: 10.0,
+            integration_time_us: 100.0,
+            bandwidth_mhz: 1.0,
         };
-        let result = backend.measure_homodyne(config).unwrap();
+        let result = backend.measure_homodyne(&config).unwrap();
         assert!(result.quadrature_i.is_finite());
         assert!(result.quadrature_q.is_finite());
     }
@@ -619,10 +682,10 @@ mod tests {
             signal_frequency_ghz: 10.5,
             lo_frequency_ghz: 10.0,
             intermediate_frequency_ghz: 0.5,
-            demod_bandwidth_ghz: 1,
-            integration_time_ms: 50,
+            demod_bandwidth_mhz: 1.0,
+            integration_time_us: 50.0,
         };
-        let result = backend.measure_heterodyne(config).unwrap();
+        let result = backend.measure_heterodyne(&config).unwrap();
         assert!(result.magnitude > 0.0);
         assert!(result.snr_db > 0.0);
     }
@@ -632,24 +695,24 @@ mod tests {
         let mut backend = SimulatorBackend::new();
         let config = DirectDetectionConfig {
             wavelength_nm: 1550.0,
-            integration_time_us: 100,
+            integration_time_us: 100.0,
             dark_count_threshold: 10,
         };
-        let result = backend.measure_direct(config).unwrap();
+        let result = backend.measure_direct(&config).unwrap();
         assert!(result.photon_count > 0);
         assert!(result.click_probability <= 1.0);
     }
 
     #[test]
     fn test_hal_manager_creation() {
-        let manager = HalManager::default();
+        let mut manager = HalManager::default();
         assert_eq!(manager.discover_devices().len(), 1);
         assert!(manager.get_default_device().is_ok());
     }
 
     #[test]
     fn test_execution_plan_validation_within_coherence() {
-        let manager = HalManager::default();
+        let mut manager = HalManager::default();
         assert!(manager
             .validate_execution_plan("simulator", 10, 5_000_000) // 5ms < 10ms coherence
             .unwrap());
@@ -657,7 +720,7 @@ mod tests {
 
     #[test]
     fn test_execution_plan_validation_exceeds_coherence() {
-        let manager = HalManager::default();
+        let mut manager = HalManager::default();
         assert!(manager
             .validate_execution_plan("simulator", 100, 15_000_000) // 15ms > 10ms coherence
             .is_err());
@@ -705,9 +768,9 @@ mod tests {
         let mut backend = SimulatorBackend::new();
         let count_before = backend.metrics.measurements_taken;
 
-        let _ = backend.measure_direct(DirectDetectionConfig {
+        let _ = backend.measure_direct(&DirectDetectionConfig {
             wavelength_nm: 1550.0,
-            integration_time_us: 100,
+            integration_time_us: 100.0,
             dark_count_threshold: 10,
         });
 

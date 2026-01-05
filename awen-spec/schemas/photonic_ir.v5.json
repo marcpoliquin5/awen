@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AWEN Photonic IR v5",
+  "description": "Canonical photonic IR for AWEN Photonics V5 — supports classical and quantum ops, timing, calibration, and provenance.",
+  "type": "object",
+  "required": ["ir_version", "ops", "metadata"],
+  "properties": {
+    "ir_version": {
+      "type": "string",
+      "pattern": "^v5(\\.\\d+)?$",
+      "description": "IR semantic version"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": {"type": "string"},
+        "timestamp": {"type": "string", "format": "date-time"},
+        "artifact_id": {"type": "string"},
+        "backend_constraints": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "ops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["op_id", "type", "targets"],
+        "properties": {
+          "op_id": {"type": "string"},
+          "type": {"type": "string", "description": "e.g., 'classical:splitter', 'quantum:beam_splitter', 'measurement'"},
+          "targets": {"type": "array", "items": {"type": "string"}},
+          "params": {"type": "object", "description": "Operation-specific parameters"},
+          "timing": {
+            "type": "object",
+            "properties": {
+              "start_ns": {"type": "integer"},
+              "duration_ns": {"type": "integer"},
+              "dependencies": {"type": "array", "items": {"type": "string"}}
+            },
+            "additionalProperties": true
+          },
+          "calibration_handle": {"type": "string", "description": "Reference to calibration artifact"},
+          "probabilistic": {"type": "boolean"},
+          "sampling": {"type": "object", "description": "Sampling params for probabilistic ops"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source_repo": {"type": "string"},
+        "commit": {"type": "string"},
+        "runtime_manifest": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

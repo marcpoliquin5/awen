@@ -21,7 +21,7 @@ fn test_device_discovery_simulator_discovery() {
     // Verify that device discovery finds the built-in simulator backend
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let devices = hal.discover_devices();
     assert!(
@@ -39,7 +39,7 @@ fn test_device_discovery_capability_negotiation() {
     // Verify capability negotiation: check device can meet requirements
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Default device available");
     let caps = device.capabilities();
@@ -68,7 +68,7 @@ fn test_device_discovery_caching_consistency() {
     // Verify device discovery returns consistent capabilities (caching semantics)
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device1 = hal.get_default_device().expect("First lookup");
     let caps1 = device1.capabilities();
@@ -92,7 +92,7 @@ fn test_device_discovery_capability_filtering() {
     // Verify capability filtering: only devices matching requirements are returned
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device available");
     let caps = device.capabilities();
@@ -121,7 +121,7 @@ fn test_measurement_homodyne_quadrature_output() {
     // Verify homodyne measurement outputs valid I/Q quadratures
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let hom_config = HomodyneConfig {
@@ -159,7 +159,7 @@ fn test_measurement_homodyne_lo_phase_variation() {
     // Verify LO phase affects quadrature outputs (rotates I/Q)
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -196,7 +196,7 @@ fn test_measurement_homodyne_integration_time_validity() {
     // Verify integration time parameter is valid for coherence window
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let caps = device.capabilities();
@@ -230,7 +230,7 @@ fn test_measurement_heterodyne_magnitude_and_phase() {
     // Verify heterodyne measurement outputs magnitude and phase
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let het_config = HeterodyneConfig {
@@ -267,7 +267,7 @@ fn test_measurement_heterodyne_frequency_detuning() {
     // Verify heterodyne phase depends on frequency detuning
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -311,7 +311,7 @@ fn test_measurement_direct_detection_photon_counting() {
     // Verify direct detection outputs photon count and statistics
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let dd_config = DirectDetectionConfig {
@@ -324,18 +324,14 @@ fn test_measurement_direct_detection_photon_counting() {
         .measure_direct_detection(&dd_config)
         .expect("Direct detection succeeds");
 
-    // Photon count should be non-negative
-    assert!(
-        result.photon_count >= 0.0,
-        "Photon count cannot be negative"
-    );
+    // Photon count (unsigned) is inherently non-negative and need not be asserted
 
     // Dark count less than or equal to photon count
     assert!(
         result.dark_count <= result.photon_count,
         "Dark count cannot exceed total count"
     );
-    assert!(result.dark_count >= 0.0, "Dark count cannot be negative");
+    // Dark count (unsigned) is inherently non-negative; no explicit assertion needed
 
     // Click probability in [0, 1]
     assert!(
@@ -352,7 +348,7 @@ fn test_measurement_direct_detection_dark_count_sensitivity() {
     // Verify dark count tracking for detector health
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -362,12 +358,11 @@ fn test_measurement_direct_detection_dark_count_sensitivity() {
         dark_count_threshold: 5,
     };
 
-    let result = device
+    let _ = device
         .measure_direct_detection(&dd_config)
         .expect("Success");
 
-    // Dark count should be non-negative
-    assert!(result.dark_count >= 0.0, "Dark count must be non-negative");
+    // Dark count (unsigned) is inherently non-negative; no explicit assertion needed
 }
 
 // ============================================================================
@@ -379,7 +374,7 @@ fn test_calibration_state_loading_and_validity() {
     // Verify calibration state can be loaded and validity window checked
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -393,7 +388,7 @@ fn test_calibration_adaptive_phase_calibration() {
     // Verify adaptive calibration: phase calibration state updates
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -421,16 +416,16 @@ fn test_calibration_validity_window_expiration() {
     // Verify calibration validity tracking (age, drift)
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let cal_state = device
         .get_calibration_state()
         .expect("Calibration available");
 
-    // Validity window should be set
+    // Validity window should be set (hours)
     assert!(
-        cal_state.phase_calibration.validity_window_ns > 0,
+        cal_state.validity_window_hours > 0,
         "Calibration validity window must be positive"
     );
 }
@@ -440,17 +435,19 @@ fn test_calibration_thermal_drift_compensation() {
     // Verify thermal drift is tracked in calibration state
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let cal_state = device.get_calibration_state().expect("Calibration");
 
     // Phase calibration should have thermal drift estimate
+    let first = cal_state
+        .phase_shifter_calibration
+        .values()
+        .next()
+        .expect("phase shifter calibration present");
     assert!(
-        cal_state
-            .phase_calibration
-            .thermal_drift_rad_per_c
-            .is_finite(),
+        first.thermal_drift_per_degree.is_finite(),
         "Thermal drift must be finite"
     );
 }
@@ -464,7 +461,7 @@ fn test_resource_allocation_waveguide_tracking() {
     // Verify waveguide resource allocation and limits
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let caps = device.capabilities();
@@ -482,7 +479,7 @@ fn test_resource_allocation_power_budget_validation() {
     // Verify power budget is checked before allocation
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let caps = device.capabilities();
@@ -511,7 +508,7 @@ fn test_resource_allocation_detector_assignment() {
     // Verify detector resources are properly allocated
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let caps = device.capabilities();
@@ -534,7 +531,7 @@ fn test_resource_allocation_crosstalk_awareness() {
     // Verify crosstalk isolation is considered in resource allocation
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let caps = device.capabilities();
@@ -557,7 +554,7 @@ fn test_fault_detection_waveguide_loss_threshold() {
     // Verify waveguide loss is monitored against thresholds
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let thresholds = device.fault_detection_thresholds();
@@ -573,13 +570,13 @@ fn test_fault_detection_phase_shifter_drift() {
     // Verify phase shifter drift is detected
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let thresholds = device.fault_detection_thresholds();
 
     assert!(
-        thresholds.phase_shifter_drift_rad_per_s > 0.0,
+        thresholds.phase_shifter_drift_radians_per_ms > 0.0,
         "Drift threshold must be positive"
     );
 }
@@ -589,7 +586,7 @@ fn test_fault_detection_graceful_degradation_mode() {
     // Verify device health can degrade gracefully
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
     let health = device.health_check().expect("Health check succeeds");
@@ -601,10 +598,10 @@ fn test_fault_detection_graceful_degradation_mode() {
             assert_eq!(result, HealthStatus::Healthy);
         }
         HealthStatus::Degraded => {
-            assert!(true, "Graceful degradation mode accepted");
+            // Graceful degradation mode accepted (no-op assertion removed)
         }
         HealthStatus::Faulty => {
-            assert!(true, "Fault detected");
+            // Fault detected (no-op assertion removed)
         }
     }
 }
@@ -618,7 +615,7 @@ fn test_integration_execution_plan_validation_coherence_window() {
     // Verify HAL validates ExecutionPlan against coherence window
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device_id = "simulator";
     let phase_count = 100;
@@ -633,7 +630,7 @@ fn test_integration_execution_plan_validation_exceeds_coherence() {
     // Verify HAL rejects ExecutionPlan that exceeds coherence
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device_id = "simulator";
     let phase_count = 1000;
@@ -651,7 +648,7 @@ fn test_integration_execution_plan_phase_count_limits() {
     // Verify phase count limits are enforced
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device_id = "simulator";
     let phase_count_ok = 100;
@@ -673,7 +670,7 @@ fn test_integration_hal_metrics_observable() {
     // Verify HAL metrics are observable (for Observability integration)
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -697,7 +694,7 @@ fn test_integration_hal_metrics_observable() {
     // Metrics should be queryable
     let metrics = device.get_metrics();
     assert!(
-        metrics.is_ok(),
+        metrics.average_fidelity.is_finite(),
         "Metrics should be available for observability"
     );
 }
@@ -711,7 +708,7 @@ fn test_backward_compatibility_simulator_interface() {
     // Verify Phase 2.3 HAL is compatible with Phase 1.4 usage patterns
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -761,7 +758,7 @@ fn test_conformance_all_measurement_modes_available() {
     // Verify all three measurement modes are available
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     let device = hal.get_default_device().expect("Device");
 
@@ -806,7 +803,7 @@ fn test_conformance_backend_registry_functionality() {
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
 
-    hal.register_simulator();
+    let _ = hal.register_simulator();
     let devices = hal.discover_devices();
     assert!(
         devices.contains(&"simulator".to_string()),
@@ -822,7 +819,7 @@ fn test_conformance_device_discovery_complete() {
     // Verify complete device discovery workflow
     let config = HalConfig::default();
     let mut hal = HalManager::new(config);
-    hal.register_simulator();
+    let _ = hal.register_simulator();
 
     // Discover
     let devices = hal.discover_devices();

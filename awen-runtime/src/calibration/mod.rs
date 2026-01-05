@@ -1,8 +1,8 @@
 // AWEN Calibration Module
 // First-class calibration with drift detection and closed-loop optimization
 
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -100,7 +100,7 @@ impl Default for SafetyConstraints {
             hard_limits: HashMap::new(),
             soft_limits: HashMap::new(),
             max_optical_power_dbm: Some(10.0), // 10 dBm default limit
-            timeout_seconds: 300, // 5 minutes
+            timeout_seconds: 300,              // 5 minutes
         }
     }
 }
@@ -108,8 +108,13 @@ impl Default for SafetyConstraints {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CalibrationSchedule {
     PreRun,
-    Periodic { interval_seconds: u64 },
-    OnDrift { drift_threshold: f64, check_interval_seconds: u64 },
+    Periodic {
+        interval_seconds: u64,
+    },
+    OnDrift {
+        drift_threshold: f64,
+        check_interval_seconds: u64,
+    },
     Manual,
 }
 
@@ -266,7 +271,7 @@ impl DriftDetector for ThresholdDriftDetector {
                 if let Some(&calibrated_value) = node_calib.parameters.get(&measurement.sensor_id) {
                     let delta = (measurement.value - calibrated_value).abs();
                     let relative_delta = delta / calibrated_value.abs().max(1e-10);
-                    
+
                     let threshold_exceeded = relative_delta > self.threshold;
                     if threshold_exceeded {
                         drift_detected = true;
@@ -317,11 +322,8 @@ pub trait CalibrationExecutor: Send + Sync {
         initial_state: Option<&CalibrationState>,
     ) -> Result<CalibrationState>;
 
-    fn apply_calibration(
-        &self,
-        state: &CalibrationState,
-        safety: &SafetyConstraints,
-    ) -> Result<()>;
+    fn apply_calibration(&self, state: &CalibrationState, safety: &SafetyConstraints)
+        -> Result<()>;
 
     fn get_current_calibration(&self) -> Result<CalibrationState>;
 }
@@ -347,19 +349,25 @@ impl ReferenceCalibrationExecutor {
         params: &HashMap<String, f64>,
     ) -> Result<f64> {
         match cost_function {
-            CostFunction::Minimize { expression, target_value } => {
+            CostFunction::Minimize {
+                expression: _,
+                target_value,
+            } => {
                 // Simple mock cost: quadratic distance from target
                 let target = target_value.unwrap_or(0.0);
                 let param_sum: f64 = params.values().sum();
                 let cost = (param_sum - target).powi(2);
                 Ok(cost)
             }
-            CostFunction::Maximize { expression } => {
+            CostFunction::Maximize { expression: _ } => {
                 // Mock: negate for minimization
                 let param_sum: f64 = params.values().sum();
                 Ok(-param_sum)
             }
-            CostFunction::MatchSpectrum { target_spectrum, tolerance_db } => {
+            CostFunction::MatchSpectrum {
+                target_spectrum,
+                tolerance_db: _,
+            } => {
                 // Mock: sum of squared errors
                 let error: f64 = target_spectrum.iter().map(|(_, power)| power.powi(2)).sum();
                 Ok(error)
@@ -373,7 +381,9 @@ impl ReferenceCalibrationExecutor {
         initial_params: &HashMap<String, f64>,
     ) -> Result<(HashMap<String, f64>, f64, usize)> {
         let simplex_size = match &kernel.optimizer_config.algorithm {
-            OptimizerAlgorithm::NelderMead { initial_simplex_size } => *initial_simplex_size,
+            OptimizerAlgorithm::NelderMead {
+                initial_simplex_size,
+            } => *initial_simplex_size,
             _ => 0.1,
         };
 
@@ -387,7 +397,7 @@ impl ReferenceCalibrationExecutor {
 
             // Try random perturbation
             let mut trial_params = best_params.clone();
-            for (key, value) in trial_params.iter_mut() {
+            for (_key, value) in trial_params.iter_mut() {
                 *value += (rand::random::<f64>() - 0.5) * 2.0 * simplex_size;
             }
 
@@ -397,7 +407,6 @@ impl ReferenceCalibrationExecutor {
                 best_params = trial_params;
                 best_cost = trial_cost;
             }
-
             // Check convergence
             if best_cost < kernel.optimizer_config.convergence_threshold {
                 break;
@@ -498,7 +507,7 @@ impl CalibrationExecutor for ReferenceCalibrationExecutor {
         safety: &SafetyConstraints,
     ) -> Result<()> {
         // Validate safety constraints
-        for (node_id, node_calib) in &state.node_calibrations {
+        for node_calib in state.node_calibrations.values() {
             for (param_name, &value) in &node_calib.parameters {
                 // Check hard limits
                 if let Some(&(min, max)) = safety.hard_limits.get(param_name) {
@@ -523,6 +532,85 @@ impl CalibrationExecutor for ReferenceCalibrationExecutor {
 
     fn get_current_calibration(&self) -> Result<CalibrationState> {
         Ok(self.current_state.lock().unwrap().clone())
+    }
+}
+
+impl Default for ReferenceCalibrationExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// -----------------------------
+// Basic compatibility helpers
+// -----------------------------
+
+use serde_json::Value as JsonValue;
+use std::fs;
+use std::path::Path;
+use uuid::Uuid;
+
+/// A small, file-backed calibration format used for lightweight runtimes and tests.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct BasicCalibrationState {
+    pub handle: String,
+    pub scale_factors: HashMap<String, f64>,
+}
+
+/// Generate a default basic calibration state.
+pub fn basic_generate_default_state() -> BasicCalibrationState {
+    let mut m = HashMap::new();
+    m.insert("power".to_string(), 1.05);
+    BasicCalibrationState {
+        handle: format!("cal-{}", Uuid::new_v4()),
+        scale_factors: m,
+    }
+}
+
+/// Persist a basic calibration state to disk under `dir/handles/<handle>.json`.
+pub fn basic_save_state<P: AsRef<Path>>(state: &BasicCalibrationState, dir: P) -> Result<()> {
+    let mut base = dir.as_ref().to_path_buf();
+    base.push("handles");
+    fs::create_dir_all(&base)?;
+    base.push(format!("{}.json", state.handle));
+    let s = serde_json::to_string_pretty(state)?;
+    fs::write(base, s)?;
+    Ok(())
+}
+
+/// Load a basic calibration state by handle if present.
+pub fn basic_load_state<P: AsRef<Path>>(
+    handle: &str,
+    dir: P,
+) -> Result<Option<BasicCalibrationState>> {
+    let mut base = dir.as_ref().to_path_buf();
+    base.push("handles");
+    base.push(format!("{}.json", handle));
+    if !base.exists() {
+        return Ok(None);
+    }
+    let data = fs::read(&base)?;
+    let st = serde_json::from_slice::<BasicCalibrationState>(&data)?;
+    Ok(Some(st))
+}
+
+/// Apply basic scale factors to params JSON object.
+pub fn basic_apply_to_params(
+    state: &BasicCalibrationState,
+    params: Option<JsonValue>,
+) -> Option<JsonValue> {
+    match params {
+        Some(JsonValue::Object(mut map)) => {
+            for (k, v) in map.iter_mut() {
+                if let Some(scale) = state.scale_factors.get(k) {
+                    if let Some(n) = v.as_f64() {
+                        *v = JsonValue::from(n * scale);
+                    }
+                }
+            }
+            Some(JsonValue::Object(map))
+        }
+        other => other,
     }
 }
 
@@ -578,7 +666,10 @@ mod tests {
 
         assert_eq!(state_v1.version, 1);
         assert_eq!(state_v2.version, 2);
-        assert_eq!(state_v2.provenance.parent_calibration_id, Some("calib-001".to_string()));
+        assert_eq!(
+            state_v2.provenance.parent_calibration_id,
+            Some("calib-001".to_string())
+        );
     }
 
     #[test]
@@ -621,7 +712,9 @@ mod tests {
         }];
 
         let detector = ThresholdDriftDetector::new(0.1); // 10% threshold
-        let report = detector.detect_drift(&calibration_state, &measurements).unwrap();
+        let report = detector
+            .detect_drift(&calibration_state, &measurements)
+            .unwrap();
 
         assert!(report.drift_detected);
         assert_eq!(report.drift_metrics.len(), 1);
@@ -660,7 +753,9 @@ mod tests {
         };
 
         let mut safety = SafetyConstraints::default();
-        safety.hard_limits.insert("voltage".to_string(), (0.0, 10.0));
+        safety
+            .hard_limits
+            .insert("voltage".to_string(), (0.0, 10.0));
 
         let executor = ReferenceCalibrationExecutor::new();
         let result = executor.apply_calibration(&state, &safety);

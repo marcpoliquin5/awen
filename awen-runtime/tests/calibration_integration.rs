@@ -2,10 +2,10 @@
 // End-to-end validation of calibration, drift detection, and recalibration loops
 
 use awen_runtime::calibration::{
-    CalibrationKernel, CalibrationExecutor, ReferenceCalibrationExecutor,
-    CostFunction, MeasurementStep, MeasurementAction, OptimizerConfig, OptimizerAlgorithm,
-    SafetyConstraints, CalibrationSchedule, DriftDetector, ThresholdDriftDetector,
-    Measurement, RecalibrationAction, Urgency, CalibrationState,
+    CalibrationExecutor, CalibrationKernel, CalibrationSchedule, CalibrationState, CostFunction,
+    DriftDetector, Measurement, MeasurementAction, MeasurementStep, OptimizerAlgorithm,
+    OptimizerConfig, RecalibrationAction, ReferenceCalibrationExecutor, SafetyConstraints,
+    ThresholdDriftDetector, Urgency,
 };
 use std::collections::HashMap;
 
@@ -23,16 +23,14 @@ fn test_calibration_execution() {
             expression: "1.0 - extinction_ratio".to_string(),
             target_value: Some(0.01),
         },
-        measurement_sequence: vec![
-            MeasurementStep {
-                step_id: "measure_extinction".to_string(),
-                action: MeasurementAction::ReadSensor {
-                    sensor_id: "detector_0".to_string(),
-                    integration_time_ns: 1000,
-                },
-                expected_duration_ns: 2000,
+        measurement_sequence: vec![MeasurementStep {
+            step_id: "measure_extinction".to_string(),
+            action: MeasurementAction::ReadSensor {
+                sensor_id: "detector_0".to_string(),
+                integration_time_ns: 1000,
             },
-        ],
+            expected_duration_ns: 2000,
+        }],
         optimizer_config: OptimizerConfig {
             algorithm: OptimizerAlgorithm::NelderMead {
                 initial_simplex_size: 0.1,
@@ -46,7 +44,8 @@ fn test_calibration_execution() {
     };
 
     let executor = ReferenceCalibrationExecutor::new();
-    let calibration_state = executor.execute_calibration(&kernel, None)
+    let calibration_state = executor
+        .execute_calibration(&kernel, None)
         .expect("Calibration failed");
 
     // Verify calibration state
@@ -59,9 +58,10 @@ fn test_calibration_execution() {
     assert!(node_calib.metadata.convergence_iterations > 0);
     assert!(node_calib.metadata.cost_function_value < 1.0);
 
-    println!("✓ Calibration executed: version {}, cost = {:.4}",
-             calibration_state.version,
-             node_calib.metadata.cost_function_value);
+    println!(
+        "✓ Calibration executed: version {}, cost = {:.4}",
+        calibration_state.version, node_calib.metadata.cost_function_value
+    );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -74,25 +74,34 @@ fn test_calibration_versioning() {
     let executor = ReferenceCalibrationExecutor::new();
 
     // Execute initial calibration
-    let state_v1 = executor.execute_calibration(&kernel, None)
+    let state_v1 = executor
+        .execute_calibration(&kernel, None)
         .expect("Calibration v1 failed");
 
     assert_eq!(state_v1.version, 1);
     assert!(state_v1.provenance.parent_calibration_id.is_none());
 
     // Execute recalibration (version should increment)
-    let state_v2 = executor.execute_calibration(&kernel, Some(&state_v1))
+    let state_v2 = executor
+        .execute_calibration(&kernel, Some(&state_v1))
         .expect("Calibration v2 failed");
 
     assert_eq!(state_v2.version, 2);
-    assert_eq!(state_v2.provenance.parent_calibration_id, Some(state_v1.calibration_id.clone()));
+    assert_eq!(
+        state_v2.provenance.parent_calibration_id,
+        Some(state_v1.calibration_id.clone())
+    );
 
     // Execute another recalibration
-    let state_v3 = executor.execute_calibration(&kernel, Some(&state_v2))
+    let state_v3 = executor
+        .execute_calibration(&kernel, Some(&state_v2))
         .expect("Calibration v3 failed");
 
     assert_eq!(state_v3.version, 3);
-    assert_eq!(state_v3.provenance.parent_calibration_id, Some(state_v2.calibration_id.clone()));
+    assert_eq!(
+        state_v3.provenance.parent_calibration_id,
+        Some(state_v2.calibration_id.clone())
+    );
 
     println!("✓ Calibration versioning: v1 → v2 → v3 with parent tracking");
 }
@@ -115,7 +124,8 @@ fn test_drift_detection_no_drift() {
     }];
 
     let detector = ThresholdDriftDetector::new(0.1); // 10% threshold
-    let report = detector.detect_drift(&calibration_state, &measurements)
+    let report = detector
+        .detect_drift(&calibration_state, &measurements)
         .expect("Drift detection failed");
 
     assert!(!report.drift_detected);
@@ -138,7 +148,8 @@ fn test_drift_detection_medium_drift() {
     }];
 
     let detector = ThresholdDriftDetector::new(0.1); // 10% threshold
-    let report = detector.detect_drift(&calibration_state, &measurements)
+    let report = detector
+        .detect_drift(&calibration_state, &measurements)
         .expect("Drift detection failed");
 
     assert!(report.drift_detected);
@@ -170,7 +181,8 @@ fn test_drift_detection_high_drift() {
     }];
 
     let detector = ThresholdDriftDetector::new(0.1); // 10% threshold
-    let report = detector.detect_drift(&calibration_state, &measurements)
+    let report = detector
+        .detect_drift(&calibration_state, &measurements)
         .expect("Drift detection failed");
 
     assert!(report.drift_detected);
@@ -195,7 +207,8 @@ fn test_full_calibration_loop() {
     let executor = ReferenceCalibrationExecutor::new();
 
     // Step 1: Initial calibration
-    let state_v1 = executor.execute_calibration(&kernel, None)
+    let state_v1 = executor
+        .execute_calibration(&kernel, None)
         .expect("Initial calibration failed");
 
     assert_eq!(state_v1.version, 1);
@@ -212,18 +225,23 @@ fn test_full_calibration_loop() {
 
     // Step 3: Detect drift
     let detector = ThresholdDriftDetector::new(0.1);
-    let drift_report = detector.detect_drift(&state_v1, &measurements)
+    let drift_report = detector
+        .detect_drift(&state_v1, &measurements)
         .expect("Drift detection failed");
 
     assert!(drift_report.drift_detected);
     println!("Step 2: Drift detected (20% above nominal)");
 
     // Step 4: Recalibrate
-    let state_v2 = executor.execute_calibration(&kernel, Some(&state_v1))
+    let state_v2 = executor
+        .execute_calibration(&kernel, Some(&state_v1))
         .expect("Recalibration failed");
 
     assert_eq!(state_v2.version, 2);
-    assert_eq!(state_v2.provenance.parent_calibration_id, Some(state_v1.calibration_id.clone()));
+    assert_eq!(
+        state_v2.provenance.parent_calibration_id,
+        Some(state_v1.calibration_id.clone())
+    );
     println!("Step 3: Recalibration (v2) complete, parent = v1");
 
     // Step 5: Verify provenance lineage
@@ -274,7 +292,9 @@ fn test_safety_constraints_hard_limit_violation() {
 
     // Safety constraints with hard limit
     let mut safety = SafetyConstraints::default();
-    safety.hard_limits.insert("voltage".to_string(), (0.0, 10.0));
+    safety
+        .hard_limits
+        .insert("voltage".to_string(), (0.0, 10.0));
 
     let result = executor.apply_calibration(&calibration_state, &safety);
 
@@ -316,7 +336,9 @@ fn test_safety_constraints_within_limits() {
     };
 
     let mut safety = SafetyConstraints::default();
-    safety.hard_limits.insert("voltage".to_string(), (0.0, 10.0));
+    safety
+        .hard_limits
+        .insert("voltage".to_string(), (0.0, 10.0));
 
     let result = executor.apply_calibration(&calibration_state, &safety);
 
@@ -338,7 +360,14 @@ fn test_optimizer_convergence() {
             expression: "param_sum".to_string(),
             target_value: Some(0.0),
         },
-        measurement_sequence: vec![],
+        measurement_sequence: vec![MeasurementStep {
+            step_id: "m0".to_string(),
+            action: MeasurementAction::ReadSensor {
+                sensor_id: "phase".to_string(),
+                integration_time_ns: 1000,
+            },
+            expected_duration_ns: 1000,
+        }],
         optimizer_config: OptimizerConfig {
             algorithm: OptimizerAlgorithm::NelderMead {
                 initial_simplex_size: 0.5,
@@ -357,7 +386,8 @@ fn test_optimizer_convergence() {
     };
 
     let executor = ReferenceCalibrationExecutor::new();
-    let state = executor.execute_calibration(&kernel, None)
+    let state = executor
+        .execute_calibration(&kernel, None)
         .expect("Calibration failed");
 
     let node_calib = &state.node_calibrations["test_node"];
@@ -366,9 +396,10 @@ fn test_optimizer_convergence() {
     assert!(node_calib.metadata.cost_function_value < 0.1);
     assert!(node_calib.metadata.convergence_iterations <= 100);
 
-    println!("✓ Optimizer convergence: {} iterations, final cost = {:.6}",
-             node_calib.metadata.convergence_iterations,
-             node_calib.metadata.cost_function_value);
+    println!(
+        "✓ Optimizer convergence: {} iterations, final cost = {:.6}",
+        node_calib.metadata.convergence_iterations, node_calib.metadata.cost_function_value
+    );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -380,17 +411,19 @@ fn test_calibration_state_serialization() {
     let state = create_test_calibration_state();
 
     // Serialize to JSON
-    let json = serde_json::to_string_pretty(&state)
-        .expect("Serialization failed");
+    let json = serde_json::to_string_pretty(&state).expect("Serialization failed");
 
     // Deserialize back
-    let deserialized: CalibrationState = serde_json::from_str(&json)
-        .expect("Deserialization failed");
+    let deserialized: CalibrationState =
+        serde_json::from_str(&json).expect("Deserialization failed");
 
     // Verify round-trip
     assert_eq!(state.calibration_id, deserialized.calibration_id);
     assert_eq!(state.version, deserialized.version);
-    assert_eq!(state.node_calibrations.len(), deserialized.node_calibrations.len());
+    assert_eq!(
+        state.node_calibrations.len(),
+        deserialized.node_calibrations.len()
+    );
 
     println!("✓ Calibration state serialization: JSON round-trip successful");
 }
@@ -403,7 +436,11 @@ fn test_calibration_state_serialization() {
 fn test_multiple_node_calibration() {
     let kernel = CalibrationKernel {
         id: "multi_node_calibration".to_string(),
-        target_nodes: vec!["mzi_0".to_string(), "mzi_1".to_string(), "mzi_2".to_string()],
+        target_nodes: vec![
+            "mzi_0".to_string(),
+            "mzi_1".to_string(),
+            "mzi_2".to_string(),
+        ],
         parameters_to_tune: vec!["phase".to_string()],
         cost_function: CostFunction::Minimize {
             expression: "total_loss".to_string(),
@@ -423,7 +460,8 @@ fn test_multiple_node_calibration() {
     };
 
     let executor = ReferenceCalibrationExecutor::new();
-    let state = executor.execute_calibration(&kernel, None)
+    let state = executor
+        .execute_calibration(&kernel, None)
         .expect("Multi-node calibration failed");
 
     // Verify all nodes calibrated
@@ -434,9 +472,10 @@ fn test_multiple_node_calibration() {
 
     for (node_id, node_calib) in &state.node_calibrations {
         assert!(node_calib.parameters.contains_key("phase"));
-        println!("  - Node {}: phase = {:.3}",
-                 node_id,
-                 node_calib.parameters["phase"]);
+        println!(
+            "  - Node {}: phase = {:.3}",
+            node_id, node_calib.parameters["phase"]
+        );
     }
 
     println!("✓ Multiple node calibration: 3 nodes calibrated successfully");
@@ -451,7 +490,8 @@ fn test_calibration_provenance_tracking() {
     let kernel = create_test_calibration_kernel();
     let executor = ReferenceCalibrationExecutor::new();
 
-    let state = executor.execute_calibration(&kernel, None)
+    let state = executor
+        .execute_calibration(&kernel, None)
         .expect("Calibration failed");
 
     // Verify provenance fields
@@ -462,10 +502,12 @@ fn test_calibration_provenance_tracking() {
     assert!(state.provenance.temperature_c.is_some());
     assert!(state.provenance.seed.is_some());
 
-    println!("✓ Calibration provenance: kernel_id = {}, algorithm = {}, measurements = {}",
-             state.provenance.calibration_kernel_id,
-             state.provenance.optimizer_algorithm,
-             state.provenance.measurement_count);
+    println!(
+        "✓ Calibration provenance: kernel_id = {}, algorithm = {}, measurements = {}",
+        state.provenance.calibration_kernel_id,
+        state.provenance.optimizer_algorithm,
+        state.provenance.measurement_count
+    );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -478,22 +520,26 @@ fn test_get_current_calibration() {
     let executor = ReferenceCalibrationExecutor::new();
 
     // Execute calibration
-    let state_v1 = executor.execute_calibration(&kernel, None)
+    let state_v1 = executor
+        .execute_calibration(&kernel, None)
         .expect("Calibration failed");
 
     // Retrieve current calibration
-    let current = executor.get_current_calibration()
+    let current = executor
+        .get_current_calibration()
         .expect("Failed to get current calibration");
 
     assert_eq!(current.calibration_id, state_v1.calibration_id);
     assert_eq!(current.version, 1);
 
     // Execute recalibration
-    let state_v2 = executor.execute_calibration(&kernel, Some(&state_v1))
+    let state_v2 = executor
+        .execute_calibration(&kernel, Some(&state_v1))
         .expect("Recalibration failed");
 
     // Retrieve updated calibration
-    let current = executor.get_current_calibration()
+    let current = executor
+        .get_current_calibration()
         .expect("Failed to get current calibration");
 
     assert_eq!(current.calibration_id, state_v2.calibration_id);
@@ -515,7 +561,14 @@ fn create_test_calibration_kernel() -> CalibrationKernel {
             expression: "loss".to_string(),
             target_value: Some(0.01),
         },
-        measurement_sequence: vec![],
+        measurement_sequence: vec![MeasurementStep {
+            step_id: "measure_phase".to_string(),
+            action: MeasurementAction::ReadSensor {
+                sensor_id: "phase".to_string(),
+                integration_time_ns: 1000,
+            },
+            expected_duration_ns: 1500,
+        }],
         optimizer_config: OptimizerConfig {
             algorithm: OptimizerAlgorithm::NelderMead {
                 initial_simplex_size: 0.1,

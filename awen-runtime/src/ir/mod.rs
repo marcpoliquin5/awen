@@ -54,20 +54,27 @@ pub fn load_from_json(path: &str) -> Result<Graph, String> {
 
 /// Validate IR: check that conditional branches reference existing nodes
 pub fn validate_graph(graph: &Graph) -> Result<(), String> {
-    let node_ids: std::collections::HashSet<&str> = graph.nodes.iter().map(|n| n.id.as_str()).collect();
+    let node_ids: std::collections::HashSet<&str> =
+        graph.nodes.iter().map(|n| n.id.as_str()).collect();
 
     for node in &graph.nodes {
         if let Some(branches) = &node.conditional_branches {
             for branch in branches {
                 for then_id in &branch.then_nodes {
                     if !node_ids.contains(then_id.as_str()) {
-                        return Err(format!("conditional branch references non-existent node: {}", then_id));
+                        return Err(format!(
+                            "conditional branch references non-existent node: {}",
+                            then_id
+                        ));
                     }
                 }
                 if let Some(else_nodes) = &branch.else_nodes {
                     for else_id in else_nodes {
                         if !node_ids.contains(else_id.as_str()) {
-                            return Err(format!("else branch references non-existent node: {}", else_id));
+                            return Err(format!(
+                                "else branch references non-existent node: {}",
+                                else_id
+                            ));
                         }
                     }
                 }

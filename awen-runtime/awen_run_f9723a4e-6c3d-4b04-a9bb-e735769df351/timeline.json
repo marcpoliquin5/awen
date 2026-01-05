@@ -1,0 +1,40 @@
+[
+  {
+    "lane": "kernel",
+    "name": "exec:mzi_0",
+    "start_ms": 1767645353277,
+    "end_ms": 1767645353281,
+    "attributes": {
+      "node_id": "mzi_0"
+    }
+  },
+  {
+    "lane": "kernel",
+    "name": "exec:mzi_1",
+    "start_ms": 1767645353282,
+    "end_ms": 1767645353286,
+    "attributes": {
+      "node_id": "mzi_1"
+    }
+  },
+  {
+    "lane": "kernel",
+    "name": "exec:mzi_0",
+    "start_ms": 1767645353277,
+    "end_ms": 1767645353278,
+    "attributes": {
+      "phase_noise": "0.00005311481800554757",
+      "node_id": "mzi_0"
+    }
+  },
+  {
+    "lane": "kernel",
+    "name": "exec:mzi_1",
+    "start_ms": 1767645353277,
+    "end_ms": 1767645353278,
+    "attributes": {
+      "phase_noise": "0.00008545041980628776",
+      "node_id": "mzi_1"
+    }
+  }
+]

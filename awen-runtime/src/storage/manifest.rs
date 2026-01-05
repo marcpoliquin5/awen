@@ -1,6 +1,6 @@
 //! Artifact manifest schema
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Artifact bundle manifest
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,7 +19,11 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    pub fn new(artifact_id: String, artifact_type: super::ArtifactType, runtime_version: String) -> Self {
+    pub fn new(
+        artifact_id: String,
+        artifact_type: super::ArtifactType,
+        runtime_version: String,
+    ) -> Self {
         Self {
             schema_version: "awen_artifact.v0.2".to_string(),
             artifact_id,

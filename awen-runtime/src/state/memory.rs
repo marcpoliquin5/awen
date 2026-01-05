@@ -1,8 +1,8 @@
 //! Memory primitive abstractions for photonic computation
 
-use anyhow::{Result, bail};
-use serde::{Serialize, Deserialize};
 use super::QuantumMode;
+use anyhow::{bail, Result};
+use serde::{Deserialize, Serialize};
 
 /// Memory primitive trait
 pub trait MemoryPrimitive: Send + Sync {
@@ -35,14 +35,19 @@ pub struct DelayBuffer {
 }
 
 impl DelayBuffer {
-    pub fn new(id: String, latency_ns: u64, insertion_loss_db: f64, coherence_time_ns: u64) -> Self {
+    pub fn new(
+        id: String,
+        latency_ns: u64,
+        insertion_loss_db: f64,
+        coherence_time_ns: u64,
+    ) -> Self {
         Self {
             id,
             latency_ns,
             insertion_loss_db,
             coherence_time_ns,
             bandwidth_thz: 40.0, // C-band default
-            capacity_modes: 80,   // WDM capacity
+            capacity_modes: 80,  // WDM capacity
             buffer: Vec::new(),
         }
     }
@@ -60,7 +65,11 @@ impl DelayBuffer {
 impl MemoryPrimitive for DelayBuffer {
     fn write(&mut self, mode: QuantumMode, timestamp_ns: u64) -> Result<()> {
         if self.buffer.len() >= self.capacity_modes {
-            bail!("DelayBuffer {} full (capacity: {})", self.id, self.capacity_modes);
+            bail!(
+                "DelayBuffer {} full (capacity: {})",
+                self.id,
+                self.capacity_modes
+            );
         }
         self.buffer.push((mode, timestamp_ns));
         Ok(())
@@ -68,17 +77,23 @@ impl MemoryPrimitive for DelayBuffer {
 
     fn read(&mut self, timestamp_ns: u64) -> Result<Option<QuantumMode>> {
         // FIFO: find first mode that has completed delay
-        let mut result = None;
-        self.buffer.retain(|(mode, write_time)| {
-            if result.is_none() && timestamp_ns >= write_time + self.latency_ns {
+        let mut result: Option<QuantumMode> = None;
+        let mut remove_idx: Option<usize> = None;
+
+        for (i, (mode, write_time)) in self.buffer.iter().enumerate() {
+            if timestamp_ns >= *write_time + self.latency_ns {
                 let mut out_mode = mode.clone();
                 self.apply_loss(&mut out_mode);
                 result = Some(out_mode);
-                false // remove from buffer
-            } else {
-                true // keep in buffer
+                remove_idx = Some(i);
+                break;
             }
-        });
+        }
+
+        if let Some(i) = remove_idx {
+            self.buffer.remove(i);
+        }
+
         Ok(result)
     }
 
@@ -96,8 +111,8 @@ impl MemoryPrimitive for DelayBuffer {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ResonatorStore {
     pub id: String,
-    pub lifetime_ns: u64,       // Exponential decay τ
-    pub coupling_q: f64,         // Quality factor
+    pub lifetime_ns: u64, // Exponential decay τ
+    pub coupling_q: f64,  // Quality factor
     pub bandwidth_ghz: f64,
     pub read_efficiency: f64,
     pub write_efficiency: f64,
@@ -121,7 +136,7 @@ impl ResonatorStore {
     }
 
     fn apply_decay(&self, mode: &mut QuantumMode, elapsed_ns: u64) {
-        let decay_factor = (-elapsed_ns as f64 / self.lifetime_ns as f64).exp();
+        let decay_factor = (-(elapsed_ns as f64) / self.lifetime_ns as f64).exp();
         if let Some(ref mut amps) = mode.amplitudes {
             for a in amps.iter_mut() {
                 *a *= decay_factor;
@@ -204,8 +219,8 @@ impl HybridRegister {
         Self {
             id,
             capacity_bits,
-            read_latency_ns: 1000,   // 1μs E→P conversion
-            write_latency_ns: 500,   // 500ns P→E conversion
+            read_latency_ns: 1000, // 1μs E→P conversion
+            write_latency_ns: 500, // 500ns P→E conversion
             fidelity: 0.99,
             register: vec![0.0; capacity_bits],
             last_write_time: None,
@@ -215,7 +230,11 @@ impl HybridRegister {
     /// Write classical value to register
     pub fn write_classical(&mut self, address: usize, value: f64, timestamp_ns: u64) -> Result<()> {
         if address >= self.capacity_bits {
-            bail!("Address {} out of bounds (capacity: {})", address, self.capacity_bits);
+            bail!(
+                "Address {} out of bounds (capacity: {})",
+                address,
+                self.capacity_bits
+            );
         }
         self.register[address] = value;
         self.last_write_time = Some(timestamp_ns);
@@ -225,7 +244,11 @@ impl HybridRegister {
     /// Read classical value from register
     pub fn read_classical(&self, address: usize) -> Result<f64> {
         if address >= self.capacity_bits {
-            bail!("Address {} out of bounds (capacity: {})", address, self.capacity_bits);
+            bail!(
+                "Address {} out of bounds (capacity: {})",
+                address,
+                self.capacity_bits
+            );
         }
         Ok(self.register[address])
     }

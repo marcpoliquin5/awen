@@ -1,6 +1,6 @@
 //! Environment capture for reproducibility
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Runtime environment information
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -66,19 +66,23 @@ fn capture_runtime() -> RuntimeInfo {
     RuntimeInfo {
         runtime_name: "awen-runtime".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
-        build_timestamp: option_env!("BUILD_TIMESTAMP").unwrap_or("unknown").to_string(),
-        build_profile: if cfg!(debug_assertions) { "debug" } else { "release" }.to_string(),
-        rust_version: option_env!("RUSTC_VERSION").unwrap_or("unknown").to_string(),
-        features: vec![
-            "runtime".to_string(),
-            "observability".to_string(),
-        ],
-        plugins: vec![
-            PluginInfo {
-                name: "reference_sim".to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-            },
-        ],
+        build_timestamp: option_env!("BUILD_TIMESTAMP")
+            .unwrap_or("unknown")
+            .to_string(),
+        build_profile: if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        }
+        .to_string(),
+        rust_version: option_env!("RUSTC_VERSION")
+            .unwrap_or("unknown")
+            .to_string(),
+        features: vec!["runtime".to_string(), "observability".to_string()],
+        plugins: vec![PluginInfo {
+            name: "reference_sim".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        }],
     }
 }
 
@@ -122,11 +126,15 @@ fn get_os_version() -> String {
             .and_then(|s| {
                 s.lines()
                     .find(|line| line.starts_with("PRETTY_NAME="))
-                    .map(|line| line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string())
+                    .map(|line| {
+                        line.trim_start_matches("PRETTY_NAME=")
+                            .trim_matches('"')
+                            .to_string()
+                    })
             })
             .unwrap_or_else(|| "Linux (unknown)".to_string())
     }
-    
+
     #[cfg(not(target_os = "linux"))]
     {
         "unknown".to_string()
@@ -146,7 +154,7 @@ fn get_cpu_model() -> String {
             })
             .unwrap_or_else(|| "unknown".to_string())
     }
-    
+
     #[cfg(not(target_os = "linux"))]
     {
         std::env::consts::ARCH.to_string()
@@ -167,7 +175,7 @@ fn get_memory_gb() -> u64 {
             })
             .unwrap_or(0)
     }
-    
+
     #[cfg(not(target_os = "linux"))]
     {
         0
@@ -177,11 +185,11 @@ fn get_memory_gb() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_capture_environment() {
         let env = capture_environment();
-        
+
         assert_eq!(env.runtime.runtime_name, "awen-runtime");
         assert!(!env.runtime.version.is_empty());
         assert!(!env.system.os.is_empty());

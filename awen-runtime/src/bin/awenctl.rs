@@ -1,11 +1,11 @@
-use awen_runtime::engine::Engine;
-use awen_runtime::ir;
-use awen_runtime::gradients::{GradientOptions, GradientRegistry, NoiseModel};
-use awen_runtime::gradients;
-use clap::Parser;
 use anyhow::Result;
-use uuid::Uuid;
+use awen_runtime::engine::Engine;
+use awen_runtime::gradients;
+use awen_runtime::gradients::{GradientOptions, NoiseModel};
+use awen_runtime::ir;
+use clap::Parser;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 #[derive(Parser)]
 struct Args {
@@ -43,7 +43,13 @@ fn main() -> Result<()> {
     let args = Args::parse();
     match args.command {
         Command::Run { ir, seed } => run_command(&ir, seed)?,
-        Command::Gradient { ir, params, strategy, seed, samples } => gradient_command(&ir, &params, &strategy, seed, samples)?,
+        Command::Gradient {
+            ir,
+            params,
+            strategy,
+            seed,
+            samples,
+        } => gradient_command(&ir, &params, &strategy, seed, samples)?,
     }
     Ok(())
 }
@@ -57,8 +63,17 @@ fn run_command(ir_path: &str, seed: Option<u64>) -> Result<()> {
     Ok(())
 }
 
-fn gradient_command(ir_path: &str, params_csv: &str, strategy: &str, seed: Option<u64>, samples: u32) -> Result<()> {
-    println!("awenctl: computing gradients for {} (strategy={}, seed={:?})", ir_path, strategy, seed);
+fn gradient_command(
+    ir_path: &str,
+    params_csv: &str,
+    strategy: &str,
+    seed: Option<u64>,
+    samples: u32,
+) -> Result<()> {
+    println!(
+        "awenctl: computing gradients for {} (strategy={}, seed={:?})",
+        ir_path, strategy, seed
+    );
     let ir_json = std::fs::read_to_string(ir_path)?;
 
     // Register defaults into the global registry and pick the reference provider
@@ -68,11 +83,16 @@ fn gradient_command(ir_path: &str, params_csv: &str, strategy: &str, seed: Optio
     // - if strategy == "finite_difference" -> use fd
     // - if strategy == "auto" -> prefer adjoint if supported, else fd
     let provider: std::sync::Arc<dyn gradients::GradientProvider> = match strategy {
-        s if s.eq_ignore_ascii_case("adjoint") => {
-            gradients::GLOBAL_GRADIENT_REGISTRY.get("reference-adjoint").ok_or_else(|| anyhow::anyhow!("adjoint provider not available"))?
-        }
-        s if s.eq_ignore_ascii_case("finite_difference") || s.eq_ignore_ascii_case("finite-difference") || s.eq_ignore_ascii_case("fd") => {
-            gradients::GLOBAL_GRADIENT_REGISTRY.get("reference-fd").ok_or_else(|| anyhow::anyhow!("fd provider not available"))?
+        s if s.eq_ignore_ascii_case("adjoint") => gradients::GLOBAL_GRADIENT_REGISTRY
+            .get("reference-adjoint")
+            .ok_or_else(|| anyhow::anyhow!("adjoint provider not available"))?,
+        s if s.eq_ignore_ascii_case("finite_difference")
+            || s.eq_ignore_ascii_case("finite-difference")
+            || s.eq_ignore_ascii_case("fd") =>
+        {
+            gradients::GLOBAL_GRADIENT_REGISTRY
+                .get("reference-fd")
+                .ok_or_else(|| anyhow::anyhow!("fd provider not available"))?
         }
         _ => {
             // auto
@@ -86,10 +106,24 @@ fn gradient_command(ir_path: &str, params_csv: &str, strategy: &str, seed: Optio
         }
     };
 
-    let params: Vec<String> = params_csv.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+    let params: Vec<String> = params_csv
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
 
-    let noise = NoiseModel { shot_noise_std: None, thermal_noise_std: None, phase_noise_std: None, loss_variation: None, metadata: None };
-    let opts = GradientOptions { strategy: strategy.to_string(), seed, samples: Some(samples) };
+    let noise = NoiseModel {
+        shot_noise_std: None,
+        thermal_noise_std: None,
+        phase_noise_std: None,
+        loss_variation: None,
+        metadata: None,
+    };
+    let opts = GradientOptions {
+        strategy: strategy.to_string(),
+        seed,
+        samples: Some(samples),
+    };
 
     let res = provider.compute_gradients(&ir_json, &params, &noise, &opts)?;
 
@@ -102,7 +136,8 @@ fn gradient_command(ir_path: &str, params_csv: &str, strategy: &str, seed: Optio
 
     // write observability artifacts for gradient run
     let node_ids = vec!["gradient_op".to_string()];
-    let (spans, events, metrics) = awen_runtime::observability::build_basic_observability(&run_id, &node_ids, opts.seed);
+    let (spans, events, metrics) =
+        awen_runtime::observability::build_basic_observability(&run_id, &node_ids, opts.seed);
     awen_runtime::observability::write_traces(&out_dir, &spans)?;
     awen_runtime::observability::write_timeline(&out_dir, &events)?;
     awen_runtime::observability::write_metrics(&out_dir, &metrics)?;

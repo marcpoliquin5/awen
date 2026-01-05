@@ -97,7 +97,11 @@ pub fn run_reference_simulator(graph: &Graph, seed: Option<u64>) -> Result<Simul
                 let outcome = if node.params.get("quantum").cloned().unwrap_or(0.0) > 0.5 {
                     // sample 0/1 with probability proportional to power (clamped)
                     let p = power.min(1.0);
-                    if rng.gen_bool(p) { Some(1u64) } else { Some(0u64) }
+                    if rng.gen_bool(p) {
+                        Some(1u64)
+                    } else {
+                        Some(0u64)
+                    }
                 } else {
                     None
                 };

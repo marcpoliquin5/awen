@@ -1,12 +1,12 @@
 /// Phase 2.5 Control + Calibration Integration Tests
 ///
 /// Comprehensive test suite for measurement-driven feedback and adaptive calibration
-
 #[cfg(test)]
 mod control_integration_tests {
     use std::f64::consts::PI;
 
     // Mock measurement result structure
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     struct MockMeasurement {
         i: f64,
@@ -32,7 +32,7 @@ mod control_integration_tests {
     #[test]
     fn test_multi_shot_adaptive_experiment() {
         // Verify: Multiple feedback loops with converging measurements
-        let measurements = vec![0.45, 0.30, 0.15, 0.08, 0.04];
+        let measurements = [0.45, 0.30, 0.15, 0.08, 0.04];
 
         let mut converged = false;
         for (i, &meas) in measurements.iter().enumerate() {
@@ -158,7 +158,7 @@ mod control_integration_tests {
     fn test_calibration_lifetime_dark_count() {
         // Verify: Dark count calibration expires after 10% drift
 
-        let baseline_rate = 1000.0_f64; // Hz
+        let _baseline_rate = 1000.0_f64; // Hz
         let expiration_threshold_pct = 10.0;
         let temperature_coefficient = 0.0001; // 0.01%/K
         let temperature_drift_per_hour_k = 0.1;
@@ -196,7 +196,7 @@ mod control_integration_tests {
         // Verify: Fidelity estimated from measurement variance
 
         // Perfect homodyne: variance = 0.5 (quantum limit)
-        let perfect_variance = 0.5;
+        let _perfect_variance = 0.5;
         let perfect_excess = 0.0;
         let perfect_fidelity = 1.0 - perfect_excess / 2.0;
         assert!(perfect_fidelity >= 0.99);
@@ -228,7 +228,7 @@ mod control_integration_tests {
     fn test_fidelity_evolution_tracking() {
         // Verify: Fidelity evolution follows dephasing curve
 
-        let fidelities = vec![0.99, 0.97, 0.95, 0.92, 0.88];
+        let fidelities = [0.99, 0.97, 0.95, 0.92, 0.88];
 
         // Check monotonic decrease
         for i in 1..fidelities.len() {
@@ -354,7 +354,7 @@ mod control_integration_tests {
     fn test_calibration_command_execution() {
         // Verify: Calibration commands execute
 
-        let commands = vec![
+        let commands = [
             "MeasurePhaseShift",
             "MeasureDarkCount",
             "UpdateCoefficients",
@@ -390,7 +390,7 @@ mod control_integration_tests {
     fn test_adaptive_experiment_convergence() {
         // Verify: Adaptive algorithm converges to minimum
 
-        let phase_measurements = vec![0.80, 0.60, 0.35, 0.15, 0.05, 0.02];
+        let phase_measurements = [0.80, 0.60, 0.35, 0.15, 0.05, 0.02];
 
         let final_value = *phase_measurements.last().unwrap();
         assert!(final_value < 0.05, "Should converge to near-zero");
@@ -413,7 +413,7 @@ mod control_integration_tests {
     fn test_measurement_at_zero_photon() {
         // Verify: Measurement at zero photons handled gracefully
 
-        let photon_count = 0.0;
+        let _photon_count = 0.0;
         let measurement_variance = 0.5; // Shot noise floor
 
         // Should still return valid measurement

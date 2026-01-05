@@ -8,16 +8,15 @@
 /// - Resource allocation and validation
 /// - Large circuit scalability
 /// - Error handling and edge cases
-
 #[cfg(test)]
 mod scheduler_integration_tests {
-    use std::collections::HashMap;
 
     // Note: In real implementation, these would be:
     // use awen_runtime::scheduler_v0::*;
     // use awen_runtime::engine_v2::*;
     // For this test file, we define the minimal mocks needed for compilation
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     pub struct ExecutionPlan {
         pub plan_id: String,
@@ -26,6 +25,7 @@ mod scheduler_integration_tests {
         pub total_duration_ns: u64,
     }
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     pub struct ExecutionPhase {
         pub phase_id: usize,
@@ -35,6 +35,7 @@ mod scheduler_integration_tests {
         pub coherence_deadline_ns: Option<u64>,
     }
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     pub struct SchedulingFeedback {
         pub plan_id: String,
@@ -71,9 +72,9 @@ mod scheduler_integration_tests {
         // 2: Second-level dependent nodes
         // etc.
 
-        let phase_order = vec![0, 1, 2];
-        for i in 0..phase_order.len() {
-            assert_eq!(phase_order[i], i);
+        let phase_order = [0, 1, 2];
+        for (i, &v) in phase_order.iter().enumerate() {
+            assert_eq!(v, i);
         }
     }
 
@@ -135,8 +136,8 @@ mod scheduler_integration_tests {
         // Each node in plan should be assigned waveguide indices
         // No two nodes should share waveguides if exclusive=true
 
-        let node_a_waveguides = vec![0, 1];
-        let node_b_waveguides = vec![2, 3];
+        let node_a_waveguides = [0, 1];
+        let node_b_waveguides = [2, 3];
 
         // No overlap
         let overlap = node_a_waveguides
@@ -161,7 +162,7 @@ mod scheduler_integration_tests {
         // Each measurement node needs detector assignment
         // Limited detectors (typically 2-4)
 
-        let measurements = vec!["measure_0", "measure_1", "measure_2"];
+        let measurements = ["measure_0", "measure_1", "measure_2"];
         let available_detectors = 2;
 
         // If measurements > detectors, must time-multiplex
@@ -184,7 +185,7 @@ mod scheduler_integration_tests {
         // ResourceAllocation.priority should list nodes
         // in preferred execution order to minimize resource conflicts
 
-        let priority = vec![
+        let priority = [
             "node_0".to_string(),
             "node_1".to_string(),
             "node_2".to_string(),
@@ -242,7 +243,7 @@ mod scheduler_integration_tests {
         // Work backward from root with 10ms window:
 
         let total_window_ns = 10_000_000u64;
-        let phase_0_duration = 200u64;
+        let _phase_0_duration = 200u64;
         let phase_1_duration = 1000u64;
         let phase_2_duration = 300u64;
         let phase_3_duration = 500u64;
@@ -289,7 +290,7 @@ mod scheduler_integration_tests {
         let branch_a = "branch_a_0";
         let branch_b = "branch_b_0";
 
-        let schedule_order = vec![measure_node, branch_a, branch_b];
+        let schedule_order = [measure_node, branch_a, branch_b];
 
         assert!(schedule_order[0] == "measure_0");
         assert_eq!(schedule_order.len(), 3);
@@ -369,8 +370,8 @@ mod scheduler_integration_tests {
 
         let elapsed = start_time.elapsed();
 
-        // Just verify we can measure time
-        assert!(elapsed.as_millis() >= 0);
+        // Consume elapsed to avoid absurd comparison lint; measurement available
+        let _ = elapsed;
     }
 
     #[test]
@@ -417,7 +418,7 @@ mod scheduler_integration_tests {
         let has_cycle = true; // Would be detected
         let is_valid = !has_cycle;
 
-        assert!(is_valid == false); // Cycle makes it invalid
+        assert!(!is_valid); // Cycle makes it invalid
     }
 
     #[test]
@@ -482,7 +483,7 @@ mod scheduler_integration_tests {
         let graph_id = "graph_12345";
 
         // Would emit: span(plan_id) and event(phase_count=N)
-        assert!(plan_id.len() > 0 && graph_id.len() > 0);
+        assert!(!plan_id.is_empty() && !graph_id.is_empty());
     }
 
     #[test]
@@ -553,7 +554,7 @@ mod scheduler_integration_tests {
         // - Coupler crosstalk
         // - Thermal effects
 
-        let device_type = "SiPhotonics_Broadcom";
+        let _device_type = "SiPhotonics_Broadcom";
         let has_crosstalk_model = false; // Future
 
         assert!(!has_crosstalk_model);

@@ -3,29 +3,27 @@
 //! Tests core artifact lifecycle: bundle creation, export, deterministic ID generation.
 //! Full round-trip testing deferred to Phase 2.6.1 (import functionality).
 
+use awen_runtime::ir::{Graph, Node};
 use awen_runtime::storage::{
-    ArtifactType, BundleBuilder, export_bundle, ExportFormat, capture_environment,
-    compute_deterministic_id, short_id,
+    capture_environment, compute_deterministic_id, export_bundle, short_id, ArtifactType,
+    BundleBuilder, ExportFormat,
 };
-use awen_runtime::ir::{Graph, Node, Edge};
 use std::collections::HashMap;
 use tempfile::TempDir;
 
 // Helper: Create a simple test IR graph
 fn create_test_graph() -> Graph {
     Graph {
-        nodes: vec![
-            Node {
-                id: "x0".to_string(),
-                node_type: "RX".to_string(),
-                params: [(String::from("theta"), 1.5707963267948966)]
-                    .iter()
-                    .cloned()
-                    .collect(),
-                measure_mode: None,
-                conditional_branches: None,
-            },
-        ],
+        nodes: vec![Node {
+            id: "x0".to_string(),
+            node_type: "RX".to_string(),
+            params: [(String::from("theta"), std::f64::consts::FRAC_PI_2)]
+                .iter()
+                .cloned()
+                .collect(),
+            measure_mode: None,
+            conditional_branches: None,
+        }],
         edges: vec![],
         metadata: HashMap::new(),
     }
@@ -34,7 +32,7 @@ fn create_test_graph() -> Graph {
 // Helper: Create test parameters
 fn create_test_params() -> HashMap<String, f64> {
     let mut params = HashMap::new();
-    params.insert("theta".to_string(), 1.5707963267948966);
+    params.insert("theta".to_string(), std::f64::consts::FRAC_PI_2);
     params
 }
 
@@ -43,7 +41,7 @@ fn test_01_artifact_bundle_creation() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()
@@ -59,10 +57,10 @@ fn test_02_artifact_deterministic_id() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let id1 = compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0")
-        .expect("Should compute ID");
-    let id2 = compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0")
-        .expect("Should compute ID");
+    let id1 =
+        compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0").expect("Should compute ID");
+    let id2 =
+        compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0").expect("Should compute ID");
 
     // Same inputs → same ID
     assert_eq!(id1, id2);
@@ -75,13 +73,13 @@ fn test_03_artifact_short_id() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let full_id = compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0")
-        .expect("Should compute ID");
+    let full_id =
+        compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0").expect("Should compute ID");
     let short = short_id(&full_id);
 
     assert!(short.starts_with("awen_"));
     assert_eq!(short.len(), 21); // "awen_" (5) + 16 hex chars
-    assert!(full_id.starts_with(&short));
+    assert!(full_id.starts_with(short));
 }
 
 #[test]
@@ -93,7 +91,7 @@ fn test_04_artifact_export_directory() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()
@@ -117,7 +115,7 @@ fn test_05_artifact_manifest_json() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()
@@ -126,8 +124,8 @@ fn test_05_artifact_manifest_json() {
     let export_path = export_bundle(&bundle, &artifacts_dir, ExportFormat::Directory)
         .expect("Should export bundle");
 
-    let manifest_content = std::fs::read_to_string(export_path.join("manifest.json"))
-        .expect("Should read manifest");
+    let manifest_content =
+        std::fs::read_to_string(export_path.join("manifest.json")).expect("Should read manifest");
 
     assert!(manifest_content.contains("\"schema_version\""));
     assert!(manifest_content.contains("\"artifact_id\""));
@@ -145,7 +143,7 @@ fn test_06_artifact_ir_export() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()
@@ -170,7 +168,7 @@ fn test_07_artifact_parameters_export() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()
@@ -203,20 +201,22 @@ fn test_09_artifact_multiple_types() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    for artifact_type in vec![
+    for artifact_type in [
         ArtifactType::Run,
         ArtifactType::Gradient,
         ArtifactType::Calibration,
         ArtifactType::Replay,
         ArtifactType::Validation,
-    ] {
-        let bundle = BundleBuilder::new(artifact_type.clone(), ir.clone())
+    ]
+    .iter()
+    {
+        let bundle = BundleBuilder::new(ir.clone(), artifact_type.clone())
             .with_initial_parameters(params.clone())
             .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
             .build()
             .expect("Should create bundle");
 
-        assert_eq!(bundle.artifact_type, artifact_type);
+        assert_eq!(bundle.artifact_type, artifact_type.clone());
     }
 }
 
@@ -225,10 +225,10 @@ fn test_10_artifact_deterministic_with_different_seed() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let id1 = compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0")
-        .expect("Should compute ID");
-    let id2 = compute_deterministic_id(&ir, &params, None, Some(99), "0.6.0")
-        .expect("Should compute ID");
+    let id1 =
+        compute_deterministic_id(&ir, &params, None, Some(42), "0.6.0").expect("Should compute ID");
+    let id2 =
+        compute_deterministic_id(&ir, &params, None, Some(99), "0.6.0").expect("Should compute ID");
 
     // Different seed → different ID
     assert_ne!(id1, id2);
@@ -243,7 +243,7 @@ fn test_11_artifact_directory_structure() {
     let ir = create_test_graph();
     let params = create_test_params();
 
-    let bundle = BundleBuilder::new(ArtifactType::Run, ir)
+    let bundle = BundleBuilder::new(ir, ArtifactType::Run)
         .with_initial_parameters(params)
         .with_results(serde_json::json!({"measurements": [0, 1, 0]}))
         .build()

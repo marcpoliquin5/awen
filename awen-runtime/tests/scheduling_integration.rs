@@ -1,11 +1,10 @@
 // AWEN Scheduling Integration Tests
 // End-to-end validation of timing, resource allocation, and coherence enforcement
 
-use awen_runtime::ir::{Graph, Node, Edge};
+use awen_runtime::ir::{Edge, Graph, Node};
 use awen_runtime::scheduler::{
-    Scheduler, StaticScheduler, SchedulingConstraints, FeedbackLoop, Priority,
-    TimingConstraint, ConstraintType, ViolationAction, ResourceLimits,
-    ResourceState, WavelengthChannel,
+    ConstraintType, FeedbackLoop, Priority, ResourceLimits, ResourceState, Scheduler,
+    SchedulingConstraints, StaticScheduler, TimingConstraint, ViolationAction, WavelengthChannel,
 };
 use awen_runtime::state::CoherenceWindow;
 use std::collections::HashMap;
@@ -34,11 +33,14 @@ fn test_scheduler_deterministic_replay() {
     let seed = 12345u64;
 
     // Run scheduler multiple times with same seed
-    let plan1 = scheduler.schedule(&graph, &constraints, seed)
+    let plan1 = scheduler
+        .schedule(&graph, &constraints, seed)
         .expect("Schedule 1 failed");
-    let plan2 = scheduler.schedule(&graph, &constraints, seed)
+    let plan2 = scheduler
+        .schedule(&graph, &constraints, seed)
         .expect("Schedule 2 failed");
-    let plan3 = scheduler.schedule(&graph, &constraints, seed)
+    let plan3 = scheduler
+        .schedule(&graph, &constraints, seed)
         .expect("Schedule 3 failed");
 
     // Verify determinism: same seed → identical plans
@@ -71,67 +73,90 @@ fn test_critical_path_identification() {
     // Create diamond graph: src → (a, b) → dst
     // Path via 'a' is longer (critical path)
     let graph = Graph {
-        version: "0.2".to_string(),
-        metadata: HashMap::new(),
         nodes: vec![
             Node {
                 id: "src".to_string(),
                 node_type: "Source".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "a".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "b".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "dst".to_string(),
                 node_type: "Detector".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
         ],
         edges: vec![
             Edge {
-                src: "src".to_string(),
-                dst: "a".to_string(),
-                delay_ns: Some(50.0),
+                src_node: "src".to_string(),
+                src_port: None,
+                dst_node: "a".to_string(),
+                dst_port: None,
+                delay: Some(50.0),
             },
             Edge {
-                src: "src".to_string(),
-                dst: "b".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "src".to_string(),
+                src_port: None,
+                dst_node: "b".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             },
             Edge {
-                src: "a".to_string(),
-                dst: "dst".to_string(),
-                delay_ns: Some(50.0),
+                src_node: "a".to_string(),
+                src_port: None,
+                dst_node: "dst".to_string(),
+                dst_port: None,
+                delay: Some(50.0),
             },
             Edge {
-                src: "b".to_string(),
-                dst: "dst".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "b".to_string(),
+                src_port: None,
+                dst_node: "dst".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             },
         ],
+        metadata: HashMap::new(),
     };
 
     let constraints = create_default_constraints();
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Critical path should include 'a' (longer delays)
     assert!(!plan.critical_path.is_empty());
-    
+
     // Makespan should reflect critical path length
     // src (0-100) → a (150-250) → dst (300-400) = 400ns
-    assert!(plan.makespan_ns >= 300, "Makespan too short: {}", plan.makespan_ns);
+    assert!(
+        plan.makespan_ns >= 300,
+        "Makespan too short: {}",
+        plan.makespan_ns
+    );
 
-    println!("✓ Critical path identified: makespan = {}ns", plan.makespan_ns);
+    println!(
+        "✓ Critical path identified: makespan = {}ns",
+        plan.makespan_ns
+    );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -143,14 +168,7 @@ fn test_coherence_window_enforcement() {
     let graph = create_mzi_chain_graph(3);
 
     // Create coherence window: 0-1000ns, high fidelity threshold
-    let coherence_window = CoherenceWindow {
-        id: "coh_win_0".to_string(),
-        start_time_ns: 0,
-        duration_ns: 1_000,
-        decoherence_model: "exponential".to_string(),
-        fidelity_threshold: 0.95,
-        mode_ids: vec!["mode_0".to_string(), "mode_1".to_string()],
-    };
+    let coherence_window = CoherenceWindow::new("coh_win_0".to_string(), 1_000);
 
     let constraints = SchedulingConstraints {
         coherence_windows: vec![coherence_window],
@@ -160,7 +178,8 @@ fn test_coherence_window_enforcement() {
     };
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Verify all nodes are within coherence window
@@ -184,37 +203,46 @@ fn test_coherence_window_enforcement() {
 fn test_feedback_loop_deadline_satisfied() {
     // Create measurement-feedback graph
     let graph = Graph {
-        version: "0.2".to_string(),
-        metadata: HashMap::new(),
         nodes: vec![
             Node {
                 id: "source".to_string(),
                 node_type: "Source".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "detector".to_string(),
                 node_type: "Detector".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "control".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
         ],
         edges: vec![
             Edge {
-                src: "source".to_string(),
-                dst: "detector".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "source".to_string(),
+                src_port: None,
+                dst_node: "detector".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             },
             Edge {
-                src: "detector".to_string(),
-                dst: "control".to_string(),
-                delay_ns: Some(20.0),
+                src_node: "detector".to_string(),
+                src_port: None,
+                dst_node: "control".to_string(),
+                dst_port: None,
+                delay: Some(20.0),
             },
         ],
+        metadata: HashMap::new(),
     };
 
     let feedback_loop = FeedbackLoop {
@@ -233,7 +261,8 @@ fn test_feedback_loop_deadline_satisfied() {
     };
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Verify feedback latency
@@ -246,34 +275,40 @@ fn test_feedback_loop_deadline_satisfied() {
         latency
     );
 
-    println!("✓ Feedback loop deadline satisfied: latency = {}ns", latency);
+    println!(
+        "✓ Feedback loop deadline satisfied: latency = {}ns",
+        latency
+    );
 }
 
 #[test]
 fn test_feedback_loop_deadline_violation() {
     // Create graph with inherently long latency
     let graph = Graph {
-        version: "0.2".to_string(),
-        metadata: HashMap::new(),
         nodes: vec![
             Node {
                 id: "detector".to_string(),
                 node_type: "Detector".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "control".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
         ],
-        edges: vec![
-            Edge {
-                src: "detector".to_string(),
-                dst: "control".to_string(),
-                delay_ns: Some(200.0), // Long edge delay
-            },
-        ],
+        edges: vec![Edge {
+            src_node: "detector".to_string(),
+            src_port: None,
+            dst_node: "control".to_string(),
+            dst_port: None,
+            delay: Some(200.0), // Long edge delay
+        }],
+        metadata: HashMap::new(),
     };
 
     // Create feedback loop with impossible deadline
@@ -314,7 +349,8 @@ fn test_resource_allocation_wavelengths() {
     let constraints = create_default_constraints();
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Verify resource allocations
@@ -329,7 +365,11 @@ fn test_resource_allocation_wavelengths() {
             .iter()
             .any(|r| r.resource_type == "memory");
 
-        assert!(has_wavelength, "Node {} missing wavelength", scheduled_node.node_id);
+        assert!(
+            has_wavelength,
+            "Node {} missing wavelength",
+            scheduled_node.node_id
+        );
         assert!(has_memory, "Node {} missing memory", scheduled_node.node_id);
     }
 
@@ -345,7 +385,7 @@ fn test_wavelength_skew_compensation() {
     let graph = create_mzi_chain_graph(2);
 
     // Create resource state with wavelengths at different frequencies
-    let resource_state = ResourceState {
+    let _resource_state = ResourceState {
         available_wavelengths: vec![
             WavelengthChannel {
                 lambda_nm: 1550.0,
@@ -366,15 +406,16 @@ fn test_wavelength_skew_compensation() {
 
     let constraints = create_default_constraints();
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Verify wavelength allocations include skew compensation
-    let mut has_skew_compensation = false;
+    let mut _has_skew_compensation = false;
     for scheduled_node in plan.schedule.values() {
         for allocation in &scheduled_node.allocated_resources {
             if allocation.resource_id.contains("1551") {
-                has_skew_compensation = true;
+                _has_skew_compensation = true;
             }
         }
     }
@@ -392,12 +433,12 @@ fn test_execution_plan_serialization() {
     let constraints = create_default_constraints();
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Serialize to JSON
-    let json = serde_json::to_string_pretty(&plan)
-        .expect("Serialization failed");
+    let json = serde_json::to_string_pretty(&plan).expect("Serialization failed");
 
     // Deserialize back
     let deserialized_plan: awen_runtime::scheduler::ExecutionPlan =
@@ -437,7 +478,8 @@ fn test_timing_constraint_hard_deadline() {
     };
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     // Verify node completes before deadline
@@ -461,11 +503,12 @@ fn test_schedule_validation() {
     let constraints = create_default_constraints();
 
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Scheduling failed");
 
     let resource_state = create_default_resource_state();
-    
+
     // Validate plan
     let result = scheduler.validate_plan(&plan, &resource_state);
     assert!(result.is_ok(), "Plan validation failed: {:?}", result);
@@ -481,72 +524,94 @@ fn test_schedule_validation() {
 fn test_complex_graph_scheduling() {
     // Create complex graph with multiple paths and dependencies
     let graph = Graph {
-        version: "0.2".to_string(),
-        metadata: HashMap::new(),
         nodes: vec![
             Node {
                 id: "laser_0".to_string(),
                 node_type: "Source".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "laser_1".to_string(),
                 node_type: "Source".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "mzi_0".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "mzi_1".to_string(),
                 node_type: "MZI".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "combiner".to_string(),
                 node_type: "Coupler".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
             Node {
                 id: "detector".to_string(),
                 node_type: "Detector".to_string(),
-                params: None,
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
             },
         ],
         edges: vec![
             Edge {
-                src: "laser_0".to_string(),
-                dst: "mzi_0".to_string(),
-                delay_ns: Some(5.0),
+                src_node: "laser_0".to_string(),
+                src_port: None,
+                dst_node: "mzi_0".to_string(),
+                dst_port: None,
+                delay: Some(5.0),
             },
             Edge {
-                src: "laser_1".to_string(),
-                dst: "mzi_1".to_string(),
-                delay_ns: Some(5.0),
+                src_node: "laser_1".to_string(),
+                src_port: None,
+                dst_node: "mzi_1".to_string(),
+                dst_port: None,
+                delay: Some(5.0),
             },
             Edge {
-                src: "mzi_0".to_string(),
-                dst: "combiner".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "mzi_0".to_string(),
+                src_port: None,
+                dst_node: "combiner".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             },
             Edge {
-                src: "mzi_1".to_string(),
-                dst: "combiner".to_string(),
-                delay_ns: Some(10.0),
+                src_node: "mzi_1".to_string(),
+                src_port: None,
+                dst_node: "combiner".to_string(),
+                dst_port: None,
+                delay: Some(10.0),
             },
             Edge {
-                src: "combiner".to_string(),
-                dst: "detector".to_string(),
-                delay_ns: Some(15.0),
+                src_node: "combiner".to_string(),
+                src_port: None,
+                dst_node: "detector".to_string(),
+                dst_port: None,
+                delay: Some(15.0),
             },
         ],
+        metadata: HashMap::new(),
     };
 
     let constraints = create_default_constraints();
     let scheduler = StaticScheduler::new();
-    let plan = scheduler.schedule(&graph, &constraints, 42)
+    let plan = scheduler
+        .schedule(&graph, &constraints, 42)
         .expect("Complex graph scheduling failed");
 
     // Verify all nodes scheduled
@@ -566,8 +631,11 @@ fn test_complex_graph_scheduling() {
         "Combiner started before MZI 1 completed"
     );
 
-    println!("✓ Complex graph scheduling: {} nodes, makespan = {}ns",
-             plan.schedule.len(), plan.makespan_ns);
+    println!(
+        "✓ Complex graph scheduling: {} nodes, makespan = {}ns",
+        plan.schedule.len(),
+        plan.makespan_ns
+    );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -578,7 +646,9 @@ fn create_mzi_chain_graph(num_nodes: usize) -> Graph {
     let mut nodes = vec![Node {
         id: "source".to_string(),
         node_type: "Source".to_string(),
-        params: None,
+        params: HashMap::new(),
+        measure_mode: None,
+        conditional_branches: None,
     }];
 
     let mut edges = Vec::new();
@@ -587,7 +657,9 @@ fn create_mzi_chain_graph(num_nodes: usize) -> Graph {
         nodes.push(Node {
             id: format!("node_{}", i),
             node_type: "MZI".to_string(),
-            params: None,
+            params: HashMap::new(),
+            measure_mode: None,
+            conditional_branches: None,
         });
 
         let src = if i == 0 {
@@ -597,17 +669,18 @@ fn create_mzi_chain_graph(num_nodes: usize) -> Graph {
         };
 
         edges.push(Edge {
-            src,
-            dst: format!("node_{}", i),
-            delay_ns: Some(10.0),
+            src_node: src,
+            src_port: None,
+            dst_node: format!("node_{}", i),
+            dst_port: None,
+            delay: Some(10.0),
         });
     }
 
     Graph {
-        version: "0.2".to_string(),
-        metadata: HashMap::new(),
         nodes,
         edges,
+        metadata: HashMap::new(),
     }
 }
 
@@ -630,14 +703,12 @@ fn create_default_resource_limits() -> ResourceLimits {
 
 fn create_default_resource_state() -> ResourceState {
     ResourceState {
-        available_wavelengths: vec![
-            WavelengthChannel {
-                lambda_nm: 1550.0,
-                bandwidth_ghz: 100.0,
-                dispersion_ps_per_nm: 17.0,
-                skew_compensation_ns: 0.0,
-            },
-        ],
+        available_wavelengths: vec![WavelengthChannel {
+            lambda_nm: 1550.0,
+            bandwidth_ghz: 100.0,
+            dispersion_ps_per_nm: 17.0,
+            skew_compensation_ns: 0.0,
+        }],
         available_memory_slots: vec!["mem_0".to_string()],
         device_availability: HashMap::new(),
     }
