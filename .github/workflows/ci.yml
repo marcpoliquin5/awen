@@ -36,13 +36,16 @@ jobs:
           rustup component add rustfmt --toolchain stable || true
 
       - name: Cargo fmt check
-        run: cargo fmt --all -- --check
+        working-directory: ./awen-runtime
+        run: cargo fmt -- --check
 
       - name: Cargo clippy
+        working-directory: ./awen-runtime
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run workspace tests
-        run: cargo test --workspace --all-features --no-fail-fast
+        working-directory: ./awen-runtime
+        run: cargo test --all-features --no-fail-fast
 
       - name: List top-level files
         run: ls -la || true
