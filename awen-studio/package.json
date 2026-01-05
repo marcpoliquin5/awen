@@ -1,0 +1,10 @@
+{
+  "name": "awen-studio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "echo \"Run Tauri dev here\"",
+    "build": "echo \"Build Studio\""
+  },
+  "dependencies": {}
+}

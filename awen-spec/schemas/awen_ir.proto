@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package awen.ir;
+
+// Minimal AWEN IR proto sketch v0.1
+
+message Port {
+  string name = 1;
+  string kind = 2; // optical, electrical, thermal
+}
+
+message Parameter {
+  string name = 1;
+  double value = 2;
+  string units = 3;
+}
+
+message Node {
+  string id = 1;
+  string type = 2; // MZI, ring, detector, etc.
+  repeated Port ports = 3;
+  repeated Parameter params = 4;
+}
+
+message Edge {
+  string src_node = 1;
+  string src_port = 2;
+  string dst_node = 3;
+  string dst_port = 4;
+  double delay = 5; // optional time-of-flight
+}
+
+message Graph {
+  repeated Node nodes = 1;
+  repeated Edge edges = 2;
+  map<string, string> metadata = 3; // provenance, tags
+}

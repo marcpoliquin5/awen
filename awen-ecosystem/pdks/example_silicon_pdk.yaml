@@ -1,0 +1,12 @@
+name: example_silicon_pdk
+process: si_photonics_toy
+materials:
+  - silicon
+cells:
+  waveguide:
+    width: 0.5
+    units: um
+  mzi:
+    length: 100
+
+TODO: Expand PDK schema and provide mappings to device primitives.

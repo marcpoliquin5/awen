@@ -1,0 +1,49 @@
+name: Python integration CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  python-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build awen-runtime
+        run: |
+          cd awen-runtime
+          cargo build --release
+
+      - name: Add awenctl to PATH
+        run: echo "${{ github.workspace }}/awen-runtime/target/release" >> $GITHUB_PATH
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python package and test deps
+        run: |
+          cd awen-ecosystem/python_awen
+          pip install .
+          pip install pytest
+
+      - name: Run python tests
+        run: |
+          cd awen-ecosystem/python_awen
+          pytest -q
+
+      - name: Upload python test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-artifacts
+          path: awen-ecosystem/python_awen/.pytest_cache || true

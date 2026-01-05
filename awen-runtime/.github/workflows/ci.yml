@@ -1,0 +1,53 @@
+name: Rust CI - awen-runtime
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build, fmt, clippy, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Rust cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install clippy & rustfmt
+        run: |
+          rustup component add clippy --toolchain stable || true
+          rustup component add rustfmt --toolchain stable || true
+
+      - name: Cargo fmt check
+        run: cargo fmt --all -- --check
+
+      - name: Cargo build (release)
+        run: cargo build --workspace --release
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all --no-fail-fast
+
+      - name: List artifact bundles (if any)
+        run: ls -la || true
+
+  # future: add job to publish artifacts, run integration tests with simulated hardware, and verify artifacts

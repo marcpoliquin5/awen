@@ -1,0 +1,110 @@
+name: Integration - awenctl gradient
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  gradient-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Rust cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install clippy & rustfmt
+        run: |
+          rustup component add clippy --toolchain stable || true
+          rustup component add rustfmt --toolchain stable || true
+
+      - name: Cargo fmt check
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all --no-fail-fast
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+      - name: Run awenctl gradient (finite difference) against example IR
+        run: |
+          ./target/release/awenctl gradient example_ir.json "mzi_0:phase,mzi_1:phase" --strategy finite_difference --seed 42 --samples 1
+
+      - name: Verify gradient artifact JSON contains gradients key
+        run: |
+          set -e
+          DIR=$(ls -d awen_grad_* | tail -n1)
+          echo "Checking $DIR/gradients.json"
+          python3 - <<'PY'
+import sys, json, pathlib
+dirs=list(pathlib.Path('.').glob('awen_grad_*'))
+assert dirs, 'no awen_grad_* dirs found'
+latest=sorted(dirs, key=lambda p: p.stat().st_mtime)[-1]
+g=latest/'gradients.json'
+assert g.exists(), f'{g} missing'
+data=json.loads(g.read_text())
+assert 'gradients' in data, 'missing gradients field'
+print('gradients.json OK')
+PY
+
+      - name: Run awenctl gradient (auto) against example IR
+        run: |
+          ./target/release/awenctl gradient example_ir.json "mzi_0:phase,mzi_1:phase" --strategy auto --seed 42 --samples 1
+
+      - name: Verify auto gradient artifact JSON contains provider and gradients
+        run: |
+          set -e
+          DIR=$(ls -d awen_grad_* | tail -n1)
+          python3 - <<'PY'
+import sys, json, pathlib
+dirs=list(pathlib.Path('.').glob('awen_grad_*'))
+assert dirs, 'no awen_grad_* dirs found'
+latest=sorted(dirs, key=lambda p: p.stat().st_mtime)[-1]
+g=latest/'gradients.json'
+assert g.exists(), f'{g} missing'
+data=json.loads(g.read_text())
+assert 'gradients' in data and 'provenance' in data, 'missing gradients/provenance'
+print('auto gradients.json OK')
+PY
+
+      - name: Verify observability artifacts for gradient run
+        run: |
+          set -e
+          DIR=$(ls -d awen_grad_* | tail -n1)
+          python3 - <<'PY'
+import pathlib, json
+dirs=list(pathlib.Path('.').glob('awen_grad_*'))
+assert dirs, 'no awen_grad_* dirs found'
+latest=sorted(dirs, key=lambda p: p.stat().st_mtime)[-1]
+assert (latest/'traces.jsonl').exists(), 'traces.jsonl missing'
+assert (latest/'timeline.json').exists(), 'timeline.json missing'
+assert (latest/'metrics.json').exists(), 'metrics.json missing'
+print('observability artifacts OK')
+PY
+
+      - name: List gradient artifacts
+        run: ls -la awen_grad_* || true
+
+      - name: Upload gradients artifact (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradient-artifacts
+          path: awen_grad_*

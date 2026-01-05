@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {
+      "id": "mzi_0",
+      "type": "MZI",
+      "params": { "phase": 0.1 }
+    },
+    {
+      "id": "mzi_1",
+      "type": "MZI",
+      "params": { "phase": 0.2 }
+    }
+  ],
+  "edges": [],
+  "metadata": {
+    "input_amplitude": "1.0",
+    "author": "awen-scaffold"
+  }
+}

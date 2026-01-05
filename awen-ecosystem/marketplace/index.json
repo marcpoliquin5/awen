@@ -1,0 +1,10 @@
+[
+  {
+    "name": "reference-simulator",
+    "version": "0.1.0",
+    "compatibility": "awen-ir-v0.1",
+    "license": "MIT",
+    "author": "awen-team",
+    "checksum": "TODO"
+  }
+]
