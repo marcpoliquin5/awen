@@ -1,0 +1,72 @@
+name: Observability Quality Gate
+
+on:
+  push:
+    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+  pull_request:
+    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+
+jobs:
+  quality-gate:
+    name: Rust Quality Gate (fmt, clippy, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Ensure components
+        run: |
+          rustup component add clippy rustfmt || true
+
+      - name: Cargo fmt check
+        run: cargo fmt --all -- --check
+        working-directory: ./awen-runtime
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: ./awen-runtime
+
+      - name: Cargo test
+        run: cargo test --all --workspace
+        working-directory: ./awen-runtime
+name: Observability Quality Gate
+
+on:
+  push:
+    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+  pull_request:
+    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+
+jobs:
+  quality-gate:
+    name: Rust Quality Gate (fmt, clippy, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Ensure components
+        run: |
+          rustup component add clippy rustfmt || true
+
+      - name: Cargo fmt check
+        run: cargo fmt --all -- --check
+        working-directory: ./awen-runtime
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: ./awen-runtime
+
+      - name: Cargo test
+        run: cargo test --all --workspace
+        working-directory: ./awen-runtime
