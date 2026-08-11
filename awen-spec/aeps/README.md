@@ -16,3 +16,4 @@ Current proposals:
 - `AEP-0010`: heterogeneous compiler stack and MLIR/StableHLO lowering architecture.
 - `AEP-0011`: MLIR embedding, dialect layout, and StableHLO GEMM import.
 - `AEP-0012`: binary compiler/runtime executable ABI 1.0.
+- `AEP-0013`: full-system cost model, provenance, uncertainty, benchmark fitting, and deterministic autotuning.

@@ -562,11 +562,17 @@ impl BackendSnapshot {
                 format!("backend does not support dtype {dtype:?}"),
             );
         }
-        if minimum_effective_bits.is_some_and(|bits| bits > capabilities.effective_bits) {
+        let can_bit_slice = capabilities
+            .bit_slicing_modes
+            .iter()
+            .any(|mode| *mode != BitSlicingMode::None);
+        if minimum_effective_bits
+            .is_some_and(|bits| bits > capabilities.effective_bits && !can_bit_slice)
+        {
             reject(
                 &mut diagnostics,
                 "precision_insufficient",
-                "backend effective precision is below the operation contract",
+                "backend effective precision is below the operation contract and no bit-slicing mode is available",
             );
         }
         self.check_calibration(&mut diagnostics);

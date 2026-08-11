@@ -1,5 +1,5 @@
 use crate::capability::{AccumulationMode, CalibrationProfile, DeviceCapabilities};
-use crate::cost::{PlacementDecision, TargetBackend};
+use crate::cost::{PlacementDecision, TargetBackend, TuningPlan};
 use crate::ir::{DType, GemmShape, Layout, Tensor, TensorOp, TensorProgram, ValidatedGemm};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -43,6 +43,7 @@ pub struct PrecisionPlan {
     pub optical_effective_bits: u8,
     pub dac_bits: u8,
     pub adc_bits: u8,
+    pub bit_slices: u8,
     pub digital_accumulation: bool,
 }
 
@@ -168,6 +169,7 @@ pub fn lower(
             lower_photonic_gemm(
                 gemm,
                 capabilities,
+                decision.selected_plan,
                 &mut current_time_ns,
                 &mut photonic_ops,
                 &mut commands,
@@ -212,6 +214,7 @@ pub fn lower(
 fn lower_photonic_gemm(
     gemm: &ValidatedGemm<'_>,
     capabilities: &DeviceCapabilities,
+    selected_plan: Option<TuningPlan>,
     current_time_ns: &mut f64,
     ops: &mut Vec<PhotonicGemmTile>,
     commands: &mut Vec<DeviceCommand>,
@@ -224,28 +227,44 @@ fn lower_photonic_gemm(
         transpose_rhs,
         ..
     } = gemm.op;
+    let plan = selected_plan.unwrap_or(TuningPlan {
+        tile_m: capabilities.matrix_core.m,
+        tile_n: capabilities.matrix_core.n,
+        tile_k: capabilities.matrix_core.k,
+        bit_slices: 1,
+        wavelength_channels: capabilities.simultaneous_channels,
+        accumulation_mode: if capabilities
+            .accumulation_modes
+            .contains(&AccumulationMode::Hybrid)
+        {
+            AccumulationMode::Hybrid
+        } else {
+            AccumulationMode::Digital
+        },
+        batch_size: 1,
+        fuse_boundaries: false,
+    });
+    let digital_accumulation = matches!(
+        plan.accumulation_mode,
+        AccumulationMode::Digital | AccumulationMode::Hybrid
+    );
     let precision = PrecisionPlan {
         source_dtype: gemm.lhs.dtype,
-        optical_effective_bits: capabilities.effective_bits,
+        optical_effective_bits: capabilities.effective_bits.saturating_mul(plan.bit_slices),
         dac_bits: capabilities.dac_bits,
         adc_bits: capabilities.adc_bits,
-        digital_accumulation: true,
+        bit_slices: plan.bit_slices,
+        digital_accumulation,
     };
-    let accumulation_mode = if capabilities
-        .accumulation_modes
-        .contains(&AccumulationMode::Hybrid)
-    {
-        AccumulationMode::Hybrid
-    } else {
-        AccumulationMode::Digital
-    };
+    let accumulation_mode = plan.accumulation_mode;
 
-    for tile in tiles(gemm.shape, capabilities) {
-        let duration_ns = tile_duration_ns(tile, capabilities);
-        let wavelength_count = capabilities
-            .simultaneous_channels
+    for tile in tiles_with_plan(gemm.shape, plan) {
+        let wavelength_count = plan
+            .wavelength_channels
+            .min(capabilities.simultaneous_channels)
             .min(capabilities.supported_wavelengths_nm.len())
             .min(tile.k);
+        let duration_ns = tile_duration_ns(tile, capabilities, plan.bit_slices, wavelength_count);
         let wavelengths = capabilities.supported_wavelengths_nm[..wavelength_count].to_vec();
         let op_id = format!(
             "{}__m{}_n{}_k{}",
@@ -324,17 +343,25 @@ fn lower_photonic_gemm(
 
 pub fn tiles(shape: GemmShape, capabilities: &DeviceCapabilities) -> Vec<Tile> {
     let core = capabilities.matrix_core;
+    tiles_for_shape(shape, core.m, core.n, core.k)
+}
+
+pub fn tiles_with_plan(shape: GemmShape, plan: TuningPlan) -> Vec<Tile> {
+    tiles_for_shape(shape, plan.tile_m, plan.tile_n, plan.tile_k)
+}
+
+fn tiles_for_shape(shape: GemmShape, tile_m: usize, tile_n: usize, tile_k: usize) -> Vec<Tile> {
     let mut result = Vec::new();
-    for m_offset in (0..shape.m).step_by(core.m) {
-        for n_offset in (0..shape.n).step_by(core.n) {
-            for k_offset in (0..shape.k).step_by(core.k) {
+    for m_offset in (0..shape.m).step_by(tile_m) {
+        for n_offset in (0..shape.n).step_by(tile_n) {
+            for k_offset in (0..shape.k).step_by(tile_k) {
                 result.push(Tile {
                     m_offset,
                     n_offset,
                     k_offset,
-                    m: core.m.min(shape.m - m_offset),
-                    n: core.n.min(shape.n - n_offset),
-                    k: core.k.min(shape.k - k_offset),
+                    m: tile_m.min(shape.m - m_offset),
+                    n: tile_n.min(shape.n - n_offset),
+                    k: tile_k.min(shape.k - k_offset),
                 });
             }
         }
@@ -342,8 +369,14 @@ pub fn tiles(shape: GemmShape, capabilities: &DeviceCapabilities) -> Vec<Tile> {
     result
 }
 
-fn tile_duration_ns(tile: Tile, capabilities: &DeviceCapabilities) -> f64 {
+fn tile_duration_ns(
+    tile: Tile,
+    capabilities: &DeviceCapabilities,
+    bit_slices: u8,
+    wavelength_count: usize,
+) -> f64 {
     let conversion_samples = tile.m + tile.k + tile.n;
-    conversion_samples as f64 / capabilities.sample_rate_gsps
-        + 1.0 / capabilities.modulation_rate_gbaud
+    let slices = f64::from(bit_slices);
+    conversion_samples as f64 * slices / capabilities.sample_rate_gsps
+        + slices / (capabilities.modulation_rate_gbaud * wavelength_count.max(1) as f64)
 }

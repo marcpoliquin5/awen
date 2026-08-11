@@ -19,8 +19,18 @@ pub use capability::{
     DeviceCapabilities, DynamicRange, HealthStatus, MatrixCore, OperationCapability, OperationKind,
     SaturationMode, CAPABILITY_VERSION, HEALTH_VERSION, PLUGIN_ABI_VERSION, RUNTIME_ABI_VERSION,
 };
-pub use compiler::{compile, compile_with_backend, CompilationArtifact, CompileOptions};
-pub use cost::{OptimizationObjective, TargetBackend};
+pub use compiler::{
+    compile, compile_with_backend, compile_with_cost_model, CompilationArtifact, CompileOptions,
+};
+pub use cost::{
+    autotune, autotune_with_profile, decide_placement_with_model, estimate_photonic_plan,
+    estimate_photonic_plan_with_profile, stable_fingerprint_bytes, AutotuneOptions, AutotuneResult,
+    CostEstimate, CostModelInputs, DecisionCache, DigitalBaseline, EnergyBreakdownUj,
+    EstimateInterval, LatencyBreakdownNs, ModelErrorReport, Observation, ObservationSet,
+    OperationCostProfile, OptimizationObjective, ParameterProvenance, ParameterSource,
+    PlacementDecision, TargetBackend, TuningCandidate, TuningPlan, COST_MODEL_VERSION,
+    OBSERVATION_SET_VERSION,
+};
 pub use executable::{ExecutableCommand, ExecutablePackage};
-pub use ir::{DType, Layout, Tensor, TensorOp, TensorProgram};
-pub use simulator::{benchmark, BenchmarkReport};
+pub use ir::{CostHints, DType, GemmShape, Layout, Tensor, TensorOp, TensorProgram};
+pub use simulator::{benchmark, benchmark_with_observations, BenchmarkReport};

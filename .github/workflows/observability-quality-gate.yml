@@ -104,6 +104,7 @@ jobs:
           paths = [
               *Path("awen-compiler/examples").glob("*.json"),
               *Path("awen-compiler/capabilities").glob("*.json"),
+              *Path("awen-compiler/cost_models").glob("*.json"),
               *Path("awen-runtime/plugins").glob("**/*.json"),
               *Path("awen-spec/schemas").glob("*.json"),
           ]
