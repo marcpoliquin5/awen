@@ -1,7 +1,7 @@
 use anyhow::Result;
 use awen_compiler::{
-    benchmark, compile, CompileOptions, DeviceCapabilities, OptimizationObjective, TargetBackend,
-    TensorProgram,
+    benchmark, compile_with_backend, BackendHealth, BackendSnapshot, CompileOptions,
+    DeviceCapabilities, OptimizationObjective, TargetBackend, TensorProgram,
 };
 use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
@@ -26,6 +26,9 @@ enum Command {
         /// Optional device-capability JSON. Uses the reference 128x128 backend when omitted.
         #[clap(long)]
         capabilities: Option<String>,
+        /// Optional live awen.backend-health.v1 JSON snapshot.
+        #[clap(long)]
+        health: Option<String>,
         /// Compilation artifact output path.
         #[clap(long, default_value = "awen_compilation.json")]
         output: String,
@@ -43,6 +46,9 @@ enum Command {
         /// Optional device-capability JSON. Uses the reference 128x128 backend when omitted.
         #[clap(long)]
         capabilities: Option<String>,
+        /// Optional live awen.backend-health.v1 JSON snapshot.
+        #[clap(long)]
+        health: Option<String>,
         /// Benchmark report output path.
         #[clap(long, default_value = "awen_benchmark.json")]
         output: String,
@@ -57,6 +63,14 @@ enum Command {
     Execute {
         /// Path to an AWENEXE binary emitted by awen-compile.
         artifact: String,
+    },
+    /// Discover typed backend plugins and query their current health sources.
+    Backends {
+        /// Directory containing plugin manifests and their health sources.
+        plugin_dir: String,
+        /// Permit unsigned manifests for local development and simulation only.
+        #[clap(long)]
+        allow_unverified: bool,
     },
     Run {
         /// Path to IR JSON file
@@ -88,12 +102,14 @@ fn main() -> Result<()> {
         Command::Compile {
             input,
             capabilities,
+            health,
             output,
             optimize_for,
             target,
         } => compile_command(
             &input,
             capabilities.as_deref(),
+            health.as_deref(),
             &output,
             &optimize_for,
             &target,
@@ -101,17 +117,23 @@ fn main() -> Result<()> {
         Command::Benchmark {
             input,
             capabilities,
+            health,
             output,
             optimize_for,
             target,
         } => benchmark_command(
             &input,
             capabilities.as_deref(),
+            health.as_deref(),
             &output,
             &optimize_for,
             &target,
         )?,
         Command::Execute { artifact } => execute_command(&artifact)?,
+        Command::Backends {
+            plugin_dir,
+            allow_unverified,
+        } => backends_command(&plugin_dir, allow_unverified)?,
         Command::Run { ir, seed } => run_command(&ir, seed)?,
         Command::Gradient {
             ir,
@@ -153,13 +175,19 @@ fn execute_command(artifact_path: &str) -> Result<()> {
 fn compile_command(
     input_path: &str,
     capabilities_path: Option<&str>,
+    health_path: Option<&str>,
     output_path: &str,
     optimize_for: &str,
     target: &str,
 ) -> Result<()> {
-    let (program, capabilities, options) =
-        compiler_inputs(input_path, capabilities_path, optimize_for, target)?;
-    let artifact = compile(&program, &capabilities, options)?;
+    let (program, snapshot, options) = compiler_inputs(
+        input_path,
+        capabilities_path,
+        health_path,
+        optimize_for,
+        target,
+    )?;
+    let artifact = compile_with_backend(&program, &snapshot, options)?;
     std::fs::write(output_path, serde_json::to_string_pretty(&artifact)?)?;
     println!(
         "Compiled {} operation(s) for {}. Artifact: {}",
@@ -176,13 +204,19 @@ fn compile_command(
 fn benchmark_command(
     input_path: &str,
     capabilities_path: Option<&str>,
+    health_path: Option<&str>,
     output_path: &str,
     optimize_for: &str,
     target: &str,
 ) -> Result<()> {
-    let (program, capabilities, options) =
-        compiler_inputs(input_path, capabilities_path, optimize_for, target)?;
-    let artifact = compile(&program, &capabilities, options)?;
+    let (program, snapshot, options) = compiler_inputs(
+        input_path,
+        capabilities_path,
+        health_path,
+        optimize_for,
+        target,
+    )?;
+    let artifact = compile_with_backend(&program, &snapshot, options)?;
     let report = benchmark(&program, &artifact)?;
     std::fs::write(output_path, serde_json::to_string_pretty(&report)?)?;
     println!(
@@ -200,13 +234,21 @@ fn benchmark_command(
 fn compiler_inputs(
     input_path: &str,
     capabilities_path: Option<&str>,
+    health_path: Option<&str>,
     optimize_for: &str,
     target: &str,
-) -> Result<(TensorProgram, DeviceCapabilities, CompileOptions)> {
+) -> Result<(TensorProgram, BackendSnapshot, CompileOptions)> {
     let program: TensorProgram = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
     let capabilities = match capabilities_path {
         Some(path) => serde_json::from_str(&std::fs::read_to_string(path)?)?,
         None => DeviceCapabilities::default(),
+    };
+    let snapshot = match health_path {
+        Some(path) => {
+            let health: BackendHealth = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+            BackendSnapshot::new(capabilities, health)?
+        }
+        None => BackendSnapshot::offline(capabilities)?,
     };
     let optimize_for = OptimizationObjective::parse(optimize_for).ok_or_else(|| {
         anyhow::anyhow!(
@@ -217,13 +259,39 @@ fn compiler_inputs(
         .ok_or_else(|| anyhow::anyhow!("unknown target '{target}'; use auto, cpu, or photonic"))?;
     Ok((
         program,
-        capabilities,
+        snapshot,
         CompileOptions {
             optimize_for,
             target,
             ..CompileOptions::default()
         },
     ))
+}
+
+fn backends_command(plugin_dir: &str, allow_unverified: bool) -> Result<()> {
+    let registry = if allow_unverified {
+        awen_runtime::plugins::PluginRegistry::discover_from_dir_allow_unverified(plugin_dir, true)?
+    } else {
+        awen_runtime::plugins::PluginRegistry::discover_from_dir(plugin_dir)?
+    };
+    let report = registry.query_backend_snapshots(plugin_dir);
+    for backend in report.backends {
+        println!(
+            "{} plugin={} status={:?} channels={}/{} capability={} runtime_abi={} plugin_abi={}",
+            backend.snapshot.capabilities.backend_id,
+            backend.plugin_id,
+            backend.snapshot.health.status,
+            backend.snapshot.health.available_channels,
+            backend.snapshot.capabilities.simultaneous_channels,
+            backend.snapshot.capabilities.capability_version,
+            backend.snapshot.capabilities.runtime_abi_version,
+            backend.snapshot.capabilities.plugin_abi_version,
+        );
+    }
+    for diagnostic in report.diagnostics {
+        eprintln!("{}: {}", diagnostic.plugin_id, diagnostic.message);
+    }
+    Ok(())
 }
 
 fn run_command(ir_path: &str, seed: Option<u64>) -> Result<()> {

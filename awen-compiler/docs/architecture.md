@@ -3,16 +3,20 @@
 ## Stages
 
 1. Validate the Tensor IR version, tensor identity, rank, non-zero dimensions, literal data length, dtype agreement, transpose semantics, output shape, and accuracy contract.
-2. Validate the backend capability version and physical constraints. Calibration-required backends cannot compile without a usable profile.
-3. Estimate CPU and photonic costs. Photonic estimates include transfer, two conversion boundaries, reconfiguration, tiled conversion/compute time, laser energy, and ADC/DAC energy.
-4. Select CPU or photonic execution for each current GEMM. Forced photonic mode fails rather than silently violating precision/capability requirements.
-5. Tile selected GEMMs across M, N, and K. K tiles explicitly accumulate; edge tiles retain their actual sizes.
-6. Emit classical Photonic IR and Device IR. Literal tensor values are not copied into compiler artifacts.
-7. Optionally execute the compiled tiles in the reference simulator and compare them with `awenBLAS`'s digital reference.
+2. Validate capability, runtime ABI, plugin ABI, physical cross-field constraints, and the timestamped health snapshot.
+3. Negotiate operation, dtype, transpose, partial-tile, precision, resource, and calibration eligibility. Invalid or unavailable candidates retain an explicit digital fallback.
+4. Estimate CPU and photonic costs. Photonic estimates include transfer, two conversion boundaries, reconfiguration, tiled conversion/compute time, laser energy, and ADC/DAC energy.
+5. Select CPU or photonic execution for each current GEMM. Forced photonic mode fails rather than silently violating precision/capability requirements.
+6. Tile selected GEMMs across M, N, and K. K tiles explicitly accumulate; edge tiles retain their actual sizes only when the backend permits partial tiles.
+7. Emit classical Photonic IR and Device IR. Literal tensor values are not copied into compiler artifacts.
+8. Optionally execute the compiled tiles in the reference simulator and compare them with `awenBLAS`'s digital reference.
 
 ## Non-negotiable invariants
 
 - Backend capability and calibration versions are explicit.
+- Runtime/plugin ABI compatibility and the exact health snapshot are explicit.
+- Calibration age is measured against the health observation for deterministic replay.
+- Missing or unavailable capability facts force a diagnosed digital fallback.
 - No unsupported dtype or insufficient effective precision is silently accepted.
 - CPU fallback has a recorded reason.
 - Boundary crossings are counted in the placement artifact.

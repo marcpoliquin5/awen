@@ -1,7 +1,19 @@
 {
   "capability_version": "awen.device-capability.v1",
+  "runtime_abi_version": "awen.runtime-backend.v1",
+  "plugin_abi_version": "awen.backend-plugin.v1",
   "backend_id": "reference-pace-like-128",
   "matrix_core": { "m": 128, "n": 128, "k": 128 },
+  "supported_operations": [
+    {
+      "operation": "gemm",
+      "supports_transpose_lhs": true,
+      "supports_transpose_rhs": true,
+      "supports_partial_m": true,
+      "supports_partial_n": true,
+      "supports_partial_k": true
+    }
+  ],
   "supported_dtypes": ["f16", "bf16", "int8", "int4"],
   "supported_wavelengths_nm": [
     1530.0, 1531.6, 1533.2, 1534.8,
@@ -14,6 +26,9 @@
   "adc_bits": 10,
   "dac_bits": 10,
   "effective_bits": 8,
+  "bit_slicing_modes": ["none", "twos_complement"],
+  "saturation_mode": "clamp",
+  "input_dynamic_range": { "minimum": -1.0, "maximum": 1.0 },
   "sample_rate_gsps": 20.0,
   "reconfiguration_latency_ns": 2000.0,
   "detector_bandwidth_ghz": 20.0,
@@ -29,15 +44,19 @@
   },
   "calibration_profile": {
     "id": "reference-room-temperature-v1",
-    "measured_at": "2026-08-11T00:00:00Z",
+    "backend_id": "reference-pace-like-128",
+    "measured_at": "2026-08-11T22:00:00Z",
     "temperature_c": 22.0,
     "gain": 0.997,
     "offset": 0.0002,
-    "phase_error_radians": 0.001
+    "phase_error_radians": 0.001,
+    "uncertainty": 0.002
   },
   "host_bandwidth_gbps": 256.0,
+  "link_bandwidth_gbps": 256.0,
   "boundary_latency_ns": 500.0,
   "laser_power_mw": 500.0,
+  "total_power_budget_mw": 2000.0,
   "dac_energy_pj_per_sample": 2.0,
   "adc_energy_pj_per_sample": 4.0
 }
