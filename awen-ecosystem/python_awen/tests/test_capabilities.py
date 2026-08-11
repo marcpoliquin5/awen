@@ -1,0 +1,71 @@
+import copy
+import json
+from pathlib import Path
+import unittest
+
+from awen_py.capabilities import (
+    BackendHealth,
+    BackendSnapshot,
+    CapabilityError,
+    DeviceCapabilities,
+)
+
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def load(name):
+    with (ROOT / "awen-compiler" / "capabilities" / name).open(
+        encoding="utf-8"
+    ) as handle:
+        return json.load(handle)
+
+
+class CapabilityContractTests(unittest.TestCase):
+    def snapshot(self):
+        return BackendSnapshot(
+            DeviceCapabilities.from_dict(load("pace_like_128.json")),
+            BackendHealth.from_dict(load("pace_like_128.health.json")),
+        )
+
+    def test_reference_profile_is_eligible(self):
+        negotiation = self.snapshot().negotiate_gemm((256, 256, 256), "f16", 8)
+        self.assertTrue(negotiation.eligible)
+        self.assertEqual(negotiation.diagnostics, ())
+
+    def test_version_skew_is_rejected(self):
+        value = load("pace_like_128.json")
+        value["runtime_abi_version"] = "awen.runtime-backend.v2"
+        with self.assertRaisesRegex(CapabilityError, "runtime ABI"):
+            DeviceCapabilities.from_dict(value)
+
+    def test_expired_calibration_causes_fallback(self):
+        health = load("pace_like_128.health.json")
+        health["observed_at"] = "2026-08-12T00:00:01Z"
+        snapshot = BackendSnapshot(
+            DeviceCapabilities.from_dict(load("pace_like_128.json")),
+            BackendHealth.from_dict(health),
+        )
+        negotiation = snapshot.negotiate_gemm((128, 128, 128), "f16", 8)
+        self.assertFalse(negotiation.eligible)
+        self.assertIn(
+            "calibration_expired",
+            [diagnostic.code for diagnostic in negotiation.diagnostics],
+        )
+
+    def test_partial_tile_and_unavailable_resource_are_reported(self):
+        capability = load("pace_like_128.json")
+        capability["supported_operations"][0]["supports_partial_m"] = False
+        health = copy.deepcopy(load("pace_like_128.health.json"))
+        health["unavailable_resources"] = ["matrix_core"]
+        snapshot = BackendSnapshot(
+            DeviceCapabilities.from_dict(capability), BackendHealth.from_dict(health)
+        )
+        negotiation = snapshot.negotiate_gemm((129, 128, 128), "f16", 8)
+        codes = [diagnostic.code for diagnostic in negotiation.diagnostics]
+        self.assertIn("partial_m_unsupported", codes)
+        self.assertIn("matrix_core_unavailable", codes)
+
+
+if __name__ == "__main__":
+    unittest.main()

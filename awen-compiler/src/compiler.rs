@@ -1,4 +1,6 @@
-use crate::capability::DeviceCapabilities;
+use crate::capability::{
+    BackendHealth, BackendSnapshot, CapabilityNegotiation, DeviceCapabilities,
+};
 use crate::cost::{
     decide_placement, DigitalBaseline, OptimizationObjective, PlacementDecision, TargetBackend,
 };
@@ -32,8 +34,11 @@ impl Default for CompileOptions {
 pub struct CompilationArtifact {
     pub artifact_version: String,
     pub source_ir_version: String,
+    pub capability_version: String,
     pub backend_id: String,
+    pub health_snapshot: BackendHealth,
     pub options: CompileOptions,
+    pub capability_negotiations: Vec<CapabilityNegotiation>,
     pub placement: Vec<PlacementDecision>,
     pub photonic_ir: ClassicalPhotonicProgram,
     pub device_ir: DeviceProgram,
@@ -45,7 +50,23 @@ pub fn compile(
     capabilities: &DeviceCapabilities,
     options: CompileOptions,
 ) -> Result<CompilationArtifact> {
-    capabilities.validate()?;
+    let snapshot = BackendSnapshot::offline(capabilities.clone())?;
+    compile_with_backend(program, &snapshot, options)
+}
+
+pub fn compile_with_backend(
+    program: &TensorProgram,
+    snapshot: &BackendSnapshot,
+    options: CompileOptions,
+) -> Result<CompilationArtifact> {
+    snapshot.capabilities.validate()?;
+    snapshot.health.validate(&snapshot.capabilities)?;
+    let mut effective_capabilities = snapshot.capabilities.clone();
+    effective_capabilities.simultaneous_channels = snapshot
+        .health
+        .available_channels
+        .min(snapshot.capabilities.simultaneous_channels);
+    let capabilities = &effective_capabilities;
     if options.cpu_throughput_tops <= 0.0
         || options.cpu_energy_pj_per_mac <= 0.0
         || options.cpu_launch_latency_ns < 0.0
@@ -65,10 +86,28 @@ pub fn compile(
         launch_latency_ns: options.cpu_launch_latency_ns,
         effective_bits: 16,
     };
-    let placement: Vec<_> = validated
+    let capability_negotiations: Vec<_> = validated
         .iter()
         .map(|gemm| {
-            decide_placement(
+            let crate::ir::TensorOp::Gemm {
+                transpose_lhs,
+                transpose_rhs,
+                ..
+            } = gemm.op;
+            snapshot.negotiate_gemm(
+                gemm.shape,
+                gemm.lhs.dtype,
+                gemm.op.accuracy().minimum_effective_bits,
+                *transpose_lhs,
+                *transpose_rhs,
+            )
+        })
+        .collect();
+    let placement: Vec<_> = validated
+        .iter()
+        .zip(&capability_negotiations)
+        .map(|(gemm, negotiation)| {
+            let mut decision = decide_placement(
                 gemm.op.id(),
                 gemm.shape,
                 gemm.lhs.dtype,
@@ -77,7 +116,24 @@ pub fn compile(
                 options.optimize_for,
                 options.target,
                 digital,
-            )
+            );
+            if !negotiation.eligible {
+                decision.selected_backend = TargetBackend::Cpu;
+                decision.photonic = None;
+                decision.optical_electrical_boundary_crossings = 0;
+                decision.rationale = format!(
+                    "photonic capability negotiation rejected the operation: {}",
+                    negotiation
+                        .diagnostics
+                        .iter()
+                        .map(|diagnostic| {
+                            format!("{} ({})", diagnostic.message, diagnostic.code)
+                        })
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                );
+            }
+            decision
         })
         .collect();
 
@@ -109,8 +165,11 @@ pub fn compile(
     Ok(CompilationArtifact {
         artifact_version: "awen.compilation.v1".to_string(),
         source_ir_version: program.ir_version.clone(),
+        capability_version: capabilities.capability_version.clone(),
         backend_id: capabilities.backend_id.clone(),
+        health_snapshot: snapshot.health.clone(),
         options,
+        capability_negotiations,
         placement,
         photonic_ir,
         device_ir,

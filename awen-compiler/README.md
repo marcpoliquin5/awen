@@ -5,7 +5,8 @@
 ## Implemented contracts
 
 - `awen.tensor.v1`: tensors carry rank-2 shape, dtype, layout, optional literal data, and per-operation accuracy requirements.
-- `awen.device-capability.v1`: backends advertise matrix-core shape, wavelengths, rates, coherent mode, ADC/DAC/effective precision, loss/power parameters, complex support, accumulation modes, host boundaries, and calibration requirements/profile.
+- `awen.device-capability.v1`: backends advertise operation/tiling legality, matrix-core shape, wavelengths, rates, coherence, ADC/DAC/effective precision, bit slicing, saturation, dynamic range, loss/power parameters, complex support, accumulation, host/link boundaries, ABI compatibility, and calibration requirements/profile.
+- `awen.backend-health.v1`: a timestamped query result carries availability, temperature, drift, usable channels, disabled components, unavailable resources, and the active calibration identity.
 - `awen.photonic.classical.v1`: every selected GEMM is tiled with offsets, edge sizes, precision, wavelength allocation, timing, accumulation, and calibration identity.
 - `awen.device.v1`: explicit calibration, configure, upload, execute, accumulate, download, and host-fallback commands.
 
@@ -14,14 +15,19 @@ The cost model always includes two optical/electrical crossings for a standalone
 ## Library API
 
 ```rust
-use awen_compiler::{compile, CompileOptions, DeviceCapabilities, TensorProgram};
+use awen_compiler::{compile_with_backend, BackendSnapshot, CompileOptions, TensorProgram};
 
 let program: TensorProgram = serde_json::from_str(input_json)?;
-let capabilities = DeviceCapabilities::pace_like_128();
-let artifact = compile(&program, &capabilities, CompileOptions::default())?;
+let snapshot: BackendSnapshot = serde_json::from_str(snapshot_json)?;
+let artifact = compile_with_backend(&program, &snapshot, CompileOptions::default())?;
 ```
 
 Use `benchmark(&program, &artifact)` only when the input tensors include literal data. It is a deterministic reference/conformance path, not a hardware-performance measurement.
+
+`compile` remains the deterministic offline convenience API and constructs a
+snapshot at the embedded calibration timestamp. Runtime execution should query
+health and call `compile_with_backend`. Calibration freshness is evaluated
+against the supplied health observation, never the compiler wall clock.
 
 ## Relationship to the MLIR compiler
 

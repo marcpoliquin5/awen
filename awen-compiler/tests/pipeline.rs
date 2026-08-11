@@ -1,6 +1,6 @@
 use awen_compiler::{
-    benchmark, compile, CompileOptions, DeviceCapabilities, OptimizationObjective, TargetBackend,
-    TensorProgram,
+    benchmark, compile, compile_with_backend, BackendHealth, BackendSnapshot, CompileOptions,
+    DeviceCapabilities, HealthStatus, OptimizationObjective, TargetBackend, TensorProgram,
 };
 
 fn program(name: &str) -> TensorProgram {
@@ -19,6 +19,17 @@ fn capabilities(name: &str) -> DeviceCapabilities {
         _ => panic!("unknown fixture"),
     })
     .expect("capability fixture must parse")
+}
+
+fn snapshot(name: &str) -> BackendSnapshot {
+    let capabilities = capabilities(name);
+    let health: BackendHealth = serde_json::from_str(match name {
+        "2x2" => include_str!("../capabilities/reference_2x2.health.json"),
+        "128" => include_str!("../capabilities/pace_like_128.health.json"),
+        _ => panic!("unknown fixture"),
+    })
+    .expect("health fixture must parse");
+    BackendSnapshot::new(capabilities, health).expect("snapshot must validate")
 }
 
 #[test]
@@ -178,4 +189,61 @@ fn transpose_and_column_major_inputs_execute_correctly() {
     for (actual, expected) in report.outputs[0].values.iter().zip(expected) {
         assert!((actual - expected).abs() < 0.01);
     }
+}
+
+#[test]
+fn unavailable_backend_causes_conservative_auto_fallback() {
+    let mut snapshot = snapshot("128");
+    snapshot.health.status = HealthStatus::Unavailable;
+    snapshot
+        .health
+        .unavailable_resources
+        .push("matrix_core".to_string());
+    let artifact = compile_with_backend(&program("256"), &snapshot, CompileOptions::default())
+        .expect("auto mode must retain a safe CPU path");
+
+    assert_eq!(artifact.placement[0].selected_backend, TargetBackend::Cpu);
+    assert!(artifact.placement[0]
+        .rationale
+        .contains("matrix_core_unavailable"));
+    assert!(artifact.photonic_ir.ops.is_empty());
+    assert_eq!(artifact.device_ir.commands.len(), 1);
+}
+
+#[test]
+fn unavailable_backend_rejects_forced_photonic_target() {
+    let mut snapshot = snapshot("128");
+    snapshot.health.available_channels = 0;
+    let error = compile_with_backend(
+        &program("256"),
+        &snapshot,
+        CompileOptions {
+            target: TargetBackend::Photonic,
+            ..CompileOptions::default()
+        },
+    )
+    .expect_err("forced photonic execution cannot ignore live resource loss");
+
+    assert!(error.to_string().contains("no_channels"));
+}
+
+#[test]
+fn live_channel_availability_limits_emitted_wavelength_allocation() {
+    let mut snapshot = snapshot("128");
+    snapshot.health.available_channels = 1;
+    let artifact = compile_with_backend(
+        &program("256"),
+        &snapshot,
+        CompileOptions {
+            target: TargetBackend::Photonic,
+            ..CompileOptions::default()
+        },
+    )
+    .expect("one live channel is sufficient for serialized execution");
+
+    assert!(artifact
+        .photonic_ir
+        .ops
+        .iter()
+        .all(|operation| operation.wavelength_channels.len() == 1));
 }

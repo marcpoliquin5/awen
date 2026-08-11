@@ -1,5 +1,7 @@
 **/target/
 **/build/
+**/__pycache__/
+*.py[cod]
 *.awenx
 *.rlib
 awen_run_*/

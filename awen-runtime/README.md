@@ -30,6 +30,7 @@ Compile a typed GEMM into placement decisions, classical Photonic IR, and Device
 cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   compile awen-compiler/examples/gemm_256.json \
   --capabilities awen-compiler/capabilities/pace_like_128.json \
+  --health awen-compiler/capabilities/pace_like_128.health.json \
   --optimize-for latency \
   --target photonic \
   --output awen_compilation.json
@@ -41,11 +42,23 @@ Execute literal tensor data through the emitted tiles and calibrated reference s
 cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   benchmark awen-compiler/examples/gemm_4x4.json \
   --capabilities awen-compiler/capabilities/reference_2x2.json \
+  --health awen-compiler/capabilities/reference_2x2.health.json \
   --target photonic \
   --output awen_benchmark.json
 ```
 
 `--optimize-for` accepts `latency`, `energy`, `accuracy`, or `throughput`. `--target` accepts `auto`, `cpu`, or `photonic`. Forced photonic compilation fails when the backend cannot satisfy the operation.
+
+Discover a plugin-provided backend and query its current health:
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  backends awen-runtime/plugins/reference_sim --allow-unverified
+```
+
+Unsigned manifests are restricted to the explicit development flag. Production
+discovery requires a valid Ed25519 signature. Health paths are sandboxed inside
+the plugin directory and re-read on every query.
 
 ## Legacy graph commands
 

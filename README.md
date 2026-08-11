@@ -30,7 +30,7 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, device capabilities, cost/placement logic, GEMM tiling, Photonic IR, Device IR, `awenBLAS` reference GEMM, and calibrated benchmark simulator.
+- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, cost/placement logic, GEMM tiling, Photonic IR, Device IR, `awenBLAS` reference GEMM, and calibrated benchmark simulator.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, and quantum experiments.
@@ -67,6 +67,7 @@ ctest --test-dir awen-mlir/build --output-on-failure
 cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   compile awen-compiler/examples/gemm_256.json \
   --capabilities awen-compiler/capabilities/pace_like_128.json \
+  --health awen-compiler/capabilities/pace_like_128.health.json \
   --target photonic \
   --output awen_compilation.json
 ```
@@ -93,6 +94,7 @@ parse compiler JSON or launch an MLIR subprocess.
 cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   benchmark awen-compiler/examples/gemm_4x4.json \
   --capabilities awen-compiler/capabilities/reference_2x2.json \
+  --health awen-compiler/capabilities/reference_2x2.health.json \
   --target photonic \
   --output awen_benchmark.json
 ```

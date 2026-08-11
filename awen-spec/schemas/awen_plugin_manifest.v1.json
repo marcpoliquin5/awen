@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_plugin_manifest.v1.json",
+  "title": "AWEN Plugin Manifest v1",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "id",
+    "version",
+    "capabilities",
+    "signature",
+    "public_key",
+    "path"
+  ],
+  "properties": {
+    "manifest_version": { "const": "awen.plugin-manifest.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "signature": { "type": ["string", "null"] },
+    "public_key": { "type": ["string", "null"] },
+    "path": { "type": ["string", "null"] },
+    "backend": {
+      "type": "object",
+      "required": ["capabilities", "health_query"],
+      "properties": {
+        "capabilities": { "$ref": "awen_device_capability.v1.json" },
+        "health_query": {
+          "type": "object",
+          "required": ["kind", "path"],
+          "properties": {
+            "kind": { "const": "file" },
+            "path": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

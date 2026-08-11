@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_backend_health.v1.json",
+  "title": "AWEN Backend Health v1",
+  "type": "object",
+  "required": [
+    "health_version",
+    "backend_id",
+    "observed_at",
+    "status",
+    "temperature_c",
+    "drift",
+    "available_channels",
+    "disabled_components",
+    "unavailable_resources"
+  ],
+  "properties": {
+    "health_version": { "const": "awen.backend-health.v1" },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["healthy", "degraded", "unavailable"] },
+    "temperature_c": { "type": "number" },
+    "drift": { "type": "number", "minimum": 0 },
+    "available_channels": { "type": "integer", "minimum": 0 },
+    "disabled_components": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "calibration_profile_id": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

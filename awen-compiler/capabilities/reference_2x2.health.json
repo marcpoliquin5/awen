@@ -1,0 +1,12 @@
+{
+  "health_version": "awen.backend-health.v1",
+  "backend_id": "reference-photonic-2x2",
+  "observed_at": "2026-08-11T22:30:00Z",
+  "status": "healthy",
+  "temperature_c": 22.1,
+  "drift": 0.002,
+  "available_channels": 2,
+  "disabled_components": [],
+  "unavailable_resources": [],
+  "calibration_profile_id": "reference-2x2-calibration-v1"
+}
