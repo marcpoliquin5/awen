@@ -1,82 +1,73 @@
-AWEN Runtime
+# AWEN Runtime
 
-Core runtime engine for AWEN. Written in Rust for the core engine. Provides IR loader, engine, HAL, reference simulator, calibration loops, observability, and artifact storage.
+The Rust runtime provides the AWEN CLI, legacy graph engine, HAL, scheduler, calibration/control, observability, plugin registry, artifact storage, reference simulation, gradient experiments, and quantum-photonic experiments. It also exposes the first tensor compiler slice through `awenctl compile` and `awenctl benchmark`.
 
-Local build & development
+## Prerequisites
 
-Prerequisites
-- Ubuntu / macOS / Windows
-- Recommended: install `rustup` to manage Rust toolchains
-
-Install Rust toolchain (recommended):
+Install the current stable Rust toolchain with `rustfmt` and `clippy`:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# follow interactive prompts, then reopen shell or run:
-source $HOME/.cargo/env
+rustup toolchain install stable --component rustfmt,clippy
 rustup default stable
 ```
 
-Install optional tools for formatting and linting:
+## Build and verify
 
-Observability artifacts
-
-After running `awenctl run` or `awenctl gradient`, the run artifact bundle will contain observability exports:
-
-- `traces.jsonl` : newline-delimited spans (one JSON span per line)
-- `timeline.json` : lane-based timeline events for Nsight-like viewers
-- `metrics.json` : simple counters/gauges summary
-
-These are written into the run directory (awen_run_* or awen_grad_*). The CI validates these files exist and contain required fields.
+From the repository root:
 
 ```bash
-cargo install cargo-edit
-cargo install cargo-tarpaulin || true
+cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
+cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
+cargo build --release --manifest-path awen-runtime/Cargo.toml --bin awenctl
 ```
 
-Build runtime (release):
+## Tensor compiler commands
+
+Compile a typed GEMM into placement decisions, classical Photonic IR, and Device IR:
 
 ```bash
-cd awen-runtime
-cargo build --release
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  compile awen-compiler/examples/gemm_256.json \
+  --capabilities awen-compiler/capabilities/pace_like_128.json \
+  --optimize-for latency \
+  --target photonic \
+  --output awen_compilation.json
 ```
 
-Run CLI locally (after build):
+Execute literal tensor data through the emitted tiles and calibrated reference simulator:
 
 ```bash
-# run the reference simulator with example IR
-./target/debug/awenctl run --input example_ir.json --out-dir /tmp/awen-run
-
-# compute gradients (uses registered providers)
-./target/debug/awenctl gradient --input example_ir.json --params mzi_0:phase --provider reference-adjoint
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  benchmark awen-compiler/examples/gemm_4x4.json \
+  --capabilities awen-compiler/capabilities/reference_2x2.json \
+  --target photonic \
+  --output awen_benchmark.json
 ```
 
-Notes
-- The environment used by the editor/devcontainer may not have `cargo` installed. Use the above `rustup` steps to install locally, or rely on CI (GitHub Actions) which already has toolchains available.
-- Analytic adjoint support in the reference provider currently covers `mzi` node `phase` parameters. Other parameters fall back to finite-difference.
+`--optimize-for` accepts `latency`, `energy`, `accuracy`, or `throughput`. `--target` accepts `auto`, `cpu`, or `photonic`. Forced photonic compilation fails when the backend cannot satisfy the operation.
 
-If you want, I can add a small Makefile or shell script to automate the steps above.
+## Legacy graph commands
 
-Selecting gradient provider from CLI
-
-The CLI supports selecting the gradient backend via the `--strategy` flag to the `gradient` subcommand.
-
-Examples:
-
-```bash
-# auto: prefer adjoint if available, otherwise fall back to finite-difference
-./target/debug/awenctl gradient --ir example_ir.json --params mzi_0:phase --strategy auto
-
-# force adjoint
-./target/debug/awenctl gradient --ir example_ir.json --params mzi_0:phase --strategy adjoint
-
-# force finite-difference
-./target/debug/awenctl gradient --ir example_ir.json --params mzi_0:phase --strategy finite_difference
-```
-
-Run tests (including adjoint conformance test):
+Run the reference graph engine:
 
 ```bash
 cd awen-runtime
-cargo test
+cargo run --bin awenctl -- run example_ir.json --seed 42
 ```
+
+Compute gradients:
+
+```bash
+cd awen-runtime
+cargo run --bin awenctl -- gradient example_ir.json mzi_0:phase,mzi_1:phase \
+  --strategy auto --seed 42 --samples 1
+```
+
+Gradient strategies are `auto`, `adjoint`, and `finite_difference`. The reference adjoint provider currently covers MZI phase parameters; finite differences are a prototype/debug fallback.
+
+## Artifacts
+
+Legacy run and gradient commands write directories named `awen_run_*` and `awen_grad_*`. Depending on the command, artifacts include input IR, results, quantum states, measurements, gradients, traces, timelines, metrics, calibration state, and provenance.
+
+The tensor compiler writes a single compilation or benchmark JSON file at the caller-provided path. Reference capability and cost values are simulator inputs, not measured product performance.

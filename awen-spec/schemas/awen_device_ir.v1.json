@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_device_ir.v1.json",
+  "title": "AWEN Device IR v1",
+  "type": "object",
+  "required": ["ir_version", "backend_id", "commands"],
+  "properties": {
+    "ir_version": { "const": "awen.device.v1" },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["command"],
+        "properties": {
+          "command": {
+            "enum": [
+              "calibrate", "configure_matrix", "upload_tile", "execute_gemm",
+              "accumulate", "download", "host_gemm"
+            ]
+          },
+          "profile_id": { "type": "string" },
+          "op_id": { "type": "string" },
+          "tensor": { "type": "string" },
+          "reason": { "type": "string" },
+          "tile": { "type": "object" },
+          "precision": { "type": "object" },
+          "row_offset": { "type": "integer", "minimum": 0 },
+          "column_offset": { "type": "integer", "minimum": 0 },
+          "rows": { "type": "integer", "minimum": 1 },
+          "columns": { "type": "integer", "minimum": 1 },
+          "dac_bits": { "type": "integer", "minimum": 1 },
+          "adc_bits": { "type": "integer", "minimum": 1 },
+          "wavelength_channels": { "type": "array", "items": { "type": "number" } },
+          "mode": { "enum": ["optical", "digital", "hybrid"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

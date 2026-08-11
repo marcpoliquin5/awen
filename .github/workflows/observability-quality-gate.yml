@@ -1,72 +1,74 @@
-name: Observability Quality Gate
+name: AWEN Required Quality Gate
 
 on:
   push:
-    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: awen-required-quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   quality-gate:
-    name: Rust Quality Gate (fmt, clippy, tests)
+    name: AWEN required quality gate
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: rustfmt, clippy
 
-      - name: Ensure components
-        run: |
-          rustup component add clippy rustfmt || true
-
-      - name: Cargo fmt check
-        run: cargo fmt --all -- --check
-        working-directory: ./awen-runtime
-
-      - name: Cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-        working-directory: ./awen-runtime
-
-      - name: Cargo test
-        run: cargo test --all --workspace
-        working-directory: ./awen-runtime
-name: Observability Quality Gate
-
-on:
-  push:
-    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
-  pull_request:
-    branches: [ "chore/observability-v0.1-quality-gate", "main" ]
-
-jobs:
-  quality-gate:
-    name: Rust Quality Gate (fmt, clippy, tests)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Cache Rust build data
+        uses: Swatinem/rust-cache@v2
         with:
-          toolchain: stable
-          override: true
+          workspaces: |
+            awen-compiler
+            awen-runtime
 
-      - name: Ensure components
+      - name: Check compiler formatting
+        run: cargo fmt --manifest-path awen-compiler/Cargo.toml --all -- --check
+
+      - name: Lint compiler
+        run: cargo clippy --manifest-path awen-compiler/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Test compiler
+        run: cargo test --manifest-path awen-compiler/Cargo.toml --all-features --no-fail-fast
+
+      - name: Check runtime formatting
+        run: cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
+
+      - name: Lint runtime
+        run: cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Test runtime
+        run: cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
+
+      - name: Validate JSON fixtures and schemas parse
         run: |
-          rustup component add clippy rustfmt || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
 
-      - name: Cargo fmt check
-        run: cargo fmt --all -- --check
-        working-directory: ./awen-runtime
+          paths = [
+              *Path("awen-compiler/examples").glob("*.json"),
+              *Path("awen-compiler/capabilities").glob("*.json"),
+              *Path("awen-spec/schemas").glob("*.json"),
+          ]
+          for path in paths:
+              with path.open(encoding="utf-8") as handle:
+                  json.load(handle)
+          print(f"parsed {len(paths)} JSON documents")
+          PY
 
-      - name: Cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-        working-directory: ./awen-runtime
-
-      - name: Cargo test
-        run: cargo test --all --workspace
-        working-directory: ./awen-runtime
+      - name: Check Python package syntax
+        run: python -m compileall -q awen-ecosystem/python_awen

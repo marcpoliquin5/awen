@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_photonic_ir.classical.v1.json",
+  "title": "AWEN Classical Photonic IR v1",
+  "type": "object",
+  "required": [
+    "ir_version", "source_ir_version", "backend_id", "tensors", "ops",
+    "host_fallback_ops"
+  ],
+  "properties": {
+    "ir_version": { "const": "awen.photonic.classical.v1" },
+    "source_ir_version": { "const": "awen.tensor.v1" },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "tensors": { "type": "array", "items": { "$ref": "#/$defs/tensor" } },
+    "ops": { "type": "array", "items": { "$ref": "#/$defs/tile_op" } },
+    "host_fallback_ops": { "type": "array", "items": { "$ref": "#/$defs/fallback" } },
+    "calibration": { "$ref": "awen_device_capability.v1.json#/properties/calibration_profile" }
+  },
+  "$defs": {
+    "tensor": {
+      "type": "object",
+      "required": ["id", "shape", "dtype", "layout"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "shape": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+        "dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "layout": { "enum": ["row_major", "column_major"] }
+      },
+      "additionalProperties": false
+    },
+    "tile": {
+      "type": "object",
+      "required": ["m_offset", "n_offset", "k_offset", "m", "n", "k"],
+      "properties": {
+        "m_offset": { "type": "integer", "minimum": 0 },
+        "n_offset": { "type": "integer", "minimum": 0 },
+        "k_offset": { "type": "integer", "minimum": 0 },
+        "m": { "type": "integer", "minimum": 1 },
+        "n": { "type": "integer", "minimum": 1 },
+        "k": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "precision": {
+      "type": "object",
+      "required": ["source_dtype", "optical_effective_bits", "dac_bits", "adc_bits", "digital_accumulation"],
+      "properties": {
+        "source_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "optical_effective_bits": { "type": "integer", "minimum": 1 },
+        "dac_bits": { "type": "integer", "minimum": 1 },
+        "adc_bits": { "type": "integer", "minimum": 1 },
+        "digital_accumulation": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "tile_op": {
+      "type": "object",
+      "required": [
+        "op_id", "type", "lhs", "rhs", "output", "transpose_lhs",
+        "transpose_rhs", "tile", "precision", "wavelength_channels",
+        "accumulation_mode", "timing"
+      ],
+      "properties": {
+        "op_id": { "type": "string", "minLength": 1 },
+        "type": { "const": "photonic.gemm" },
+        "lhs": { "type": "string", "minLength": 1 },
+        "rhs": { "type": "string", "minLength": 1 },
+        "output": { "type": "string", "minLength": 1 },
+        "transpose_lhs": { "type": "boolean" },
+        "transpose_rhs": { "type": "boolean" },
+        "tile": { "$ref": "#/$defs/tile" },
+        "precision": { "$ref": "#/$defs/precision" },
+        "wavelength_channels": { "type": "array", "items": { "type": "number" } },
+        "accumulation_mode": { "enum": ["optical", "digital", "hybrid"] },
+        "calibration_handle": { "type": ["string", "null"] },
+        "timing": {
+          "type": "object",
+          "required": ["start_ns", "duration_ns"],
+          "properties": {
+            "start_ns": { "type": "number", "minimum": 0 },
+            "duration_ns": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "fallback": {
+      "type": "object",
+      "required": ["op_id", "op_type", "reason"],
+      "properties": {
+        "op_id": { "type": "string" },
+        "op_type": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

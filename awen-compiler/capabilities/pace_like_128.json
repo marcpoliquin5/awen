@@ -1,0 +1,43 @@
+{
+  "capability_version": "awen.device-capability.v1",
+  "backend_id": "reference-pace-like-128",
+  "matrix_core": { "m": 128, "n": 128, "k": 128 },
+  "supported_dtypes": ["f16", "bf16", "int8", "int4"],
+  "supported_wavelengths_nm": [
+    1530.0, 1531.6, 1533.2, 1534.8,
+    1536.4, 1538.0, 1539.6, 1541.2,
+    1542.8, 1544.4, 1546.0, 1547.6,
+    1549.2, 1550.8, 1552.4, 1554.0
+  ],
+  "modulation_rate_gbaud": 20.0,
+  "coherence_mode": "both",
+  "adc_bits": 10,
+  "dac_bits": 10,
+  "effective_bits": 8,
+  "sample_rate_gsps": 20.0,
+  "reconfiguration_latency_ns": 2000.0,
+  "detector_bandwidth_ghz": 20.0,
+  "insertion_loss_budget_db": 12.0,
+  "supports_complex": false,
+  "simultaneous_channels": 16,
+  "accumulation_modes": ["digital", "hybrid"],
+  "calibration_requirements": {
+    "required": true,
+    "maximum_age_seconds": 3600,
+    "temperature_tolerance_c": 0.5,
+    "drift_tolerance": 0.01
+  },
+  "calibration_profile": {
+    "id": "reference-room-temperature-v1",
+    "measured_at": "2026-08-11T00:00:00Z",
+    "temperature_c": 22.0,
+    "gain": 0.997,
+    "offset": 0.0002,
+    "phase_error_radians": 0.001
+  },
+  "host_bandwidth_gbps": 256.0,
+  "boundary_latency_ns": 500.0,
+  "laser_power_mw": 500.0,
+  "dac_energy_pj_per_sample": 2.0,
+  "adc_energy_pj_per_sample": 4.0
+}

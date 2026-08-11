@@ -1,0 +1,41 @@
+{
+  "ir_version": "awen.tensor.v1",
+  "tensors": [
+    {
+      "id": "lhs",
+      "shape": [256, 256],
+      "dtype": "f16",
+      "layout": "row_major"
+    },
+    {
+      "id": "rhs",
+      "shape": [256, 256],
+      "dtype": "f16",
+      "layout": "row_major"
+    },
+    {
+      "id": "output",
+      "shape": [256, 256],
+      "dtype": "f16",
+      "layout": "row_major"
+    }
+  ],
+  "ops": [
+    {
+      "op": "gemm",
+      "id": "encoder_projection",
+      "lhs": "lhs",
+      "rhs": "rhs",
+      "output": "output",
+      "accuracy": {
+        "max_abs_error": 0.02,
+        "max_rel_error": 0.02,
+        "minimum_effective_bits": 8
+      }
+    }
+  ],
+  "metadata": {
+    "frontend": "stablehlo-placeholder",
+    "purpose": "128x128 photonic tiling demonstration"
+  }
+}

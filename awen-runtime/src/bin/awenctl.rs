@@ -1,4 +1,8 @@
 use anyhow::Result;
+use awen_compiler::{
+    benchmark, compile, CompileOptions, DeviceCapabilities, OptimizationObjective, TargetBackend,
+    TensorProgram,
+};
 use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
 use awen_runtime::gradients::{GradientOptions, NoiseModel};
@@ -15,6 +19,40 @@ struct Args {
 
 #[derive(clap::Subcommand)]
 enum Command {
+    /// Compile typed tensor operations into AWEN Photonic IR and Device IR.
+    Compile {
+        /// Path to an awen.tensor.v1 JSON program.
+        input: String,
+        /// Optional device-capability JSON. Uses the reference 128x128 backend when omitted.
+        #[clap(long)]
+        capabilities: Option<String>,
+        /// Compilation artifact output path.
+        #[clap(long, default_value = "awen_compilation.json")]
+        output: String,
+        /// Optimization objective: latency, energy, accuracy, or throughput.
+        #[clap(long, default_value = "latency")]
+        optimize_for: String,
+        /// Target selection: auto, cpu, or photonic.
+        #[clap(long, default_value = "auto")]
+        target: String,
+    },
+    /// Compile and execute literal tensor data in the calibrated reference simulator.
+    Benchmark {
+        /// Path to an awen.tensor.v1 JSON program containing literal input data.
+        input: String,
+        /// Optional device-capability JSON. Uses the reference 128x128 backend when omitted.
+        #[clap(long)]
+        capabilities: Option<String>,
+        /// Benchmark report output path.
+        #[clap(long, default_value = "awen_benchmark.json")]
+        output: String,
+        /// Optimization objective: latency, energy, accuracy, or throughput.
+        #[clap(long, default_value = "latency")]
+        optimize_for: String,
+        /// Target selection: auto, cpu, or photonic.
+        #[clap(long, default_value = "auto")]
+        target: String,
+    },
     Run {
         /// Path to IR JSON file
         ir: String,
@@ -42,6 +80,32 @@ enum Command {
 fn main() -> Result<()> {
     let args = Args::parse();
     match args.command {
+        Command::Compile {
+            input,
+            capabilities,
+            output,
+            optimize_for,
+            target,
+        } => compile_command(
+            &input,
+            capabilities.as_deref(),
+            &output,
+            &optimize_for,
+            &target,
+        )?,
+        Command::Benchmark {
+            input,
+            capabilities,
+            output,
+            optimize_for,
+            target,
+        } => benchmark_command(
+            &input,
+            capabilities.as_deref(),
+            &output,
+            &optimize_for,
+            &target,
+        )?,
         Command::Run { ir, seed } => run_command(&ir, seed)?,
         Command::Gradient {
             ir,
@@ -52,6 +116,82 @@ fn main() -> Result<()> {
         } => gradient_command(&ir, &params, &strategy, seed, samples)?,
     }
     Ok(())
+}
+
+fn compile_command(
+    input_path: &str,
+    capabilities_path: Option<&str>,
+    output_path: &str,
+    optimize_for: &str,
+    target: &str,
+) -> Result<()> {
+    let (program, capabilities, options) =
+        compiler_inputs(input_path, capabilities_path, optimize_for, target)?;
+    let artifact = compile(&program, &capabilities, options)?;
+    std::fs::write(output_path, serde_json::to_string_pretty(&artifact)?)?;
+    println!(
+        "Compiled {} operation(s) for {}. Artifact: {}",
+        artifact.placement.len(),
+        artifact.backend_id,
+        output_path
+    );
+    for diagnostic in &artifact.diagnostics {
+        println!("  {diagnostic}");
+    }
+    Ok(())
+}
+
+fn benchmark_command(
+    input_path: &str,
+    capabilities_path: Option<&str>,
+    output_path: &str,
+    optimize_for: &str,
+    target: &str,
+) -> Result<()> {
+    let (program, capabilities, options) =
+        compiler_inputs(input_path, capabilities_path, optimize_for, target)?;
+    let artifact = compile(&program, &capabilities, options)?;
+    let report = benchmark(&program, &artifact)?;
+    std::fs::write(output_path, serde_json::to_string_pretty(&report)?)?;
+    println!(
+        "Benchmark complete: {} output(s), tolerance_passed={}, report={}",
+        report.outputs.len(),
+        report.all_outputs_within_tolerance,
+        output_path
+    );
+    if !report.all_outputs_within_tolerance {
+        anyhow::bail!("one or more benchmark outputs exceeded their accuracy contract");
+    }
+    Ok(())
+}
+
+fn compiler_inputs(
+    input_path: &str,
+    capabilities_path: Option<&str>,
+    optimize_for: &str,
+    target: &str,
+) -> Result<(TensorProgram, DeviceCapabilities, CompileOptions)> {
+    let program: TensorProgram = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
+    let capabilities = match capabilities_path {
+        Some(path) => serde_json::from_str(&std::fs::read_to_string(path)?)?,
+        None => DeviceCapabilities::default(),
+    };
+    let optimize_for = OptimizationObjective::parse(optimize_for).ok_or_else(|| {
+        anyhow::anyhow!(
+            "unknown optimization objective '{optimize_for}'; use latency, energy, accuracy, or throughput"
+        )
+    })?;
+    let target = TargetBackend::parse(target)
+        .ok_or_else(|| anyhow::anyhow!("unknown target '{target}'; use auto, cpu, or photonic"))?;
+    Ok((
+        program,
+        capabilities,
+        CompileOptions {
+            optimize_for,
+            target,
+            ..CompileOptions::default()
+        },
+    ))
 }
 
 fn run_command(ir_path: &str, seed: Option<u64>) -> Result<()> {

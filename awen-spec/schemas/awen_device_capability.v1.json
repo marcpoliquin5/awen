@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_device_capability.v1.json",
+  "title": "AWEN Device Capability v1",
+  "type": "object",
+  "required": [
+    "capability_version", "backend_id", "matrix_core", "supported_dtypes",
+    "supported_wavelengths_nm", "modulation_rate_gbaud", "coherence_mode",
+    "adc_bits", "dac_bits", "effective_bits", "sample_rate_gsps",
+    "reconfiguration_latency_ns", "detector_bandwidth_ghz",
+    "insertion_loss_budget_db", "supports_complex", "simultaneous_channels",
+    "accumulation_modes", "calibration_requirements", "host_bandwidth_gbps",
+    "boundary_latency_ns", "laser_power_mw", "dac_energy_pj_per_sample",
+    "adc_energy_pj_per_sample"
+  ],
+  "properties": {
+    "capability_version": { "const": "awen.device-capability.v1" },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "matrix_core": {
+      "type": "object",
+      "required": ["m", "n", "k"],
+      "properties": {
+        "m": { "type": "integer", "minimum": 1 },
+        "n": { "type": "integer", "minimum": 1 },
+        "k": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "supported_dtypes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] }
+    },
+    "supported_wavelengths_nm": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 }
+    },
+    "modulation_rate_gbaud": { "type": "number", "exclusiveMinimum": 0 },
+    "coherence_mode": { "enum": ["coherent", "incoherent", "both"] },
+    "adc_bits": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "dac_bits": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "effective_bits": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "sample_rate_gsps": { "type": "number", "exclusiveMinimum": 0 },
+    "reconfiguration_latency_ns": { "type": "number", "minimum": 0 },
+    "detector_bandwidth_ghz": { "type": "number", "exclusiveMinimum": 0 },
+    "insertion_loss_budget_db": { "type": "number", "minimum": 0 },
+    "supports_complex": { "type": "boolean" },
+    "simultaneous_channels": { "type": "integer", "minimum": 1 },
+    "accumulation_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["optical", "digital", "hybrid"] }
+    },
+    "calibration_requirements": {
+      "type": "object",
+      "required": ["required", "maximum_age_seconds", "temperature_tolerance_c", "drift_tolerance"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "maximum_age_seconds": { "type": "integer", "minimum": 0 },
+        "temperature_tolerance_c": { "type": "number", "minimum": 0 },
+        "drift_tolerance": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "calibration_profile": {
+      "type": "object",
+      "required": ["id", "measured_at", "temperature_c", "gain", "offset", "phase_error_radians"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "measured_at": { "type": "string", "format": "date-time" },
+        "temperature_c": { "type": "number" },
+        "gain": { "type": "number" },
+        "offset": { "type": "number" },
+        "phase_error_radians": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "host_bandwidth_gbps": { "type": "number", "exclusiveMinimum": 0 },
+    "boundary_latency_ns": { "type": "number", "minimum": 0 },
+    "laser_power_mw": { "type": "number", "minimum": 0 },
+    "dac_energy_pj_per_sample": { "type": "number", "minimum": 0 },
+    "adc_energy_pj_per_sample": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}
