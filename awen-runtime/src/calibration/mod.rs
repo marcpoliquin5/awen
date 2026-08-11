@@ -397,7 +397,7 @@ impl ReferenceCalibrationExecutor {
 
             // Try random perturbation
             let mut trial_params = best_params.clone();
-            for (_key, value) in trial_params.iter_mut() {
+            for value in trial_params.values_mut() {
                 *value += (rand::random::<f64>() - 0.5) * 2.0 * simplex_size;
             }
 

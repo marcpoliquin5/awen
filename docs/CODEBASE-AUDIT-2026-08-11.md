@@ -1,0 +1,154 @@
+# AWEN codebase audit — 2026-08-11
+
+## Scope and evidence
+
+This audit examined `marcpoliquin5/awen` at `main` commit `568bac9` and read-only public repository state for `marcpoliquin5/awen-labs` and `marcpoliquin5/awenphotonics.github.io`. The main repository contained 170 tracked source/specification/document files before this branch. The audit covered repository history, open/closed pull requests and issues, releases, branch protection, GitHub Actions, Rust crates and tests, schemas/specifications, the Python package, Studio/Cloud/Ecosystem scaffolding, tracked artifacts, environment files, and website claims.
+
+The compiler implementation and CI repairs described below are changes on `codex/awen-compiler-gemm`, not statements about the pre-branch release tag.
+
+## Repository and product boundary
+
+The repository calls itself a monorepo but has no root Cargo workspace, JavaScript workspace, common build entry point, or complete root documentation on `main`. Before this branch, the root `README.md` contained only a heading and the word `website`. Major directories are independent scaffolds or packages:
+
+- `awen-runtime` is the only substantive compiled product. It is one Rust package with a CLI, legacy graph engine, HALs, schedulers, calibration/control, simulators, observability, artifacts, plugins, gradients, and quantum experiments.
+- `awen-spec` contains extensive specifications and phase documents, but several normative files remain draft/skeleton text and many AEPs still contain TODOs.
+- `awen-ecosystem` contains a thin Python CLI wrapper, an example PDK, a placeholder kernel directory, marketplace/template scaffolding, and no executable optical kernel library.
+- `awen-studio` is a minimal React scaffold. Its README explicitly says that UI and Tauri bindings are not implemented.
+- `awen-cloud` is a README-only enterprise scaffold.
+- Root phase reports repeatedly describe milestones as complete even though source files and normative documents still label central functionality as stubs, placeholders, skeletons, or TODOs.
+
+The accurate product description is therefore an experimental runtime/specification foundation with a new narrow compiler slice on this branch. It is not yet a CUDA-equivalent platform, shipping accelerator stack, mature Studio/Cloud product, or validated performance product.
+
+## Runtime execution model
+
+`awen-runtime/src/ir/mod.rs` defines the executable legacy IR as a `Graph` of `Node` records. A node has an ID, arbitrary string type, numeric parameter map, optional measurement mode, and optional conditional branches. Edges carry optional ports and delay. Validation only checks that conditional-branch node references exist. It does not validate edge endpoints, shapes, layouts, tensor types, dimensions, precision, topology legality, or backend capability.
+
+`awen-runtime/src/engine/mod.rs` is explicitly labeled an engine skeleton. `Engine::run_graph` combines classical reference simulation, simplified quantum-state initialization/evolution, measurement branching, artifact output, and observability in one function. It assumes one quantum mode per graph node and a fixed 10 ms coherence window. Classical and quantum behavior are selected by string node names and numeric parameters. This is useful conformance/prototyping infrastructure but is not a tensor compiler or production heterogeneous execution engine.
+
+`awen-runtime/src/engine_v2.rs` contains a second engine path with more structured planning and validation. The simultaneous presence of `engine`, `engine_v2`, `hal`, `hal_v0`, `scheduler`, `scheduler_v0`, `control`, and `control_v0` creates version/ownership ambiguity. A migration/deprecation plan is not enforced by the crate API.
+
+The non-bypassable gateway in `awen-runtime/src/chokepoint.rs` embeds the V5 JSON Schema, injects or loads basic calibration, writes telemetry/artifacts, and optionally invokes a signed plugin. It then converts the generic operation back into a one-node legacy graph by retaining only numeric parameters. This destroys typed tensor, layout, precision, and rich operation semantics that a compiler backend would require.
+
+## IR and schema drift
+
+There were three incompatible representations on `main`:
+
+1. The executable Rust `Graph` uses `nodes` and string types such as `MZI`, `RING`, and `DETECTOR`.
+2. `awen-spec/schemas/awen_ir.proto` sketches nodes, ports, numeric parameters, and edges but is not generated or consumed by the runtime.
+3. `awen-spec/schemas/photonic_ir.v5.json` requires top-level `ops` with string types such as `classical:splitter` or `quantum:beam_splitter`.
+
+The V5 schema does not encode tensor shapes, dynamic dimensions, dtype, layout, optical effective precision, bit slicing, accumulation precision, wavelength allocation, matrix-core dimensions, SNR, ADC/DAC resolution, detector dynamic range, reconfiguration cost, insertion-loss budget, topology, or a typed distinction between classical and quantum semantics.
+
+The Python wrapper mutates legacy `nodes`, while its description implies a bridge to broader framework IR. That confirms API drift rather than compatibility.
+
+This branch adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, and `awen.device.v1`. AEP-0010 states that production dialects must use MLIR/StableHLO and that the JSON bootstrap must not become a competing general-purpose compiler infrastructure. MLIR implementation remains #6; classical/quantum separation remains #16.
+
+## Simulator and numerical semantics
+
+`awen-runtime/src/plugins/reference_sim.rs` is a sequential complex-amplitude simulator for a small set of component strings. It does not execute tensors or tiled matrix operations. The graph engine initializes amplitude from string metadata and applies simplified component transforms/noise. It is valuable for runtime/state/observability testing but cannot validate a GEMM compiler path.
+
+The new `awen-compiler` reference simulator executes the emitted GEMM tiles, including M/N/K edge tiles, row-major/column-major input indexing, transposes, block quantization at advertised effective precision, digital accumulation, and an explicit measured-transfer/inverse-calibration step. It compares logical row-major outputs against `awenBLAS` reference GEMM using per-element absolute-plus-relative tolerance. It remains a conformance simulator: it does not model per-cell phase/loss, shot/thermal noise, disabled elements, nonlinear transfer curves, or measured hardware timing/energy. Those requirements are #13, #14, and #15.
+
+## Hardware abstraction and capabilities
+
+The existing HAL code has useful device discovery, measurement, calibration, health, resource, safety, and simulator concepts. It is not connected to a compiler capability model that can answer whether a particular shaped/typed GEMM is legal or advantageous.
+
+The new compiler capability contract includes matrix-core M/N/K size, supported dtypes and complex mode, wavelengths, modulation/sample rates, coherence mode, ADC/DAC/effective bits, reconfiguration latency, detector bandwidth, insertion-loss budget, simultaneous channels, accumulation modes, calibration requirements/profile, host bandwidth/boundary latency, laser power, and conversion energy. The included 2×2 and PACE-like 128×128 profiles are reference simulator inputs only. They are not assertions about Lightelligence or any shipping device.
+
+Capability discovery, live health negotiation, plugin ABI versioning, calibration freshness, per-cell faults, and backend conformance remain #8.
+
+## Scheduling, partitioning, and cost
+
+The runtime has extensive scheduler types/tests for dependencies, resources, coherence deadlines, conditional feedback, deterministic replay, and multiple strategy names. Several tests and phase documents explicitly identify greedy, optimal, and hardware-aware strategies as placeholders.
+
+Before this branch, no scheduler/partitioner modeled CPU/GPU/photonics placement, tensor residency, DAC/ADC conversion edges, host transfer, or region fusion.
+
+The new compiler makes per-GEMM placement decisions and records CPU and photonic latency/energy/throughput/effective-bit estimates. A standalone photonic selection always includes two optical/electrical boundaries, host transfer, reconfiguration, tiled conversion/compute time, laser energy, and ADC/DAC energy. It can optimize for latency, energy, accuracy, or throughput and fails forced photonic compilation when precision/capability requirements cannot be met.
+
+This first model is dimensional and deterministic, not fitted to hardware. It does not optimize whole graph regions, tensor residency, overlap, batching, queueing, or uncertainty. Crossing-aware region partitioning is #9; a provenance-aware measured cost model/autotuner is #10.
+
+## Calibration and control
+
+Calibration is one of the strongest conceptual parts of AWEN. The runtime models calibration kernels/states, drift detection, safety constraints, optimizers, provenance/versioning, validity windows, measurement/control concepts, and integration tests.
+
+Several implementations remain deliberately simplified. The Nelder-Mead path was a random perturbation loop; cost functions and drift/measurement behavior include mock/reference formulas; `control/mod.rs` is explicitly a stub; and compile-time mapping did not consume measured transfer functions.
+
+The new compiler requires a profile when a backend declares calibration mandatory, records the profile in Photonic/Device IR, and makes its scalar transfer function part of executable simulator semantics. It does not yet validate profile age/environment/device identity or remap per-cell faults. Full calibration-aware compilation and drift-triggered recompilation are #14.
+
+## Kernels and framework integration
+
+`awen-ecosystem/kernels/datacom/README.md` contains a TODO and no kernel implementation. There was no `awenBLAS`, GEMM tiler, convolution/FFT library, or transformer kernel set on `main`.
+
+The Python package runs `awenctl` as a subprocess, searches the working directory for the newest `awen_run_*` or `awen_grad_*` directory, and reads JSON artifacts. Its smoke test references an `example_ir.json` that is not present under `awen-ecosystem/python_awen`. The PyTorch wrapper is not a `torch.autograd.Function` subclass, returns a manually annotated tensor, exposes a separate manual backward helper, and uses one finite-difference CLI invocation. It cannot provide normal `torch.compile`, device, stream, async, buffer, dynamic-shape, or autograd semantics.
+
+This branch adds the first `awenBLAS` reference GEMM and runtime `compile`/`benchmark` commands. Broader executable kernels are #11. Native `torch.compile`, JAX/StableHLO, C++, NumPy, and removal of normal-path subprocess/filesystem glue are #12.
+
+## Artifacts, observability, and reproducibility
+
+The runtime has real implementation and test coverage for deterministic identifiers, bundles, import/export, checksums, environment capture, citations, lineages, traces, timelines, metrics, and calibration/quantum artifacts. This is useful foundation for compiled executable provenance.
+
+Gaps remain: the legacy engine still contains a TODO to persist the complete artifact bundle, some observability exporters are TODO or `todo!`, parent-span tracking is unfinished, and several phase documents describe intended behavior more completely than the source implements it.
+
+The compiler artifact now records source/artifact versions, backend, compile options, placement and cost decisions, boundary crossings, typed Photonic IR, Device IR, calibration identity, and diagnostics. Hardware-measured raw data, cost uncertainty, and executable binary packaging remain #6, #10, and #15.
+
+## Plugins, PDKs, and physical design
+
+The runtime has plugin manifest discovery, signature verification, capability lookup by string, and subprocess invocation. The reference simulator plugin README still says implementation/registration is TODO. The example PDK is a small YAML scaffold with a TODO. AWEN should not recreate layout, DRC, PDK, or electromagnetic/circuit simulation infrastructure.
+
+The gdsfactory/circulax integration boundary, immutable PDK/model provenance, process-corner invalidation, and safe handling of proprietary PDK data are #17.
+
+## Quantum scope
+
+The runtime and specs contain substantial quantum/coherence types and tests, including Gaussian/CV/DV state experiments, measurement, fidelity/drift, artifacts, and feedback scheduling. The correctness model is still intermixed with classical generic graph/string operations and simplified reference simulation.
+
+Classical analog GEMM and quantum photonic programs require distinct dialect verifiers, state/measurement semantics, precision/error models, schedulers, and conformance. Shared runtime/artifact/device infrastructure can remain common. This separation is #16. Strawberry Fields is useful historical prior art but was archived and must not become a new critical dependency.
+
+## CI, release, and branch protection
+
+On `main`, `.github/workflows/observability-quality-gate.yml` contained the complete workflow twice. GitHub recorded every run of that workflow as `failure` with zero jobs and no logs, including runs on release commit `568bac9`. A second file, `observability-quality-gate-2.yml`, duplicated the intended job again. The repository also has overlapping `ci.yml`, runtime CI, and multiple large conformance workflows.
+
+Issue #4 incorrectly stated that the observability quality gate ran green. The release and tag exist, PRs #1/#2 are merged, and cleanup commit `97385cd` exists, but the green-gate claim was corrected in a closing comment with Actions evidence.
+
+This branch replaces the invalid duplicates with one stable job/context, `AWEN required quality gate`, covering compiler/runtime format, strict Clippy, tests, JSON parsing, and Python syntax. Issue #3 was resolved by applying verified `main` protection with strict branch updates, administrator enforcement, the corrected required context, no force pushes, and no deletions.
+
+Full CI consolidation, release truth/evidence, and policy hardening remain #18.
+
+## Test evidence
+
+The branch was verified on a current Linux Rust toolchain through WSL, matching GitHub Actions more closely than an unconfigured Windows MSVC host.
+
+- `awen-compiler`: format check, strict Clippy, seven integration tests, and doc tests passed.
+- Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, precision rejection, conversion-aware auto placement, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, and column-major storage.
+- `awen-runtime`: format check, strict Clippy, 314 unit/integration/compile-fail/doc tests passed; one pre-existing phase-calibration test remains explicitly ignored.
+- End-to-end CLI compile emitted eight photonic tiles, 42 device commands, two boundary crossings, and a calibration identity for the 256³ fixture.
+- End-to-end CLI benchmark emitted 16 output values and passed its numerical contract; observed maximum absolute error was approximately `0.110236` and maximum relative error approximately `0.007874` for the 8-effective-bit 4×4 fixture.
+- Nine JSON example/capability/schema documents parsed successfully.
+
+These are software conformance results, not hardware performance evidence.
+
+## Repository hygiene and cross-repository findings
+
+The main repository tracks `awen-runtime/libcontrol_v0.rlib`, a generated compiled binary. Its runtime and spec license files contain abbreviated placeholder text instead of complete license terms. Governance, maintainer, contribution, security contact, plugin, PDK, cloud, Studio, marketplace, and multiple AEP documents retain TODO/scaffold language. These are tracked comprehensively in #18 rather than being hidden by phase sign-off documents.
+
+`marcpoliquin5/awen-labs` is primarily a Vite/React site and tracks a 350-byte `.env` containing a Supabase project ID, publishable key, and URL. No value is reproduced in this audit. A publishable browser key is not equivalent to a service-role secret, but the environment file must be removed, privileged history audited, RLS verified, configuration reissued where appropriate, and secret scanning added. That work is `marcpoliquin5/awen-labs#1`.
+
+`marcpoliquin5/awenphotonics.github.io` contains unsupported or unverified product/performance/customer statements, including 50–100× performance, 100× lower energy, 100× faster training, 100× molecular-dynamics acceleration, 12× arbitrage, 8× climate resolution, paid product prices, and strongly characterized research citations. Every retained claim needs direct auditable support or removal. That work is `marcpoliquin5/awenphotonics.github.io#1`.
+
+## Roadmap ownership
+
+- #5: compiler/runtime product epic and definition of done.
+- #6: StableHLO/MLIR dialects, lowering, and executable ABI.
+- #7: complete first GEMM vertical slice; this branch is the implementation PR.
+- #8: backend capabilities, discovery, health, and conformance.
+- #9: crossing-aware graph partitioner and tensor residency.
+- #10: measured cost model, uncertainty, and autotuning.
+- #11: `awenBLAS`, FFT, convolution/correlation, structured transforms, attention, RF, and reservoir kernels.
+- #12: `torch.compile`, JAX, C++, NumPy, buffers/streams/async/autograd.
+- #13: analog/mixed precision, bit slicing, scaling, saturation, and error attribution.
+- #14: calibration-aware mapping, fault remapping, and drift-triggered recompilation.
+- #15: hardware-in-the-loop full-system benchmarking and claim generation.
+- #16: separate classical and quantum-photonic dialects.
+- #17: gdsfactory/circulax and physical-design/PDK boundary.
+- #18: repository/product hygiene, licensing, CI consolidation, governance, security, and release truth.
+- `awen-labs#1`: tracked environment and Supabase/security cleanup.
+- `awenphotonics.github.io#1`: unsupported claims and citation/product integrity.

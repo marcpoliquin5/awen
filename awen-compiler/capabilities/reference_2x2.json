@@ -1,0 +1,38 @@
+{
+  "capability_version": "awen.device-capability.v1",
+  "backend_id": "reference-photonic-2x2",
+  "matrix_core": { "m": 2, "n": 2, "k": 2 },
+  "supported_dtypes": ["f16", "int8"],
+  "supported_wavelengths_nm": [1550.0, 1551.6],
+  "modulation_rate_gbaud": 10.0,
+  "coherence_mode": "coherent",
+  "adc_bits": 10,
+  "dac_bits": 10,
+  "effective_bits": 8,
+  "sample_rate_gsps": 10.0,
+  "reconfiguration_latency_ns": 100.0,
+  "detector_bandwidth_ghz": 10.0,
+  "insertion_loss_budget_db": 6.0,
+  "supports_complex": false,
+  "simultaneous_channels": 2,
+  "accumulation_modes": ["digital"],
+  "calibration_requirements": {
+    "required": true,
+    "maximum_age_seconds": 3600,
+    "temperature_tolerance_c": 0.5,
+    "drift_tolerance": 0.01
+  },
+  "calibration_profile": {
+    "id": "reference-2x2-calibration-v1",
+    "measured_at": "2026-08-11T00:00:00Z",
+    "temperature_c": 22.0,
+    "gain": 0.99,
+    "offset": 0.001,
+    "phase_error_radians": 0.002
+  },
+  "host_bandwidth_gbps": 128.0,
+  "boundary_latency_ns": 100.0,
+  "laser_power_mw": 50.0,
+  "dac_energy_pj_per_sample": 1.0,
+  "adc_energy_pj_per_sample": 2.0
+}

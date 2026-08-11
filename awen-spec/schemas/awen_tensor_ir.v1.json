@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_tensor_ir.v1.json",
+  "title": "AWEN Tensor IR v1",
+  "type": "object",
+  "required": ["ir_version", "tensors", "ops"],
+  "properties": {
+    "ir_version": { "const": "awen.tensor.v1" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "tensors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/tensor" }
+    },
+    "ops": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/gemm" }
+    }
+  },
+  "$defs": {
+    "dtype": {
+      "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"]
+    },
+    "layout": { "enum": ["row_major", "column_major"] },
+    "tensor": {
+      "type": "object",
+      "required": ["id", "shape", "dtype", "layout"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "shape": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "integer", "minimum": 1 }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "dtype": { "$ref": "#/$defs/dtype" },
+        "layout": { "$ref": "#/$defs/layout" },
+        "data": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "accuracy": {
+      "type": "object",
+      "properties": {
+        "max_abs_error": { "type": "number", "minimum": 0 },
+        "max_rel_error": { "type": "number", "minimum": 0 },
+        "minimum_effective_bits": { "type": "integer", "minimum": 1, "maximum": 32 }
+      },
+      "additionalProperties": false
+    },
+    "gemm": {
+      "type": "object",
+      "required": ["op", "id", "lhs", "rhs", "output"],
+      "properties": {
+        "op": { "const": "gemm" },
+        "id": { "type": "string", "minLength": 1 },
+        "lhs": { "type": "string", "minLength": 1 },
+        "rhs": { "type": "string", "minLength": 1 },
+        "output": { "type": "string", "minLength": 1 },
+        "transpose_lhs": { "type": "boolean", "default": false },
+        "transpose_rhs": { "type": "boolean", "default": false },
+        "accuracy": { "$ref": "#/$defs/accuracy" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
