@@ -17,7 +17,7 @@ permissions:
 jobs:
   quality-gate:
     name: AWEN required quality gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -52,6 +52,48 @@ jobs:
 
       - name: Test runtime
         run: cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
+
+      - name: Install MLIR compiler dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            clang-20 \
+            clang-format-20 \
+            cmake \
+            libmlir-20-dev \
+            lld-20 \
+            llvm-20-dev \
+            mlir-20-tools \
+            ninja-build
+
+      - name: Configure AWEN MLIR compiler
+        run: |
+          cmake -S awen-mlir -B awen-mlir/build -G Ninja \
+            -DMLIR_DIR=/usr/lib/llvm-20/lib/cmake/mlir \
+            -DLLVM_DIR=/usr/lib/llvm-20/lib/cmake/llvm \
+            -DCMAKE_C_COMPILER=clang-20 \
+            -DCMAKE_CXX_COMPILER=clang++-20 \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Check AWEN MLIR C++ formatting
+        run: |
+          find awen-mlir \
+            -path 'awen-mlir/build' -prune -o \
+            \( -name '*.cpp' -o -name '*.h' \) \
+            -exec clang-format-20 --dry-run --Werror {} +
+
+      - name: Build and test AWEN MLIR compiler
+        run: |
+          cmake --build awen-mlir/build --target awen-opt awen-compile -j2
+          ctest --test-dir awen-mlir/build --output-on-failure
+
+      - name: Verify direct compiler-to-runtime executable ABI
+        run: |
+          awen-mlir/build/tools/awen-compile/awen-compile \
+            awen-mlir/test/stablehlo_gemm.mlir \
+            -o /tmp/stablehlo_gemm.awenx
+          cargo run --manifest-path awen-runtime/Cargo.toml \
+            --bin awenctl -- execute /tmp/stablehlo_gemm.awenx
 
       - name: Validate JSON fixtures and schemas parse
         run: |

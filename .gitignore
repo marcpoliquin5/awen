@@ -1,4 +1,6 @@
 **/target/
+**/build/
+*.awenx
 *.rlib
 awen_run_*/
 awen_grad_*/

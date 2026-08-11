@@ -1,0 +1,1 @@
+add_mlir_dialect(AwenQPhotonicOps awen_qphotonic)

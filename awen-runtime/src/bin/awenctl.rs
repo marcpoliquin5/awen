@@ -53,6 +53,11 @@ enum Command {
         #[clap(long, default_value = "auto")]
         target: String,
     },
+    /// Load a binary AWEN executable and prepare its device dispatches.
+    Execute {
+        /// Path to an AWENEXE binary emitted by awen-compile.
+        artifact: String,
+    },
     Run {
         /// Path to IR JSON file
         ir: String,
@@ -106,6 +111,7 @@ fn main() -> Result<()> {
             &optimize_for,
             &target,
         )?,
+        Command::Execute { artifact } => execute_command(&artifact)?,
         Command::Run { ir, seed } => run_command(&ir, seed)?,
         Command::Gradient {
             ir,
@@ -114,6 +120,32 @@ fn main() -> Result<()> {
             seed,
             samples,
         } => gradient_command(&ir, &params, &strategy, seed, samples)?,
+    }
+    Ok(())
+}
+
+fn execute_command(artifact_path: &str) -> Result<()> {
+    let bytes = std::fs::read(artifact_path)?;
+    let executable = awen_runtime::executable::prepare_executable(&bytes)?;
+    println!(
+        "Prepared AWEN executable ABI {}.{} for {}: {} dispatch(es), {} MLIR bytecode bytes",
+        executable.abi_major,
+        executable.abi_minor,
+        executable.backend_id,
+        executable.dispatches.len(),
+        executable.mlir_bytecode_bytes
+    );
+    for (index, dispatch) in executable.dispatches.iter().enumerate() {
+        println!(
+            "  dispatch[{index}] GEMM tile={}x{}x{}, effective_bits={}, calibration={}, layout={}, result_shape={:?}",
+            dispatch.tile[0],
+            dispatch.tile[1],
+            dispatch.tile[2],
+            dispatch.minimum_effective_bits,
+            dispatch.calibration,
+            dispatch.layout,
+            dispatch.result_shape
+        );
     }
     Ok(())
 }

@@ -23,8 +23,16 @@ let artifact = compile(&program, &capabilities, CompileOptions::default())?;
 
 Use `benchmark(&program, &artifact)` only when the input tensors include literal data. It is a deterministic reference/conformance path, not a hardware-performance measurement.
 
-## Current boundary
+## Relationship to the MLIR compiler
 
-The JSON Tensor IR is a bootstrap representation for the executable slice. The intended production frontend is StableHLO/MLIR, tracked in [issue #6](https://github.com/marcpoliquin5/awen/issues/6). Do not extend the JSON parser into a parallel general-purpose compiler infrastructure.
+The JSON Tensor IR remains a bootstrap representation and a Rust semantic
+reference. The production foundation is now under `awen-mlir`, with registered
+TableGen dialects and a normalized StableHLO `dot_general` to Device IR path.
+Do not extend the JSON parser into a parallel general-purpose compiler
+infrastructure.
+
+This crate also owns the platform-independent decoder for `AWENEXE` 1.x so the
+runtime can consume the MLIR compiler's command table without linking MLIR or
+using JSON shell-out glue.
 
 The next compiler work is tracked under [the compiler epic](https://github.com/marcpoliquin5/awen/issues/5).
