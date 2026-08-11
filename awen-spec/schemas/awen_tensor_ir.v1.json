@@ -58,6 +58,16 @@
       },
       "additionalProperties": false
     },
+    "cost_hints": {
+      "type": "object",
+      "properties": {
+        "sparsity_fraction": { "type": "number", "minimum": 0, "maximum": 1, "default": 0 },
+        "structured_sparsity": { "type": "boolean", "default": false },
+        "input_error_fraction": { "type": "number", "minimum": 0, "maximum": 1, "default": 0 },
+        "maximum_input_magnitude": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
     "gemm": {
       "type": "object",
       "required": ["op", "id", "lhs", "rhs", "output"],
@@ -69,7 +79,8 @@
         "output": { "type": "string", "minLength": 1 },
         "transpose_lhs": { "type": "boolean", "default": false },
         "transpose_rhs": { "type": "boolean", "default": false },
-        "accuracy": { "$ref": "#/$defs/accuracy" }
+        "accuracy": { "$ref": "#/$defs/accuracy" },
+        "cost_hints": { "$ref": "#/$defs/cost_hints" }
       },
       "additionalProperties": false
     }

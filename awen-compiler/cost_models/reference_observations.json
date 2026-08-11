@@ -1,0 +1,13 @@
+{
+  "observation_version": "awen.cost-observations.v1",
+  "observations": [
+    {
+      "op_id": "test_projection",
+      "latency_ns": 3100.0,
+      "energy_uj": 0.02,
+      "error_fraction": 0.008,
+      "source": "simulated",
+      "artifact_id": "sha256:reference-simulator-run-001"
+    }
+  ]
+}

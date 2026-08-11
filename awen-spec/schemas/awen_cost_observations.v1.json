@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_cost_observations.v1.json",
+  "title": "AWEN Cost Observations v1",
+  "type": "object",
+  "required": ["observation_version", "observations"],
+  "properties": {
+    "observation_version": { "const": "awen.cost-observations.v1" },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "op_id", "latency_ns", "energy_uj", "error_fraction", "source", "artifact_id"
+        ],
+        "properties": {
+          "op_id": { "type": "string", "minLength": 1 },
+          "latency_ns": { "type": "number", "exclusiveMinimum": 0 },
+          "energy_uj": { "type": "number", "minimum": 0 },
+          "error_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+          "source": { "enum": ["measured", "simulated"] },
+          "artifact_id": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

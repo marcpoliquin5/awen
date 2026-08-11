@@ -1,6 +1,7 @@
 use awen_compiler::{
-    benchmark, compile, compile_with_backend, BackendHealth, BackendSnapshot, CompileOptions,
-    DeviceCapabilities, HealthStatus, OptimizationObjective, TargetBackend, TensorProgram,
+    benchmark, compile, compile_with_backend, BackendHealth, BackendSnapshot, BitSlicingMode,
+    CompileOptions, DeviceCapabilities, HealthStatus, OptimizationObjective, TargetBackend,
+    TensorProgram,
 };
 
 fn program(name: &str) -> TensorProgram {
@@ -83,10 +84,12 @@ fn accuracy_contract_rejects_insufficient_photonic_precision() {
     let mut program = program("4x4");
     let awen_compiler::TensorOp::Gemm { accuracy, .. } = &mut program.ops[0];
     accuracy.minimum_effective_bits = Some(12);
+    let mut capabilities = capabilities("2x2");
+    capabilities.bit_slicing_modes = vec![BitSlicingMode::None];
 
     let error = compile(
         &program,
-        &capabilities("2x2"),
+        &capabilities,
         CompileOptions {
             target: TargetBackend::Photonic,
             ..CompileOptions::default()
@@ -94,6 +97,31 @@ fn accuracy_contract_rejects_insufficient_photonic_precision() {
     )
     .expect_err("forced photonic placement must reject insufficient precision");
     assert!(error.to_string().contains("effective precision"));
+}
+
+#[test]
+fn autotuned_bit_slicing_is_emitted_into_photonic_ir() {
+    let mut program = program("4x4");
+    let awen_compiler::TensorOp::Gemm { accuracy, .. } = &mut program.ops[0];
+    accuracy.minimum_effective_bits = Some(12);
+
+    let artifact = compile(
+        &program,
+        &capabilities("2x2"),
+        CompileOptions {
+            target: TargetBackend::Photonic,
+            ..CompileOptions::default()
+        },
+    )
+    .expect("bit slicing should satisfy the precision contract");
+
+    let plan = artifact.placement[0].selected_plan.expect("tuning plan");
+    assert_eq!(plan.bit_slices, 2);
+    assert!(artifact
+        .photonic_ir
+        .ops
+        .iter()
+        .all(|op| op.precision.bit_slices == 2 && op.precision.optical_effective_bits == 16));
 }
 
 #[test]

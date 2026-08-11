@@ -43,12 +43,13 @@
     },
     "precision": {
       "type": "object",
-      "required": ["source_dtype", "optical_effective_bits", "dac_bits", "adc_bits", "digital_accumulation"],
+      "required": ["source_dtype", "optical_effective_bits", "dac_bits", "adc_bits", "bit_slices", "digital_accumulation"],
       "properties": {
         "source_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
         "optical_effective_bits": { "type": "integer", "minimum": 1 },
         "dac_bits": { "type": "integer", "minimum": 1 },
         "adc_bits": { "type": "integer", "minimum": 1 },
+        "bit_slices": { "type": "integer", "minimum": 1 },
         "digital_accumulation": { "type": "boolean" }
       },
       "additionalProperties": false

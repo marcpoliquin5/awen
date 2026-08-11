@@ -77,6 +77,30 @@ impl Default for AccuracyContract {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CostHints {
+    #[serde(default)]
+    pub sparsity_fraction: f64,
+    #[serde(default)]
+    pub structured_sparsity: bool,
+    #[serde(default)]
+    pub input_error_fraction: f64,
+    #[serde(default)]
+    pub maximum_input_magnitude: Option<f64>,
+}
+
+impl Default for CostHints {
+    fn default() -> Self {
+        Self {
+            sparsity_fraction: 0.0,
+            structured_sparsity: false,
+            input_error_fraction: 0.0,
+            maximum_input_magnitude: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum TensorOp {
@@ -91,6 +115,8 @@ pub enum TensorOp {
         transpose_rhs: bool,
         #[serde(default)]
         accuracy: AccuracyContract,
+        #[serde(default)]
+        cost_hints: CostHints,
     },
 }
 
@@ -104,6 +130,12 @@ impl TensorOp {
     pub fn accuracy(&self) -> &AccuracyContract {
         match self {
             Self::Gemm { accuracy, .. } => accuracy,
+        }
+    }
+
+    pub fn cost_hints(&self) -> CostHints {
+        match self {
+            Self::Gemm { cost_hints, .. } => *cost_hints,
         }
     }
 }
@@ -192,10 +224,25 @@ pub fn validate_program(program: &TensorProgram) -> Result<Vec<ValidatedGemm<'_>
                 transpose_lhs,
                 transpose_rhs,
                 accuracy,
+                cost_hints,
                 ..
             } => {
-                if accuracy.max_abs_error < 0.0 || accuracy.max_rel_error < 0.0 {
-                    bail!("operation '{}' has a negative error tolerance", op.id());
+                if !accuracy.max_abs_error.is_finite()
+                    || !accuracy.max_rel_error.is_finite()
+                    || accuracy.max_abs_error < 0.0
+                    || accuracy.max_rel_error < 0.0
+                {
+                    bail!("operation '{}' has an invalid error tolerance", op.id());
+                }
+                if !cost_hints.sparsity_fraction.is_finite()
+                    || !(0.0..=1.0).contains(&cost_hints.sparsity_fraction)
+                    || !cost_hints.input_error_fraction.is_finite()
+                    || !(0.0..=1.0).contains(&cost_hints.input_error_fraction)
+                    || cost_hints
+                        .maximum_input_magnitude
+                        .is_some_and(|value| !value.is_finite() || value < 0.0)
+                {
+                    bail!("operation '{}' has invalid cost hints", op.id());
                 }
                 let lhs_tensor = tensors.get(lhs.as_str()).copied().with_context(|| {
                     format!("operation '{}' references missing lhs '{lhs}'", op.id())

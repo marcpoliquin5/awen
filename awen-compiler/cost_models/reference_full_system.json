@@ -1,0 +1,42 @@
+{
+  "model_version": "awen.cost-model.v1",
+  "scheduling_latency_ns": 250.0,
+  "memory_bandwidth_gbps": 192.0,
+  "memory_energy_pj_per_byte": 0.5,
+  "host_transfer_energy_pj_per_byte": 1.0,
+  "modulator_energy_pj_per_sample": 1.0,
+  "detector_energy_pj_per_sample": 1.0,
+  "digital_accumulation_energy_pj_per_mac": 0.25,
+  "digital_accumulation_throughput_gops": 500.0,
+  "optical_propagation_ns": 0.1,
+  "calibration_amortization_ns": 20.0,
+  "calibration_amortization_energy_uj": 0.001,
+  "support_power_mw": 1500.0,
+  "signal_to_noise_ratio_db": 49.92,
+  "insertion_loss_db": 0.0,
+  "drift_fraction": 0.0,
+  "disabled_component_fraction": 0.0,
+  "latency_calibration_factor": 1.0,
+  "energy_calibration_factor": 1.0,
+  "error_calibration_offset": 0.0,
+  "provenance": [
+    {
+      "parameter": "host/link/memory transfer",
+      "source": "simulated",
+      "reference": "reference-pace-like-128 capability snapshot",
+      "uncertainty_fraction": 0.05
+    },
+    {
+      "parameter": "DAC/modulator/optical/detector/ADC/digital accumulation",
+      "source": "simulated",
+      "reference": "reference-pace-like-128 calibrated simulator",
+      "uncertainty_fraction": 0.05
+    },
+    {
+      "parameter": "laser/support/reconfiguration/calibration/SNR/loss/drift",
+      "source": "assumed",
+      "reference": "reference full-system model v1",
+      "uncertainty_fraction": 0.10
+    }
+  ]
+}

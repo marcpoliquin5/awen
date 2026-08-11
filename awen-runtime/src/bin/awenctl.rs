@@ -1,7 +1,8 @@
 use anyhow::Result;
 use awen_compiler::{
-    benchmark, compile_with_backend, BackendHealth, BackendSnapshot, CompileOptions,
-    DeviceCapabilities, OptimizationObjective, TargetBackend, TensorProgram,
+    benchmark, benchmark_with_observations, compile_with_backend, compile_with_cost_model,
+    BackendHealth, BackendSnapshot, CompileOptions, CostModelInputs, DeviceCapabilities,
+    ObservationSet, OptimizationObjective, TargetBackend, TensorProgram,
 };
 use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
@@ -29,6 +30,9 @@ enum Command {
         /// Optional live awen.backend-health.v1 JSON snapshot.
         #[clap(long)]
         health: Option<String>,
+        /// Optional awen.cost-model.v1 JSON, including calibrated parameters and provenance.
+        #[clap(long)]
+        cost_model: Option<String>,
         /// Compilation artifact output path.
         #[clap(long, default_value = "awen_compilation.json")]
         output: String,
@@ -38,6 +42,27 @@ enum Command {
         /// Target selection: auto, cpu, or photonic.
         #[clap(long, default_value = "auto")]
         target: String,
+        /// Deterministic autotuner seed used to break equal-cost ties.
+        #[clap(long, default_value_t = 0)]
+        autotune_seed: u64,
+        /// Number of identical operations amortized as one batch.
+        #[clap(long, default_value_t = 1)]
+        batch_size: usize,
+        /// Number of ranked non-winning plans retained in the artifact.
+        #[clap(long, default_value_t = 3)]
+        alternative_plans: usize,
+        /// Permit optical/electrical conversion boundaries to be fused across a batch.
+        #[clap(long)]
+        fuse_boundaries: bool,
+        /// Queue depth included in the end-to-end scheduling estimate.
+        #[clap(long, default_value_t = 0)]
+        queue_depth: usize,
+        /// Fraction of transfer work overlapped with execution, within [0, 1].
+        #[clap(long, default_value_t = 0.0)]
+        overlap_fraction: f64,
+        /// Fraction of input tensor bytes already resident on the target, within [0, 1].
+        #[clap(long, default_value_t = 0.0)]
+        resident_input_fraction: f64,
     },
     /// Compile and execute literal tensor data in the calibrated reference simulator.
     Benchmark {
@@ -49,6 +74,12 @@ enum Command {
         /// Optional live awen.backend-health.v1 JSON snapshot.
         #[clap(long)]
         health: Option<String>,
+        /// Optional awen.cost-model.v1 JSON, including calibrated parameters and provenance.
+        #[clap(long)]
+        cost_model: Option<String>,
+        /// Optional JSON array of measured observations to compare with predictions.
+        #[clap(long)]
+        observations: Option<String>,
         /// Benchmark report output path.
         #[clap(long, default_value = "awen_benchmark.json")]
         output: String,
@@ -58,6 +89,27 @@ enum Command {
         /// Target selection: auto, cpu, or photonic.
         #[clap(long, default_value = "auto")]
         target: String,
+        /// Deterministic autotuner seed used to break equal-cost ties.
+        #[clap(long, default_value_t = 0)]
+        autotune_seed: u64,
+        /// Number of identical operations amortized as one batch.
+        #[clap(long, default_value_t = 1)]
+        batch_size: usize,
+        /// Number of ranked non-winning plans retained in the artifact.
+        #[clap(long, default_value_t = 3)]
+        alternative_plans: usize,
+        /// Permit optical/electrical conversion boundaries to be fused across a batch.
+        #[clap(long)]
+        fuse_boundaries: bool,
+        /// Queue depth included in the end-to-end scheduling estimate.
+        #[clap(long, default_value_t = 0)]
+        queue_depth: usize,
+        /// Fraction of transfer work overlapped with execution, within [0, 1].
+        #[clap(long, default_value_t = 0.0)]
+        overlap_fraction: f64,
+        /// Fraction of input tensor bytes already resident on the target, within [0, 1].
+        #[clap(long, default_value_t = 0.0)]
+        resident_input_fraction: f64,
     },
     /// Load a binary AWEN executable and prepare its device dispatches.
     Execute {
@@ -96,6 +148,19 @@ enum Command {
     },
 }
 
+#[derive(Clone, Copy)]
+struct CompilerControls<'a> {
+    optimize_for: &'a str,
+    target: &'a str,
+    autotune_seed: u64,
+    batch_size: usize,
+    alternative_plans: usize,
+    fuse_boundaries: bool,
+    queue_depth: usize,
+    overlap_fraction: f64,
+    resident_input_fraction: f64,
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     match args.command {
@@ -103,32 +168,76 @@ fn main() -> Result<()> {
             input,
             capabilities,
             health,
+            cost_model,
             output,
             optimize_for,
             target,
-        } => compile_command(
-            &input,
-            capabilities.as_deref(),
-            health.as_deref(),
-            &output,
-            &optimize_for,
-            &target,
-        )?,
+            autotune_seed,
+            batch_size,
+            alternative_plans,
+            fuse_boundaries,
+            queue_depth,
+            overlap_fraction,
+            resident_input_fraction,
+        } => {
+            let controls = CompilerControls {
+                optimize_for: &optimize_for,
+                target: &target,
+                autotune_seed,
+                batch_size,
+                alternative_plans,
+                fuse_boundaries,
+                queue_depth,
+                overlap_fraction,
+                resident_input_fraction,
+            };
+            compile_command(
+                &input,
+                capabilities.as_deref(),
+                health.as_deref(),
+                cost_model.as_deref(),
+                &output,
+                controls,
+            )?;
+        }
         Command::Benchmark {
             input,
             capabilities,
             health,
+            cost_model,
+            observations,
             output,
             optimize_for,
             target,
-        } => benchmark_command(
-            &input,
-            capabilities.as_deref(),
-            health.as_deref(),
-            &output,
-            &optimize_for,
-            &target,
-        )?,
+            autotune_seed,
+            batch_size,
+            alternative_plans,
+            fuse_boundaries,
+            queue_depth,
+            overlap_fraction,
+            resident_input_fraction,
+        } => {
+            let controls = CompilerControls {
+                optimize_for: &optimize_for,
+                target: &target,
+                autotune_seed,
+                batch_size,
+                alternative_plans,
+                fuse_boundaries,
+                queue_depth,
+                overlap_fraction,
+                resident_input_fraction,
+            };
+            benchmark_command(
+                &input,
+                capabilities.as_deref(),
+                health.as_deref(),
+                cost_model.as_deref(),
+                observations.as_deref(),
+                &output,
+                controls,
+            )?;
+        }
         Command::Execute { artifact } => execute_command(&artifact)?,
         Command::Backends {
             plugin_dir,
@@ -176,18 +285,13 @@ fn compile_command(
     input_path: &str,
     capabilities_path: Option<&str>,
     health_path: Option<&str>,
+    cost_model_path: Option<&str>,
     output_path: &str,
-    optimize_for: &str,
-    target: &str,
+    controls: CompilerControls<'_>,
 ) -> Result<()> {
-    let (program, snapshot, options) = compiler_inputs(
-        input_path,
-        capabilities_path,
-        health_path,
-        optimize_for,
-        target,
-    )?;
-    let artifact = compile_with_backend(&program, &snapshot, options)?;
+    let (program, snapshot, options) =
+        compiler_inputs(input_path, capabilities_path, health_path, controls)?;
+    let artifact = compile_with_optional_cost_model(&program, &snapshot, options, cost_model_path)?;
     std::fs::write(output_path, serde_json::to_string_pretty(&artifact)?)?;
     println!(
         "Compiled {} operation(s) for {}. Artifact: {}",
@@ -205,19 +309,23 @@ fn benchmark_command(
     input_path: &str,
     capabilities_path: Option<&str>,
     health_path: Option<&str>,
+    cost_model_path: Option<&str>,
+    observations_path: Option<&str>,
     output_path: &str,
-    optimize_for: &str,
-    target: &str,
+    controls: CompilerControls<'_>,
 ) -> Result<()> {
-    let (program, snapshot, options) = compiler_inputs(
-        input_path,
-        capabilities_path,
-        health_path,
-        optimize_for,
-        target,
-    )?;
-    let artifact = compile_with_backend(&program, &snapshot, options)?;
-    let report = benchmark(&program, &artifact)?;
+    let (program, snapshot, options) =
+        compiler_inputs(input_path, capabilities_path, health_path, controls)?;
+    let artifact = compile_with_optional_cost_model(&program, &snapshot, options, cost_model_path)?;
+    let report = match observations_path {
+        Some(path) => {
+            let observations: ObservationSet =
+                serde_json::from_str(&std::fs::read_to_string(path)?)?;
+            observations.validate()?;
+            benchmark_with_observations(&program, &artifact, &observations.observations)?
+        }
+        None => benchmark(&program, &artifact)?,
+    };
     std::fs::write(output_path, serde_json::to_string_pretty(&report)?)?;
     println!(
         "Benchmark complete: {} output(s), tolerance_passed={}, report={}",
@@ -231,12 +339,26 @@ fn benchmark_command(
     Ok(())
 }
 
+fn compile_with_optional_cost_model(
+    program: &TensorProgram,
+    snapshot: &BackendSnapshot,
+    options: CompileOptions,
+    cost_model_path: Option<&str>,
+) -> Result<awen_compiler::CompilationArtifact> {
+    match cost_model_path {
+        Some(path) => {
+            let model: CostModelInputs = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+            compile_with_cost_model(program, snapshot, &model, options)
+        }
+        None => compile_with_backend(program, snapshot, options),
+    }
+}
+
 fn compiler_inputs(
     input_path: &str,
     capabilities_path: Option<&str>,
     health_path: Option<&str>,
-    optimize_for: &str,
-    target: &str,
+    controls: CompilerControls<'_>,
 ) -> Result<(TensorProgram, BackendSnapshot, CompileOptions)> {
     let program: TensorProgram = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
     let capabilities = match capabilities_path {
@@ -250,19 +372,31 @@ fn compiler_inputs(
         }
         None => BackendSnapshot::offline(capabilities)?,
     };
-    let optimize_for = OptimizationObjective::parse(optimize_for).ok_or_else(|| {
+    let optimize_for = OptimizationObjective::parse(controls.optimize_for).ok_or_else(|| {
         anyhow::anyhow!(
-            "unknown optimization objective '{optimize_for}'; use latency, energy, accuracy, or throughput"
+            "unknown optimization objective '{}'; use latency, energy, accuracy, or throughput",
+            controls.optimize_for
         )
     })?;
-    let target = TargetBackend::parse(target)
-        .ok_or_else(|| anyhow::anyhow!("unknown target '{target}'; use auto, cpu, or photonic"))?;
+    let target = TargetBackend::parse(controls.target).ok_or_else(|| {
+        anyhow::anyhow!(
+            "unknown target '{}'; use auto, cpu, or photonic",
+            controls.target
+        )
+    })?;
     Ok((
         program,
         snapshot,
         CompileOptions {
             optimize_for,
             target,
+            autotune_seed: controls.autotune_seed,
+            batch_size: controls.batch_size,
+            alternative_plans: controls.alternative_plans,
+            allow_boundary_fusion: controls.fuse_boundaries,
+            queue_depth: controls.queue_depth,
+            overlap_fraction: controls.overlap_fraction,
+            resident_input_fraction: controls.resident_input_fraction,
             ..CompileOptions::default()
         },
     ))

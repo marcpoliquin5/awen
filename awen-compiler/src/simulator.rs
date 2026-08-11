@@ -1,6 +1,6 @@
 use crate::awenblas::{accumulate_tile, reference_gemm};
 use crate::compiler::CompilationArtifact;
-use crate::cost::TargetBackend;
+use crate::cost::{ModelErrorReport, Observation, TargetBackend, COST_MODEL_VERSION};
 use crate::ir::{validate_program, Tensor, TensorOp, TensorProgram};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -26,11 +26,21 @@ pub struct BenchmarkReport {
     pub estimated_total_latency_ns: f64,
     pub estimated_total_energy_uj: f64,
     pub optical_electrical_boundary_crossings: u32,
+    pub cost_model_version: String,
+    pub predicted_vs_observed: Vec<ModelErrorReport>,
 }
 
 pub fn benchmark(
     program: &TensorProgram,
     artifact: &CompilationArtifact,
+) -> Result<BenchmarkReport> {
+    benchmark_with_observations(program, artifact, &[])
+}
+
+pub fn benchmark_with_observations(
+    program: &TensorProgram,
+    artifact: &CompilationArtifact,
+    observations: &[Observation],
 ) -> Result<BenchmarkReport> {
     let validated = validate_program(program)?;
     let tensors: HashMap<&str, &Tensor> = program
@@ -103,6 +113,31 @@ pub fn benchmark(
         }
     }
     let all_outputs_within_tolerance = outputs.iter().all(|output| output.passed);
+    let mut predicted_vs_observed = Vec::with_capacity(observations.len());
+    for observation in observations {
+        let decision = decisions
+            .get(observation.op_id.as_str())
+            .copied()
+            .with_context(|| {
+                format!(
+                    "observation references unknown operation '{}'",
+                    observation.op_id
+                )
+            })?;
+        let predicted = match decision.selected_backend {
+            TargetBackend::Photonic => decision
+                .photonic
+                .clone()
+                .unwrap_or_else(|| decision.cpu.clone()),
+            TargetBackend::Cpu => decision.cpu.clone(),
+            TargetBackend::Auto => bail!("compiled artifacts must not contain auto placement"),
+        };
+        predicted_vs_observed.push(ModelErrorReport::compare(
+            decision.decision_fingerprint.clone(),
+            predicted,
+            observation.clone(),
+        )?);
+    }
     let estimated_total_latency_ns = artifact
         .placement
         .iter()
@@ -139,6 +174,8 @@ pub fn benchmark(
             .iter()
             .map(|decision| decision.optical_electrical_boundary_crossings)
             .sum(),
+        cost_model_version: COST_MODEL_VERSION.to_string(),
+        predicted_vs_observed,
     })
 }
 
