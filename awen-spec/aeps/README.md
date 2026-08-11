@@ -14,3 +14,5 @@ Current proposals:
 
 - `AEP-0001` through `AEP-0009`: computation, IR, kernels, plugins, observability, artifacts, calibration, differentiability, and quantum coherence.
 - `AEP-0010`: heterogeneous compiler stack and MLIR/StableHLO lowering architecture.
+- `AEP-0011`: MLIR embedding, dialect layout, and StableHLO GEMM import.
+- `AEP-0012`: binary compiler/runtime executable ABI 1.0.
