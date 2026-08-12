@@ -1,6 +1,7 @@
 """Public Python API for AWEN framework integrations."""
 
 from .capabilities import (
+    AnalogNoise,
     BackendHealth,
     BackendSnapshot,
     CapabilityError,
@@ -57,6 +58,7 @@ awen = awen_backend
 
 __all__ = [
     "AWENError",
+    "AnalogNoise",
     "AwenFuture",
     "BackendHealth",
     "BackendSnapshot",

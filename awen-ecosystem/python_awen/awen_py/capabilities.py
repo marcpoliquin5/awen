@@ -61,6 +61,14 @@ class CalibrationProfile:
 
 
 @dataclass(frozen=True)
+class AnalogNoise:
+    shot_noise_fraction: float
+    thermal_noise_fraction: float
+    phase_noise_radians: float
+    detector_noise_fraction: float
+
+
+@dataclass(frozen=True)
 class NegotiationDiagnostic:
     code: str
     message: str
@@ -92,6 +100,7 @@ class DeviceCapabilities:
     bit_slicing_modes: Tuple[str, ...]
     saturation_mode: str
     input_dynamic_range: Tuple[float, float]
+    analog_noise: AnalogNoise
     sample_rate_gsps: float
     reconfiguration_latency_ns: float
     detector_bandwidth_ghz: float
@@ -128,6 +137,7 @@ class DeviceCapabilities:
             "bit_slicing_modes",
             "saturation_mode",
             "input_dynamic_range",
+            "analog_noise",
             "sample_rate_gsps",
             "reconfiguration_latency_ns",
             "detector_bandwidth_ghz",
@@ -178,6 +188,18 @@ class DeviceCapabilities:
             set(),
             "input_dynamic_range",
         )
+        analog_noise = _mapping(value["analog_noise"], "analog_noise")
+        _strict_keys(
+            analog_noise,
+            {
+                "shot_noise_fraction",
+                "thermal_noise_fraction",
+                "phase_noise_radians",
+                "detector_noise_fraction",
+            },
+            set(),
+            "analog_noise",
+        )
         result = cls(
             capability_version=str(value["capability_version"]),
             runtime_abi_version=str(value["runtime_abi_version"]),
@@ -216,6 +238,24 @@ class DeviceCapabilities:
             input_dynamic_range=(
                 _number(dynamic_range["minimum"], "input_dynamic_range.minimum"),
                 _number(dynamic_range["maximum"], "input_dynamic_range.maximum"),
+            ),
+            analog_noise=AnalogNoise(
+                shot_noise_fraction=_number(
+                    analog_noise["shot_noise_fraction"],
+                    "analog_noise.shot_noise_fraction",
+                ),
+                thermal_noise_fraction=_number(
+                    analog_noise["thermal_noise_fraction"],
+                    "analog_noise.thermal_noise_fraction",
+                ),
+                phase_noise_radians=_number(
+                    analog_noise["phase_noise_radians"],
+                    "analog_noise.phase_noise_radians",
+                ),
+                detector_noise_fraction=_number(
+                    analog_noise["detector_noise_fraction"],
+                    "analog_noise.detector_noise_fraction",
+                ),
             ),
             sample_rate_gsps=_number(value["sample_rate_gsps"], "sample_rate_gsps"),
             reconfiguration_latency_ns=_number(
@@ -332,6 +372,14 @@ class DeviceCapabilities:
             raise CapabilityError("unsupported saturation mode")
         if self.input_dynamic_range[0] >= self.input_dynamic_range[1]:
             raise CapabilityError("invalid input dynamic range")
+        for name, number in (
+            ("shot-noise fraction", self.analog_noise.shot_noise_fraction),
+            ("thermal-noise fraction", self.analog_noise.thermal_noise_fraction),
+            ("phase-noise radians", self.analog_noise.phase_noise_radians),
+            ("detector-noise fraction", self.analog_noise.detector_noise_fraction),
+        ):
+            if number < 0:
+                raise CapabilityError("{} must be non-negative".format(name))
         _non_empty_unique(self.accumulation_modes, "accumulation modes")
         if self.calibration_profile is not None:
             profile = self.calibration_profile

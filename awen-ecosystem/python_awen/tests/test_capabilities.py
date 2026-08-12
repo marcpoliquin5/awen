@@ -39,6 +39,20 @@ class CapabilityContractTests(unittest.TestCase):
         with self.assertRaisesRegex(CapabilityError, "runtime ABI"):
             DeviceCapabilities.from_dict(value)
 
+    def test_analog_noise_is_typed_and_strictly_validated(self):
+        capability = DeviceCapabilities.from_dict(load("pace_like_128.json"))
+        self.assertGreater(capability.analog_noise.shot_noise_fraction, 0)
+
+        missing = load("pace_like_128.json")
+        del missing["analog_noise"]
+        with self.assertRaisesRegex(CapabilityError, "analog_noise"):
+            DeviceCapabilities.from_dict(missing)
+
+        negative = load("pace_like_128.json")
+        negative["analog_noise"]["thermal_noise_fraction"] = -0.1
+        with self.assertRaisesRegex(CapabilityError, "thermal-noise"):
+            DeviceCapabilities.from_dict(negative)
+
     def test_expired_calibration_causes_fallback(self):
         health = load("pace_like_128.health.json")
         health["observed_at"] = "2026-08-12T00:00:01Z"
