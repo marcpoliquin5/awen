@@ -87,7 +87,7 @@ pub fn benchmark_with_observations(
                 gemm.shape.n,
                 artifact,
             )?,
-            TargetBackend::Cpu => reference.clone(),
+            TargetBackend::Cpu | TargetBackend::Gpu => reference.clone(),
             TargetBackend::Auto => bail!("compiled artifacts must not contain auto placement"),
         };
         let (max_abs_error, max_rel_error) = compare(&values, &reference);
@@ -130,6 +130,7 @@ pub fn benchmark_with_observations(
                 .clone()
                 .unwrap_or_else(|| decision.cpu.clone()),
             TargetBackend::Cpu => decision.cpu.clone(),
+            TargetBackend::Gpu => decision.gpu.clone(),
             TargetBackend::Auto => bail!("compiled artifacts must not contain auto placement"),
         };
         predicted_vs_observed.push(ModelErrorReport::compare(
@@ -147,6 +148,7 @@ pub fn benchmark_with_observations(
                 .as_ref()
                 .map(|estimate| estimate.latency_ns)
                 .unwrap_or(decision.cpu.latency_ns),
+            TargetBackend::Gpu => decision.gpu.latency_ns,
             _ => decision.cpu.latency_ns,
         })
         .sum();
@@ -159,6 +161,7 @@ pub fn benchmark_with_observations(
                 .as_ref()
                 .map(|estimate| estimate.energy_uj)
                 .unwrap_or(decision.cpu.energy_uj),
+            TargetBackend::Gpu => decision.gpu.energy_uj,
             _ => decision.cpu.energy_uj,
         })
         .sum();

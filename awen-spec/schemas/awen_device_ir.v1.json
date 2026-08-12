@@ -22,6 +22,7 @@
           "profile_id": { "type": "string" },
           "op_id": { "type": "string" },
           "tensor": { "type": "string" },
+          "target": { "enum": ["cpu", "gpu", "photonic"] },
           "reason": { "type": "string" },
           "tile": { "type": "object" },
           "precision": { "type": "object" },

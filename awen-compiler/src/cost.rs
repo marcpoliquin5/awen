@@ -28,11 +28,12 @@ impl OptimizationObjective {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetBackend {
     Auto,
     Cpu,
+    Gpu,
     Photonic,
 }
 
@@ -41,6 +42,7 @@ impl TargetBackend {
         match value.to_ascii_lowercase().as_str() {
             "auto" => Some(Self::Auto),
             "cpu" => Some(Self::Cpu),
+            "gpu" => Some(Self::Gpu),
             "photonic" => Some(Self::Photonic),
             _ => None,
         }
@@ -213,6 +215,7 @@ pub struct PlacementDecision {
     pub selected_backend: TargetBackend,
     pub objective: OptimizationObjective,
     pub cpu: CostEstimate,
+    pub gpu: CostEstimate,
     pub photonic: Option<CostEstimate>,
     pub selected_plan: Option<TuningPlan>,
     pub alternatives: Vec<TuningCandidate>,
@@ -721,6 +724,12 @@ pub fn decide_placement_with_tuning(
         objective,
         requested_target,
         digital,
+        DigitalBaseline {
+            throughput_tops: 100.0,
+            energy_pj_per_mac: 10.0,
+            launch_latency_ns: 5_000.0,
+            effective_bits: 16,
+        },
         tuning,
     )
 }
@@ -737,9 +746,11 @@ pub fn decide_placement_with_model(
     objective: OptimizationObjective,
     requested_target: TargetBackend,
     digital: DigitalBaseline,
+    gpu_baseline: DigitalBaseline,
     tuning: AutotuneOptions,
 ) -> Result<PlacementDecision> {
     let conservative_cpu = estimate_cpu(shape, digital);
+    let conservative_gpu = estimate_cpu(shape, gpu_baseline);
     if let Err(error) = model.validate().and_then(|_| profile.validate()) {
         if requested_target == TargetBackend::Photonic {
             bail!("forced photonic placement requires complete cost inputs: {error}");
@@ -749,6 +760,7 @@ pub fn decide_placement_with_model(
             selected_backend: TargetBackend::Cpu,
             objective,
             cpu: conservative_cpu,
+            gpu: conservative_gpu,
             photonic: None,
             selected_plan: None,
             alternatives: Vec::new(),
@@ -760,7 +772,24 @@ pub fn decide_placement_with_model(
             ),
         });
     }
-    let cpu = estimate_cpu_with_context(shape, dtype, digital, model, profile, tuning);
+    let cpu = estimate_digital_with_context(
+        shape,
+        dtype,
+        digital,
+        model,
+        profile,
+        tuning,
+        TargetBackend::Cpu,
+    );
+    let gpu = estimate_digital_with_context(
+        shape,
+        dtype,
+        gpu_baseline,
+        model,
+        profile,
+        tuning,
+        TargetBackend::Gpu,
+    );
     let autotuned = capabilities.supports(dtype).then(|| {
         autotune_with_profile(
             shape,
@@ -785,11 +814,20 @@ pub fn decide_placement_with_model(
         minimum_effective_bits.is_none_or(|bits| estimate.effective_bits >= bits)
             && profile.error_contract_satisfied(estimate)
     });
+    let (best_digital_backend, best_digital_estimate) = if wins(objective, &gpu, &cpu) {
+        (TargetBackend::Gpu, &gpu)
+    } else {
+        (TargetBackend::Cpu, &cpu)
+    };
 
     let (selected_backend, rationale) = match requested_target {
         TargetBackend::Cpu => (
             TargetBackend::Cpu,
             "CPU placement was explicitly requested".to_string(),
+        ),
+        TargetBackend::Gpu => (
+            TargetBackend::Gpu,
+            "GPU placement was explicitly requested".to_string(),
         ),
         TargetBackend::Photonic if photonic.is_none() => (
             TargetBackend::Cpu,
@@ -815,19 +853,19 @@ pub fn decide_placement_with_model(
                 .unwrap_or_default(),
         ),
         TargetBackend::Auto if photonic.is_none() => (
-            TargetBackend::Cpu,
+            best_digital_backend,
             autotune_diagnostic.map_or_else(
                 || format!("dtype {dtype:?} is not supported by the photonic backend"),
                 |diagnostic| format!("no legal photonic tuning plan exists: {diagnostic}"),
             ),
         ),
         TargetBackend::Auto if !precision_ok => (
-            TargetBackend::Cpu,
+            best_digital_backend,
             "no photonic tuning plan satisfies the operation accuracy contract".to_string(),
         ),
         TargetBackend::Auto => {
             let optical = photonic.as_ref().expect("checked above");
-            if wins(objective, optical, &cpu) {
+            if wins(objective, optical, best_digital_estimate) {
                 (
                     TargetBackend::Photonic,
                     format!(
@@ -840,9 +878,9 @@ pub fn decide_placement_with_model(
                 )
             } else {
                 (
-                    TargetBackend::Cpu,
+                    best_digital_backend,
                     format!(
-                        "CPU wins {objective:?} after host transfer, memory, conversion, reconfiguration, calibration, laser, support-system, and digital accumulation costs"
+                        "{best_digital_backend:?} wins {objective:?} after host transfer, memory, conversion, reconfiguration, calibration, laser, support-system, and digital accumulation costs"
                     ),
                 )
             }
@@ -884,6 +922,7 @@ pub fn decide_placement_with_model(
         selected_backend,
         objective,
         cpu,
+        gpu,
         photonic,
         selected_plan,
         alternatives,
@@ -1298,13 +1337,14 @@ fn estimate_cpu(shape: GemmShape, baseline: DigitalBaseline) -> CostEstimate {
     }
 }
 
-fn estimate_cpu_with_context(
+pub fn estimate_digital_with_context(
     shape: GemmShape,
     dtype: DType,
     baseline: DigitalBaseline,
     model: &CostModelInputs,
     profile: OperationCostProfile,
     options: AutotuneOptions,
+    device: TargetBackend,
 ) -> CostEstimate {
     let batches = options.batch_size.max(1) as f64;
     let density = if profile.structured_sparsity {
@@ -1342,7 +1382,7 @@ fn estimate_cpu_with_context(
         (2.0_f64.powi(-i32::from(baseline.effective_bits)) + profile.input_error_fraction).min(1.0);
     let mut provenance = model.provenance.clone();
     provenance.push(ParameterProvenance {
-        parameter: "digital compute baseline".to_string(),
+        parameter: format!("{device:?} digital compute baseline"),
         source: ParameterSource::Assumed,
         reference: "compile options".to_string(),
         uncertainty_fraction: 0.1,

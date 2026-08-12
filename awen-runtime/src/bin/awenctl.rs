@@ -39,7 +39,7 @@ enum Command {
         /// Optimization objective: latency, energy, accuracy, or throughput.
         #[clap(long, default_value = "latency")]
         optimize_for: String,
-        /// Target selection: auto, cpu, or photonic.
+        /// Target selection: auto, cpu, gpu, or photonic.
         #[clap(long, default_value = "auto")]
         target: String,
         /// Deterministic autotuner seed used to break equal-cost ties.
@@ -63,6 +63,27 @@ enum Command {
         /// Fraction of input tensor bytes already resident on the target, within [0, 1].
         #[clap(long, default_value_t = 0.0)]
         resident_input_fraction: f64,
+        /// Effective inter-device tensor-transfer bandwidth in GB/s.
+        #[clap(long, default_value_t = 128.0)]
+        transfer_bandwidth_gbps: f64,
+        /// Fixed latency charged to each deduplicated inter-device transfer.
+        #[clap(long, default_value_t = 100.0)]
+        transfer_latency_ns: f64,
+        /// Additional latency charged at every optical/electrical boundary.
+        #[clap(long, default_value_t = 500.0)]
+        crossing_penalty_ns: f64,
+        /// Additional energy charged at every optical/electrical boundary.
+        #[clap(long, default_value_t = 0.001)]
+        crossing_penalty_uj: f64,
+        /// Maximum live CPU tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        cpu_memory_budget_bytes: u64,
+        /// Maximum live GPU tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        gpu_memory_budget_bytes: u64,
+        /// Maximum live photonic tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        photonic_memory_budget_bytes: u64,
     },
     /// Compile and execute literal tensor data in the calibrated reference simulator.
     Benchmark {
@@ -86,7 +107,7 @@ enum Command {
         /// Optimization objective: latency, energy, accuracy, or throughput.
         #[clap(long, default_value = "latency")]
         optimize_for: String,
-        /// Target selection: auto, cpu, or photonic.
+        /// Target selection: auto, cpu, gpu, or photonic.
         #[clap(long, default_value = "auto")]
         target: String,
         /// Deterministic autotuner seed used to break equal-cost ties.
@@ -110,6 +131,27 @@ enum Command {
         /// Fraction of input tensor bytes already resident on the target, within [0, 1].
         #[clap(long, default_value_t = 0.0)]
         resident_input_fraction: f64,
+        /// Effective inter-device tensor-transfer bandwidth in GB/s.
+        #[clap(long, default_value_t = 128.0)]
+        transfer_bandwidth_gbps: f64,
+        /// Fixed latency charged to each deduplicated inter-device transfer.
+        #[clap(long, default_value_t = 100.0)]
+        transfer_latency_ns: f64,
+        /// Additional latency charged at every optical/electrical boundary.
+        #[clap(long, default_value_t = 500.0)]
+        crossing_penalty_ns: f64,
+        /// Additional energy charged at every optical/electrical boundary.
+        #[clap(long, default_value_t = 0.001)]
+        crossing_penalty_uj: f64,
+        /// Maximum live CPU tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        cpu_memory_budget_bytes: u64,
+        /// Maximum live GPU tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        gpu_memory_budget_bytes: u64,
+        /// Maximum live photonic tensor residency in bytes.
+        #[clap(long, default_value_t = u64::MAX)]
+        photonic_memory_budget_bytes: u64,
     },
     /// Load a binary AWEN executable and prepare its device dispatches.
     Execute {
@@ -159,6 +201,13 @@ struct CompilerControls<'a> {
     queue_depth: usize,
     overlap_fraction: f64,
     resident_input_fraction: f64,
+    transfer_bandwidth_gbps: f64,
+    transfer_latency_ns: f64,
+    crossing_penalty_ns: f64,
+    crossing_penalty_uj: f64,
+    cpu_memory_budget_bytes: u64,
+    gpu_memory_budget_bytes: u64,
+    photonic_memory_budget_bytes: u64,
 }
 
 fn main() -> Result<()> {
@@ -179,6 +228,13 @@ fn main() -> Result<()> {
             queue_depth,
             overlap_fraction,
             resident_input_fraction,
+            transfer_bandwidth_gbps,
+            transfer_latency_ns,
+            crossing_penalty_ns,
+            crossing_penalty_uj,
+            cpu_memory_budget_bytes,
+            gpu_memory_budget_bytes,
+            photonic_memory_budget_bytes,
         } => {
             let controls = CompilerControls {
                 optimize_for: &optimize_for,
@@ -190,6 +246,13 @@ fn main() -> Result<()> {
                 queue_depth,
                 overlap_fraction,
                 resident_input_fraction,
+                transfer_bandwidth_gbps,
+                transfer_latency_ns,
+                crossing_penalty_ns,
+                crossing_penalty_uj,
+                cpu_memory_budget_bytes,
+                gpu_memory_budget_bytes,
+                photonic_memory_budget_bytes,
             };
             compile_command(
                 &input,
@@ -216,6 +279,13 @@ fn main() -> Result<()> {
             queue_depth,
             overlap_fraction,
             resident_input_fraction,
+            transfer_bandwidth_gbps,
+            transfer_latency_ns,
+            crossing_penalty_ns,
+            crossing_penalty_uj,
+            cpu_memory_budget_bytes,
+            gpu_memory_budget_bytes,
+            photonic_memory_budget_bytes,
         } => {
             let controls = CompilerControls {
                 optimize_for: &optimize_for,
@@ -227,6 +297,13 @@ fn main() -> Result<()> {
                 queue_depth,
                 overlap_fraction,
                 resident_input_fraction,
+                transfer_bandwidth_gbps,
+                transfer_latency_ns,
+                crossing_penalty_ns,
+                crossing_penalty_uj,
+                cpu_memory_budget_bytes,
+                gpu_memory_budget_bytes,
+                photonic_memory_budget_bytes,
             };
             benchmark_command(
                 &input,
@@ -380,7 +457,7 @@ fn compiler_inputs(
     })?;
     let target = TargetBackend::parse(controls.target).ok_or_else(|| {
         anyhow::anyhow!(
-            "unknown target '{}'; use auto, cpu, or photonic",
+            "unknown target '{}'; use auto, cpu, gpu, or photonic",
             controls.target
         )
     })?;
@@ -397,6 +474,13 @@ fn compiler_inputs(
             queue_depth: controls.queue_depth,
             overlap_fraction: controls.overlap_fraction,
             resident_input_fraction: controls.resident_input_fraction,
+            transfer_bandwidth_gbps: controls.transfer_bandwidth_gbps,
+            transfer_latency_ns: controls.transfer_latency_ns,
+            crossing_penalty_ns: controls.crossing_penalty_ns,
+            crossing_penalty_uj: controls.crossing_penalty_uj,
+            cpu_memory_budget_bytes: controls.cpu_memory_budget_bytes,
+            gpu_memory_budget_bytes: controls.gpu_memory_budget_bytes,
+            photonic_memory_budget_bytes: controls.photonic_memory_budget_bytes,
             ..CompileOptions::default()
         },
     ))

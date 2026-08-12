@@ -88,10 +88,11 @@
     },
     "fallback": {
       "type": "object",
-      "required": ["op_id", "op_type", "reason"],
+      "required": ["op_id", "op_type", "target", "reason"],
       "properties": {
         "op_id": { "type": "string" },
         "op_type": { "type": "string" },
+        "target": { "enum": ["cpu", "gpu"] },
         "reason": { "type": "string" }
       },
       "additionalProperties": false

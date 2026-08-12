@@ -7,7 +7,8 @@ The implemented compiler paths are deliberately narrow:
 ```text
 awen.tensor GEMM
   -> shape/layout/precision validation
-  -> CPU or photonic placement with conversion-aware cost estimates
+  -> whole-graph CPU, GPU, or photonic region placement
+  -> residency-aware transfer, crossing, reuse, and memory optimization
   -> M/N/K tiling for a declared photonic matrix core
   -> classical Photonic IR
   -> Device IR command buffer
@@ -30,7 +31,7 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, cost/placement logic, GEMM tiling, Photonic IR, Device IR, `awenBLAS` reference GEMM, and calibrated benchmark simulator.
+- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, `awenBLAS` reference GEMM, and calibrated benchmark simulator.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, and quantum experiments.
@@ -72,7 +73,10 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   --output awen_compilation.json
 ```
 
-The example lowers to eight 128×128×128 optical GEMM tiles. The output contains placement/cost decisions, typed classical Photonic IR, a calibration reference, and the Device IR command stream.
+The example lowers to eight 128×128×128 optical GEMM tiles. The output contains
+operation cost decisions, the complete graph partition trace, transfers,
+crossings, regions, profiler events, typed classical Photonic IR, a calibration
+reference, and the Device IR command stream.
 
 ## Compile and load StableHLO through MLIR
 

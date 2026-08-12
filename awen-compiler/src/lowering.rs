@@ -75,6 +75,7 @@ pub struct Timing {
 pub struct HostFallbackOp {
     pub op_id: String,
     pub op_type: String,
+    pub target: TargetBackend,
     pub reason: String,
 }
 
@@ -131,6 +132,7 @@ pub enum DeviceCommand {
     },
     HostGemm {
         op_id: String,
+        target: TargetBackend,
         reason: String,
     },
 }
@@ -182,10 +184,12 @@ pub fn lower(
             let fallback = HostFallbackOp {
                 op_id: gemm.op.id().to_string(),
                 op_type: "gemm".to_string(),
+                target: decision.selected_backend,
                 reason: decision.rationale.clone(),
             };
             commands.push(DeviceCommand::HostGemm {
                 op_id: fallback.op_id.clone(),
+                target: fallback.target,
                 reason: fallback.reason.clone(),
             });
             host_fallback_ops.push(fallback);

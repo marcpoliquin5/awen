@@ -10,13 +10,16 @@
 - `awen.photonic.classical.v1`: every selected GEMM is tiled with offsets, edge sizes, precision, wavelength allocation, timing, accumulation, and calibration identity.
 - `awen.device.v1`: explicit calibration, configure, upload, execute, accumulate, download, and host-fallback commands.
 - `awen.cost-model.v1`: dimensioned end-to-end latency, energy, error, and throughput estimates with provenance, uncertainty, benchmark fitting, and deterministic autotuning.
+- `awen.partition-graph.v1`: complete DAGs with legal CPU/GPU/photonic candidates, tensor dependencies, residency, barriers, numerical eligibility, and memory budgets.
+- `awen.partition-trace.v1`: deterministic whole-graph assignments, ranked alternatives, fused regions, deduplicated transfers, optical/electrical crossings, memory peaks, profiler events, and visualization edges.
 
 The cost model includes scheduling/queueing, host/link/memory movement, layouts,
 residency, overlap, conversion boundaries, reconfiguration/calibration,
 DAC/modulation/propagation/detection/ADC, accumulation, laser/support power,
 SNR/loss/drift, disabled resources, sparsity, batching, and numerical error. It
-never compares optical propagation alone. `auto` can therefore keep small,
-unsupported, inaccurate, or incompletely modeled GEMMs on the CPU.
+never compares optical propagation alone. `auto` partitions the complete graph,
+so it can keep small, unsupported, inaccurate, isolated, or crossing-heavy GEMMs
+on CPU/GPU while grouping linear regions that amortize movement and conversion.
 
 ## Library API
 
@@ -28,12 +31,21 @@ let snapshot: BackendSnapshot = serde_json::from_str(snapshot_json)?;
 let artifact = compile_with_backend(&program, &snapshot, CompileOptions::default())?;
 ```
 
-`CompileOptions` exposes `optimize_for`, deterministic `autotune_seed`, batch
-size, boundary fusion, queue depth, overlap, input residency, and the number of
-ranked alternative plans retained in the artifact. The `awenctl compile` and
-`awenctl benchmark` commands expose the same execution-context controls. Both
-commands accept `--cost-model`; benchmark additionally accepts a versioned
-`--observations` file and writes predicted-versus-observed model errors.
+`CompileOptions` exposes `optimize_for`, an explicit or automatic CPU/GPU/
+photonic target, deterministic `autotune_seed`, CPU/GPU baselines, batch size,
+boundary fusion, queue depth, overlap, input residency, transfer bandwidth and
+latency, crossing penalties, device memory budgets, search limits, and retained
+operation-plan and graph-partition alternatives. The `awenctl compile` and
+`awenctl benchmark` commands expose target, transfer, crossing, and memory
+controls. Both commands accept `--cost-model`; benchmark additionally accepts a
+versioned `--observations` file and writes predicted-versus-observed model
+errors.
+
+Every compilation artifact embeds `partition_trace`. Inspect its `nodes` for
+local-versus-graph decisions, `regions` for fusion, `transfers` for deduplicated
+residency changes, `profiler_events` for explicit boundary timing, and
+`visualization_edges` for graph rendering. Fixed graph/device/calibration/model
+snapshots and seeds produce byte-identical partition traces.
 
 Use `benchmark(&program, &artifact)` only when the input tensors include literal
 data. It is a deterministic reference/conformance path, not a hardware-performance
