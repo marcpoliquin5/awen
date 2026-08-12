@@ -5,7 +5,7 @@ AWEN is an experimental heterogeneous compiler/runtime for programmable physical
 The implemented compiler paths are deliberately narrow:
 
 ```text
-awen.tensor GEMM
+awen.tensor graph
   -> shape/layout/precision validation
   -> whole-graph CPU, GPU, or photonic region placement
   -> residency-aware transfer, crossing, reuse, and memory optimization
@@ -13,6 +13,12 @@ awen.tensor GEMM
   -> classical Photonic IR
   -> Device IR command buffer
   -> calibrated reference simulator and CPU comparison
+
+awen.blas kernel request
+  -> exact kind/shape/layout/dtype/structure/phase validation
+  -> capability, precision, calibration, and cost dispatch
+  -> CPU reference or explicitly simulated GPU/photonic execution
+  -> versioned result, plan, conformance timing, error, and fingerprint
 
 normalized stablehlo.dot_general
   -> registered MLIR awen_tensor dialect
@@ -23,15 +29,16 @@ normalized stablehlo.dot_general
 ```
 
 The MLIR path currently accepts only normalized rank-two StableHLO
-`dot_general`; it does not yet provide a real `torch.compile` backend, broad
-`awenBLAS` coverage, or validated hardware speedups. Those are tracked
+`dot_general`; it does not yet provide a real `torch.compile` backend or
+validated hardware speedups. The separate awenBLAS semantic library now covers
+22 executable kernel kinds, but framework-native lowering into it is tracked
 explicitly in the [compiler roadmap](https://github.com/marcpoliquin5/awen/issues/5).
 Do not interpret reference capability values or simulator cost estimates as
 measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, `awenBLAS` reference GEMM, and calibrated benchmark simulator.
+- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, and quantum experiments.

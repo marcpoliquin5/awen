@@ -1,8 +1,10 @@
 use anyhow::Result;
 use awen_compiler::{
-    benchmark, benchmark_with_observations, compile_with_backend, compile_with_cost_model,
+    benchmark, benchmark_kernel, benchmark_with_observations, compile_with_backend,
+    compile_with_cost_model, execute_kernel_reference, execute_kernel_simulator, select_kernel,
     BackendHealth, BackendSnapshot, CompileOptions, CostModelInputs, DeviceCapabilities,
-    ObservationSet, OptimizationObjective, TargetBackend, TensorProgram,
+    KernelBackendProfile, KernelRequest, KernelSimulatorOptions, ObservationSet,
+    OptimizationObjective, TargetBackend, TensorProgram,
 };
 use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
@@ -152,6 +154,62 @@ enum Command {
         /// Maximum live photonic tensor residency in bytes.
         #[clap(long, default_value_t = u64::MAX)]
         photonic_memory_budget_bytes: u64,
+    },
+    /// Execute one versioned awenBLAS request on the CPU reference or deterministic simulator.
+    Kernel {
+        /// Path to an awen.blas.v1 JSON request.
+        input: String,
+        /// Kernel result output path.
+        #[clap(long, default_value = "awen_kernel_result.json")]
+        output: String,
+        /// Concrete execution target: cpu, gpu, or photonic.
+        #[clap(long, default_value = "cpu")]
+        target: String,
+        /// Simulator effective precision. Ignored for CPU reference execution.
+        #[clap(long, default_value_t = 8)]
+        effective_bits: u8,
+        /// Deterministic simulator noise fraction.
+        #[clap(long, default_value_t = 0.0)]
+        noise_fraction: f64,
+        /// Deterministic simulator seed.
+        #[clap(long, default_value_t = 0)]
+        seed: u64,
+    },
+    /// Measure end-to-end CPU-reference and simulator execution for one awenBLAS request.
+    KernelBenchmark {
+        /// Path to an awen.blas.v1 JSON request.
+        input: String,
+        /// Benchmark report output path.
+        #[clap(long, default_value = "awen_kernel_benchmark.json")]
+        output: String,
+        /// Simulator target: gpu or photonic.
+        #[clap(long, default_value = "photonic")]
+        target: String,
+        /// Simulator effective precision.
+        #[clap(long, default_value_t = 8)]
+        effective_bits: u8,
+        /// Deterministic simulator noise fraction.
+        #[clap(long, default_value_t = 0.0)]
+        noise_fraction: f64,
+        /// Deterministic simulator seed.
+        #[clap(long, default_value_t = 0)]
+        seed: u64,
+        /// Number of complete request executions measured per path.
+        #[clap(long, default_value_t = 10)]
+        repetitions: usize,
+    },
+    /// Select an awenBLAS backend from explicit capability and cost profiles.
+    KernelPlan {
+        /// Path to an awen.blas.v1 JSON request.
+        input: String,
+        /// Path to a JSON array of kernel backend profiles.
+        profiles: String,
+        /// Selection plan output path.
+        #[clap(long, default_value = "awen_kernel_plan.json")]
+        output: String,
+        /// Optimization objective: latency, energy, accuracy, or throughput.
+        #[clap(long, default_value = "latency")]
+        optimize_for: String,
     },
     /// Load a binary AWEN executable and prepare its device dispatches.
     Execute {
@@ -315,6 +373,44 @@ fn main() -> Result<()> {
                 controls,
             )?;
         }
+        Command::Kernel {
+            input,
+            output,
+            target,
+            effective_bits,
+            noise_fraction,
+            seed,
+        } => kernel_command(
+            &input,
+            &output,
+            &target,
+            effective_bits,
+            noise_fraction,
+            seed,
+        )?,
+        Command::KernelBenchmark {
+            input,
+            output,
+            target,
+            effective_bits,
+            noise_fraction,
+            seed,
+            repetitions,
+        } => kernel_benchmark_command(
+            &input,
+            &output,
+            &target,
+            effective_bits,
+            noise_fraction,
+            seed,
+            repetitions,
+        )?,
+        Command::KernelPlan {
+            input,
+            profiles,
+            output,
+            optimize_for,
+        } => kernel_plan_command(&input, &profiles, &output, &optimize_for)?,
         Command::Execute { artifact } => execute_command(&artifact)?,
         Command::Backends {
             plugin_dir,
@@ -330,6 +426,106 @@ fn main() -> Result<()> {
         } => gradient_command(&ir, &params, &strategy, seed, samples)?,
     }
     Ok(())
+}
+
+fn kernel_command(
+    input_path: &str,
+    output_path: &str,
+    target_name: &str,
+    effective_bits: u8,
+    noise_fraction: f64,
+    seed: u64,
+) -> Result<()> {
+    let request: KernelRequest = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
+    let target = concrete_kernel_target(target_name)?;
+    let result = if target == TargetBackend::Cpu {
+        execute_kernel_reference(&request)?
+    } else {
+        execute_kernel_simulator(
+            &request,
+            KernelSimulatorOptions {
+                target,
+                effective_bits,
+                noise_fraction,
+                seed,
+            },
+        )?
+    };
+    std::fs::write(output_path, serde_json::to_string_pretty(&result)?)?;
+    println!(
+        "Executed {:?} kernel '{}' on {:?}. Result: {}",
+        result.kind, result.request_id, result.execution_target, output_path
+    );
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn kernel_benchmark_command(
+    input_path: &str,
+    output_path: &str,
+    target_name: &str,
+    effective_bits: u8,
+    noise_fraction: f64,
+    seed: u64,
+    repetitions: usize,
+) -> Result<()> {
+    let request: KernelRequest = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
+    let target = concrete_kernel_target(target_name)?;
+    if target == TargetBackend::Cpu {
+        anyhow::bail!("kernel benchmark simulator target must be gpu or photonic");
+    }
+    let report = benchmark_kernel(
+        &request,
+        KernelSimulatorOptions {
+            target,
+            effective_bits,
+            noise_fraction,
+            seed,
+        },
+        repetitions,
+    )?;
+    std::fs::write(output_path, serde_json::to_string_pretty(&report)?)?;
+    println!(
+        "Benchmarked {:?} kernel '{}' for {} repetition(s). Report: {}",
+        report.kind, report.request_id, report.repetitions, output_path
+    );
+    if !report.within_contract {
+        anyhow::bail!("kernel simulator output exceeded the request numerical contract");
+    }
+    Ok(())
+}
+
+fn kernel_plan_command(
+    input_path: &str,
+    profiles_path: &str,
+    output_path: &str,
+    objective_name: &str,
+) -> Result<()> {
+    let request: KernelRequest = serde_json::from_str(&std::fs::read_to_string(input_path)?)?;
+    let profiles: Vec<KernelBackendProfile> =
+        serde_json::from_str(&std::fs::read_to_string(profiles_path)?)?;
+    let objective = OptimizationObjective::parse(objective_name).ok_or_else(|| {
+        anyhow::anyhow!(
+            "unknown optimization objective '{objective_name}'; use latency, energy, accuracy, or throughput"
+        )
+    })?;
+    let plan = select_kernel(&request, &profiles, objective)?;
+    std::fs::write(output_path, serde_json::to_string_pretty(&plan)?)?;
+    println!(
+        "Selected '{}' on {:?} for {:?}. Plan: {}",
+        plan.selected_backend_id, plan.selected_target, request.kind, output_path
+    );
+    Ok(())
+}
+
+fn concrete_kernel_target(value: &str) -> Result<TargetBackend> {
+    let target = TargetBackend::parse(value).ok_or_else(|| {
+        anyhow::anyhow!("unknown kernel target '{value}'; use cpu, gpu, or photonic")
+    })?;
+    if target == TargetBackend::Auto {
+        anyhow::bail!("kernel execution requires a concrete cpu, gpu, or photonic target");
+    }
+    Ok(target)
 }
 
 fn execute_command(artifact_path: &str) -> Result<()> {

@@ -2,6 +2,8 @@ use crate::ir::{Layout, Tensor};
 use crate::lowering::Tile;
 use anyhow::{bail, Result};
 
+pub mod kernels;
+
 pub fn reference_gemm(
     lhs: &Tensor,
     rhs: &Tensor,

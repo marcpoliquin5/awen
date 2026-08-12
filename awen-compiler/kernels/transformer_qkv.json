@@ -1,0 +1,64 @@
+{
+  "version": "awen.blas.v1",
+  "id": "example.transformer_qkv",
+  "kind": "transformer_qkv",
+  "inputs": [
+    {
+      "id": "activation",
+      "shape": [1, 2],
+      "dtype": "f32",
+      "layout": "row_major",
+      "data": {"representation": "real", "values": [1.0, 2.0]}
+    },
+    {
+      "id": "q_weight",
+      "shape": [2, 2],
+      "dtype": "f32",
+      "layout": "row_major",
+      "data": {"representation": "real", "values": [1.0, 0.0, 0.0, 1.0]}
+    },
+    {
+      "id": "k_weight",
+      "shape": [2, 2],
+      "dtype": "f32",
+      "layout": "row_major",
+      "data": {"representation": "real", "values": [1.0, 0.0, 0.0, 1.0]}
+    },
+    {
+      "id": "v_weight",
+      "shape": [2, 2],
+      "dtype": "f32",
+      "layout": "row_major",
+      "data": {"representation": "real", "values": [1.0, 0.0, 0.0, 1.0]}
+    }
+  ],
+  "attributes": {
+    "transpose_lhs": false,
+    "transpose_rhs": false,
+    "stride": 1,
+    "dilation": 1,
+    "padding": 0,
+    "block_size": 1,
+    "rank": 0,
+    "output_size": 0,
+    "seed": 0,
+    "scale": 1.0,
+    "leakage": 1.0,
+    "inverse": false,
+    "phase_convention": "negative_exponent",
+    "accumulation_mode": "digital"
+  },
+  "accuracy": {
+    "max_abs_error": 0.05,
+    "max_rel_error": 0.05,
+    "minimum_effective_bits": 8
+  },
+  "calibration_inputs": [
+    {
+      "id": "example-calibration",
+      "gain": 1.0,
+      "bias": 0.0,
+      "uncertainty_fraction": 0.001
+    }
+  ]
+}

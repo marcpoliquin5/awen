@@ -12,6 +12,9 @@
 - `awen.cost-model.v1`: dimensioned end-to-end latency, energy, error, and throughput estimates with provenance, uncertainty, benchmark fitting, and deterministic autotuning.
 - `awen.partition-graph.v1`: complete DAGs with legal CPU/GPU/photonic candidates, tensor dependencies, residency, barriers, numerical eligibility, and memory budgets.
 - `awen.partition-trace.v1`: deterministic whole-graph assignments, ranked alternatives, fused regions, deduplicated transfers, optical/electrical crossings, memory peaks, profiler events, and visualization edges.
+- `awen.blas.v1`: 22 executable dense, complex, transformer, convolution/correlation, Fourier, structured, RF, reservoir, and propagation kernel kinds with explicit shapes, layouts, dtypes, phase, accumulation, accuracy, calibration, and structure.
+- `awen.blas.v1` backend/result/plan records: capability and provenance-bearing cost dispatch, every candidate decision, diagnosed CPU fallback, and deterministic fingerprints.
+- `awen.blas-benchmark.v1`: measured end-to-end CPU-reference versus deterministic-simulator conformance timing, numerical error, measurement boundary, and output checksum.
 
 The cost model includes scheduling/queueing, host/link/memory movement, layouts,
 residency, overlap, conversion boundaries, reconfiguration/calibration,
@@ -58,6 +61,50 @@ snapshot at the embedded calibration timestamp. Runtime execution should query
 health and call `compile_with_backend`. Calibration freshness is evaluated
 against the supplied health observation, never the compiler wall clock.
 
+## awenBLAS kernel API
+
+The kernel registry is separate from the narrow tiled-GEMM compiler frontend.
+It supplies executable CPU references, a deterministic quantization/calibration/
+noise simulator, backend selection, and measured software-conformance reports
+for every registered kind:
+
+```rust
+use awen_compiler::{
+    benchmark_kernel, execute_kernel_reference, execute_kernel_simulator,
+    select_kernel, KernelRequest, KernelSimulatorOptions, OptimizationObjective,
+};
+
+let request: KernelRequest = serde_json::from_str(input_json)?;
+let reference = execute_kernel_reference(&request)?;
+let simulated = execute_kernel_simulator(&request, KernelSimulatorOptions::default())?;
+let plan = select_kernel(&request, &backend_profiles, OptimizationObjective::Latency)?;
+let report = benchmark_kernel(&request, KernelSimulatorOptions::default(), 10)?;
+```
+
+The versioned CLI surfaces are:
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  kernel awen-compiler/kernels/transformer_qkv.json \
+  --target cpu --output awen_blas_result.json
+
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  kernel-plan awen-compiler/kernels/transformer_qkv.json \
+  awen-compiler/kernels/reference_kernel_backends.json \
+  --optimize-for latency --output awen_blas_plan.json
+
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  kernel-benchmark awen-compiler/kernels/transformer_qkv.json \
+  --target photonic --effective-bits 12 --repetitions 10 \
+  --output awen_blas_benchmark.json
+```
+
+GPU and photonic `kernel`/`kernel-benchmark` targets are explicitly simulated
+in this version. Backend profile numbers in the repository are assumed or
+simulated dispatch inputs. Only the benchmark's host wall-clock intervals are
+measured, and they measure the complete software reference/simulator boundary,
+not accelerator hardware.
+
 ## Relationship to the MLIR compiler
 
 The JSON Tensor IR remains a bootstrap representation and a Rust semantic
@@ -70,4 +117,5 @@ This crate also owns the platform-independent decoder for `AWENEXE` 1.x so the
 runtime can consume the MLIR compiler's command table without linking MLIR or
 using JSON shell-out glue.
 
-The next compiler work is tracked under [the compiler epic](https://github.com/marcpoliquin5/awen/issues/5).
+Framework-native lowering into these operations remains tracked under
+[the compiler epic](https://github.com/marcpoliquin5/awen/issues/5).

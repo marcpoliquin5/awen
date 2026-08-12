@@ -7,10 +7,11 @@
 3. Negotiate operation, dtype, transpose, partial-tile, precision, resource, and calibration eligibility. Invalid or unavailable candidates retain an explicit digital fallback.
 4. Build a full-system cost context from tensor layout/error requirements, the device and health snapshot, execution controls, and provenance-bearing model parameters.
 5. Autotune legal tile sizes, bit slices, wavelength counts, accumulation modes, batching, and boundary fusion for latency, energy, accuracy, or throughput.
-6. Select CPU or photonic execution. Forced photonic mode fails rather than silently violating precision/capability requirements or using an incomplete cost comparison.
+6. Partition complete acyclic graphs across CPU, GPU, and photonics while accounting for tensor residency, deduplicated transfers, optical/electrical crossings, fusion barriers, numerical eligibility, and live memory. Forced targets fail rather than silently violating their contract.
 7. Tile selected GEMMs across M, N, and K using the winning plan. K tiles explicitly accumulate; edge tiles retain their actual sizes only when the backend permits partial tiles.
-8. Emit classical Photonic IR and Device IR. Literal tensor values are not copied into compiler artifacts.
-9. Optionally execute the compiled tiles in the reference simulator, compare them with `awenBLAS`'s digital reference, and attach external predicted-versus-observed measurements.
+8. For library calls, validate the `awen.blas.v1` descriptor and select among exact kind/dtype/structure/complex/size/precision/calibration capabilities using a provenance-bearing kernel cost hook with diagnosed CPU fallback.
+9. Emit classical Photonic IR and Device IR for the compiled GEMM path. Literal tensor values are not copied into compiler artifacts.
+10. Optionally execute compiled GEMM tiles or any of the 22 awenBLAS kinds in a CPU reference or deterministic calibrated simulator, compare outputs to the declared numerical contract, and attach measured software or external predicted-versus-observed evidence.
 
 ## Non-negotiable invariants
 
@@ -28,13 +29,15 @@
 - A benchmark passes only when its declared absolute or relative tolerance is met.
 - Reference capability numbers are simulation inputs, not vendor benchmarks.
 
-## Deliberate limitations of v0.1
+## Deliberate limitations of the current implementation
 
-- Placement is per GEMM; graph-region fusion and tensor residency require the partitioner in issue #9.
+- Whole-graph placement exists for the Tensor IR compiler, while the standalone awenBLAS selector is intentionally a kernel-local dispatch hook. Framework graphs must enter through the partitioner rather than dispatching every call independently.
 - The reference cost model is deliberately conservative. Production values require immutable hardware benchmark artifacts and periodic refitting.
 - The simulator models block quantization and a scalar calibrated transfer function, not full optical noise or per-cell defects.
-- Rank-2 row-major and column-major indexing are supported. General strided and blocked layouts require a future layout abstraction.
-- Complex arithmetic is represented in capabilities/types but has no executable GEMM kernel.
+- Matrix calls support row-major and column-major indexing. Convolution/correlation are rank-one in v1, batched GEMM uses equal rank-three batches, and general strided or blocked tensor layouts require a future layout abstraction.
+- Complex GEMM, DFT/FFT/filtering, beamforming, and propagation have explicit executable references and phase conventions. Conjugate transpose is not implicit and must be represented explicitly by the caller.
+- GPU and photonic awenBLAS execution currently use an explicitly marked deterministic simulator; no checked-in backend profile is hardware-performance evidence.
+- The kernel registry is not yet lowered directly from PyTorch, JAX, StableHLO, C++, or NumPy frontend integrations.
 - The bootstrap JSON frontend must be replaced by MLIR/StableHLO, not expanded into a competing infrastructure.
 
 ## Production lowering direction

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_blas_backend.v1.json",
+  "title": "AWEN BLAS Backend Profile v1",
+  "type": "object",
+  "required": ["version", "backend_id", "target", "supported_kinds", "supported_dtypes", "supported_structures", "supports_complex", "maximum_tensor_elements", "effective_bits", "requires_calibration", "launch_latency_ns", "throughput_tops", "energy_pj_per_operation", "estimated_error_fraction", "source"],
+  "properties": {
+    "version": {"const": "awen.blas.v1"},
+    "backend_id": {"type": "string", "minLength": 1},
+    "target": {"enum": ["cpu", "gpu", "photonic"]},
+    "supported_kinds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "awen_blas.v1.json#/$defs/kind"}},
+    "supported_dtypes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"]}},
+    "supported_structures": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["dense", "low_rank", "random_projection", "toeplitz", "circulant", "block_circulant", "convolutional", "fourier", "beamforming", "reservoir", "propagation"]}},
+    "supports_complex": {"type": "boolean"},
+    "maximum_tensor_elements": {"type": "integer", "minimum": 1},
+    "effective_bits": {"type": "integer", "minimum": 1},
+    "requires_calibration": {"type": "boolean"},
+    "launch_latency_ns": {"type": "number", "minimum": 0},
+    "throughput_tops": {"type": "number", "exclusiveMinimum": 0},
+    "energy_pj_per_operation": {"type": "number", "minimum": 0},
+    "estimated_error_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+    "source": {"enum": ["measured", "vendor_specified", "simulated", "assumed"]}
+  },
+  "additionalProperties": false
+}
