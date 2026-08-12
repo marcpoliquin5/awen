@@ -33,6 +33,10 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
         "../../awen-spec/schemas/awen_backend_health.v1.json"
     ))
     .expect("health schema JSON");
+    let calibration_schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../../awen-spec/schemas/awen_calibration_snapshot.v1.json"
+    ))
+    .expect("calibration schema JSON");
     let capability_value: serde_json::Value = serde_json::from_str(include_str!(
         "../../awen-compiler/capabilities/pace_like_128.json"
     ))
@@ -42,8 +46,13 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
     ))
     .expect("health JSON");
 
-    let capability_validator =
-        jsonschema::JSONSchema::compile(&capability_schema).expect("compile capability schema");
+    let capability_validator = jsonschema::JSONSchema::options()
+        .with_document(
+            "https://awen.dev/schemas/awen_calibration_snapshot.v1.json".to_string(),
+            calibration_schema,
+        )
+        .compile(&capability_schema)
+        .expect("compile capability schema");
     let health_validator =
         jsonschema::JSONSchema::compile(&health_schema).expect("compile health schema");
     assert!(capability_validator.is_valid(&capability_value));

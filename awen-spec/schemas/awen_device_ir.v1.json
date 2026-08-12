@@ -12,6 +12,8 @@
       "items": {
         "oneOf": [
           { "$ref": "#/$defs/calibrate" },
+          { "$ref": "#/$defs/remap_cell" },
+          { "$ref": "#/$defs/select_channels" },
           { "$ref": "#/$defs/configure_matrix" },
           { "$ref": "#/$defs/convert_tensor" },
           { "$ref": "#/$defs/bit_slice" },
@@ -33,10 +35,45 @@
     "accumulation_mode": { "enum": ["optical", "digital", "hybrid"] },
     "calibrate": {
       "type": "object",
-      "required": ["command", "profile_id"],
+      "required": ["command", "profile_id", "fingerprint", "topology_fingerprint"],
       "properties": {
         "command": { "const": "calibrate" },
-        "profile_id": { "type": "string", "minLength": 1 }
+        "profile_id": { "type": "string", "minLength": 1 },
+        "fingerprint": { "type": "string", "minLength": 1 },
+        "topology_fingerprint": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "remap_cell": {
+      "type": "object",
+      "required": [
+        "command", "op_id", "disabled_cell", "replacement_cell", "logical_row",
+        "logical_column"
+      ],
+      "properties": {
+        "command": { "const": "remap_cell" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "disabled_cell": { "type": "string", "minLength": 1 },
+        "replacement_cell": { "type": "string", "minLength": 1 },
+        "logical_row": { "type": "integer", "minimum": 0 },
+        "logical_column": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "select_channels": {
+      "type": "object",
+      "required": ["command", "op_id", "channel_ids", "wavelengths_nm"],
+      "properties": {
+        "command": { "const": "select_channels" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "channel_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "wavelengths_nm": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "number", "exclusiveMinimum": 0 }
+        }
       },
       "additionalProperties": false
     },
@@ -145,13 +182,17 @@
     },
     "rescale": {
       "type": "object",
-      "required": ["command", "tensor", "scale", "offset", "calibration_handle"],
+      "required": [
+        "command", "tensor", "scale", "offset", "calibration_handle",
+        "calibration_fingerprint"
+      ],
       "properties": {
         "command": { "const": "rescale" },
         "tensor": { "type": "string", "minLength": 1 },
         "scale": { "type": "number" },
         "offset": { "type": "number" },
-        "calibration_handle": { "type": "string", "minLength": 1 }
+        "calibration_handle": { "type": "string", "minLength": 1 },
+        "calibration_fingerprint": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
     },

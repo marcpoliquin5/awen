@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_compilation_artifact.v1.json",
+  "title": "AWEN Compilation Artifact v1",
+  "type": "object",
+  "required": [
+    "artifact_version", "source_graph_fingerprint", "backend_snapshot_fingerprint",
+    "source_ir_version", "capability_version", "backend_id", "health_snapshot",
+    "options", "capability_negotiations", "placement", "partition_trace",
+    "photonic_ir", "device_ir", "calibration_record", "diagnostics"
+  ],
+  "properties": {
+    "artifact_version": { "const": "awen.compilation.v1" },
+    "source_graph_fingerprint": { "$ref": "#/$defs/fnv_fingerprint" },
+    "backend_snapshot_fingerprint": { "$ref": "#/$defs/fnv_fingerprint" },
+    "source_ir_version": { "const": "awen.tensor.v1" },
+    "capability_version": { "const": "awen.device-capability.v1" },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "health_snapshot": { "$ref": "awen_backend_health.v1.json" },
+    "options": { "type": "object" },
+    "capability_negotiations": { "type": "array", "items": { "type": "object" } },
+    "placement": { "type": "array", "items": { "type": "object" } },
+    "partition_trace": { "type": "object" },
+    "photonic_ir": { "$ref": "awen_photonic_ir.classical.v1.json" },
+    "device_ir": { "$ref": "awen_device_ir.v1.json" },
+    "calibration_record": {
+      "oneOf": [
+        { "$ref": "#/$defs/calibration_record" },
+        { "type": "null" }
+      ]
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "fnv_fingerprint": {
+      "type": "string",
+      "pattern": "^fnv1a64:[0-9a-f]{16}$"
+    },
+    "calibration_record": {
+      "type": "object",
+      "required": [
+        "snapshot_version", "snapshot_id", "fingerprint", "parent_id", "backend_id",
+        "topology_fingerprint", "measured_at", "environment", "uncertainty",
+        "health_observed_at", "health_status", "health_fingerprint", "decision_impacts"
+      ],
+      "properties": {
+        "snapshot_version": { "const": "awen.calibration-snapshot.v1" },
+        "snapshot_id": { "type": "string", "minLength": 1 },
+        "fingerprint": { "type": "string", "minLength": 1 },
+        "parent_id": { "type": ["string", "null"], "minLength": 1 },
+        "backend_id": { "type": "string", "minLength": 1 },
+        "topology_fingerprint": { "$ref": "#/$defs/fnv_fingerprint" },
+        "measured_at": { "type": "string", "format": "date-time" },
+        "environment": {
+          "$ref": "awen_calibration_snapshot.v1.json#/$defs/environment"
+        },
+        "uncertainty": { "type": "number", "minimum": 0 },
+        "health_observed_at": { "type": "string", "format": "date-time" },
+        "health_status": { "enum": ["healthy", "degraded", "unavailable"] },
+        "health_fingerprint": { "$ref": "#/$defs/fnv_fingerprint" },
+        "decision_impacts": {
+          "type": "array",
+          "items": {
+            "$ref": "awen_photonic_ir.classical.v1.json#/$defs/calibration_impact"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

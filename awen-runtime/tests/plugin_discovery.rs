@@ -84,6 +84,10 @@ fn backend_discovery_requeries_live_health_and_exposes_unavailability() {
             .calibration_profile
             .as_ref()
             .map(|profile| profile.id.clone()),
+        calibration_fingerprint: capabilities
+            .calibration_profile
+            .as_ref()
+            .map(|profile| profile.fingerprint.clone()),
     };
     let health_path = directory.path().join("health.json");
     fs::write(
@@ -157,7 +161,7 @@ fn backend_version_skew_produces_a_discovery_diagnostic() {
     .expect("write manifest");
     let health = BackendHealth {
         health_version: HEALTH_VERSION.into(),
-        backend_id: capabilities.backend_id,
+        backend_id: capabilities.backend_id.clone(),
         observed_at: "2026-08-11T22:30:00Z".into(),
         status: HealthStatus::Healthy,
         temperature_c: 22.0,
@@ -165,7 +169,14 @@ fn backend_version_skew_produces_a_discovery_diagnostic() {
         available_channels: capabilities.simultaneous_channels,
         disabled_components: Vec::new(),
         unavailable_resources: Vec::new(),
-        calibration_profile_id: capabilities.calibration_profile.map(|profile| profile.id),
+        calibration_profile_id: capabilities
+            .calibration_profile
+            .as_ref()
+            .map(|profile| profile.id.clone()),
+        calibration_fingerprint: capabilities
+            .calibration_profile
+            .as_ref()
+            .map(|profile| profile.fingerprint.clone()),
     };
     fs::write(
         directory.path().join("health.json"),

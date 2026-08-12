@@ -264,12 +264,13 @@ fn model_profile_device_and_calibration_changes_invalidate_fingerprints() {
     assert_ne!(base.fingerprint, profile_change.fingerprint);
 
     let mut calibration_change = capabilities;
-    calibration_change
+    let calibration_profile = calibration_change
         .calibration_profile
         .as_mut()
-        .expect("profile")
-        .id
-        .push_str("-new");
+        .expect("profile");
+    calibration_profile.id.push_str("-new");
+    calibration_profile.fingerprint =
+        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_string();
     let calibration_change = autotune_with_profile(
         GemmShape {
             m: 256,

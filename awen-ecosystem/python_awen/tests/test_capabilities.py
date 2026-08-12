@@ -53,6 +53,31 @@ class CapabilityContractTests(unittest.TestCase):
         with self.assertRaisesRegex(CapabilityError, "thermal-noise"):
             DeviceCapabilities.from_dict(negative)
 
+    def test_calibration_snapshot_fingerprint_and_topology_are_enforced(self):
+        capability = DeviceCapabilities.from_dict(load("pace_like_128.json"))
+        profile = capability.calibration_profile
+        self.assertEqual(profile.snapshot_version, "awen.calibration-snapshot.v1")
+        self.assertTrue(profile.fingerprint.startswith("sha256:"))
+        self.assertEqual(profile.cells[0].id, "cell-0-0")
+
+        wrong_topology = load("pace_like_128.json")
+        wrong_topology["calibration_profile"]["topology_fingerprint"] = (
+            "fnv1a64:0000000000000000"
+        )
+        with self.assertRaisesRegex(CapabilityError, "topology fingerprint"):
+            DeviceCapabilities.from_dict(wrong_topology)
+
+        health = load("pace_like_128.health.json")
+        health["calibration_fingerprint"] = "sha256:" + "0" * 64
+        negotiation = BackendSnapshot(
+            capability,
+            BackendHealth.from_dict(health),
+        ).negotiate_gemm((128, 128, 128), "f16", 8)
+        self.assertIn(
+            "calibration_fingerprint_mismatch",
+            [diagnostic.code for diagnostic in negotiation.diagnostics],
+        )
+
     def test_expired_calibration_causes_fallback(self):
         health = load("pace_like_128.health.json")
         health["observed_at"] = "2026-08-12T00:00:01Z"

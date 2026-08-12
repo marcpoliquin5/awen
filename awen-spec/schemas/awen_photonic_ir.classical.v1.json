@@ -5,7 +5,7 @@
   "type": "object",
   "required": [
     "ir_version", "source_ir_version", "backend_id", "tensors", "ops",
-    "host_fallback_ops"
+    "host_fallback_ops", "calibration"
   ],
   "properties": {
     "ir_version": { "const": "awen.photonic.classical.v1" },
@@ -53,7 +53,7 @@
         "accumulator_dtype", "minimum_accumulator_bits", "optical_effective_bits",
         "dac_bits", "adc_bits", "bit_slices", "bit_slicing_mode",
         "digital_accumulation", "lhs_quantization", "rhs_quantization",
-        "output_quantization", "analog_noise", "noise_seed"
+        "output_quantization", "analog_noise", "noise_seed", "calibration_compensation"
       ],
       "properties": {
         "source_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
@@ -76,13 +76,17 @@
         "calibration_compensation": {
           "type": ["object", "null"],
           "required": [
-            "profile_id", "measured_gain", "measured_offset", "rescale", "rebias",
-            "residual_uncertainty"
+            "profile_id", "snapshot_fingerprint", "measured_gain", "measured_offset",
+            "measured_phase_error_radians", "measured_insertion_loss_db", "rescale",
+            "rebias", "residual_uncertainty"
           ],
           "properties": {
             "profile_id": { "type": "string", "minLength": 1 },
+            "snapshot_fingerprint": { "type": "string", "minLength": 1 },
             "measured_gain": { "type": "number" },
             "measured_offset": { "type": "number" },
+            "measured_phase_error_radians": { "type": "number" },
+            "measured_insertion_loss_db": { "type": "number", "minimum": 0 },
             "rescale": { "type": "number" },
             "rebias": { "type": "number" },
             "residual_uncertainty": { "type": "number", "minimum": 0 }
@@ -97,7 +101,7 @@
       "required": [
         "op_id", "type", "lhs", "rhs", "output", "transpose_lhs",
         "transpose_rhs", "tile", "precision", "wavelength_channels",
-        "accumulation_mode", "timing"
+        "channel_ids", "cell_remaps", "calibration_impact", "accumulation_mode", "timing"
       ],
       "properties": {
         "op_id": { "type": "string", "minLength": 1 },
@@ -109,7 +113,13 @@
         "transpose_rhs": { "type": "boolean" },
         "tile": { "$ref": "#/$defs/tile" },
         "precision": { "$ref": "#/$defs/precision" },
+        "channel_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "wavelength_channels": { "type": "array", "items": { "type": "number" } },
+        "cell_remaps": { "type": "array", "items": { "$ref": "#/$defs/cell_remap" } },
+        "calibration_impact": { "$ref": "#/$defs/calibration_impact" },
         "accumulation_mode": { "enum": ["optical", "digital", "hybrid"] },
         "calibration_handle": { "type": ["string", "null"] },
         "timing": {
@@ -121,6 +131,68 @@
           },
           "additionalProperties": false
         }
+      },
+      "additionalProperties": false
+    },
+    "cell_remap": {
+      "type": "object",
+      "required": [
+        "disabled_cell", "replacement_cell", "logical_row", "logical_column",
+        "replacement_score"
+      ],
+      "properties": {
+        "disabled_cell": { "type": "string", "minLength": 1 },
+        "replacement_cell": { "type": "string", "minLength": 1 },
+        "logical_row": { "type": "integer", "minimum": 0 },
+        "logical_column": { "type": "integer", "minimum": 0 },
+        "replacement_score": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "effective_transfer": {
+      "type": "object",
+      "required": [
+        "gain", "offset", "phase_error_radians", "insertion_loss_db", "uncertainty"
+      ],
+      "properties": {
+        "gain": { "type": "number" },
+        "offset": { "type": "number" },
+        "phase_error_radians": { "type": "number" },
+        "insertion_loss_db": { "type": "number", "minimum": 0 },
+        "uncertainty": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "calibration_impact": {
+      "type": "object",
+      "required": [
+        "decision_version", "op_id", "disabled_components", "cell_remaps",
+        "excluded_channels", "selected_channels", "selected_tile_shape",
+        "capacity_loss_fraction", "estimated_error_fraction", "effective_transfer"
+      ],
+      "properties": {
+        "decision_version": { "const": "awen.calibration-decision.v1" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "disabled_components": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "cell_remaps": { "type": "array", "items": { "$ref": "#/$defs/cell_remap" } },
+        "excluded_channels": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "selected_channels": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "selected_tile_shape": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "capacity_loss_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "estimated_error_fraction": { "type": "number", "minimum": 0 },
+        "effective_transfer": { "$ref": "#/$defs/effective_transfer" }
       },
       "additionalProperties": false
     },

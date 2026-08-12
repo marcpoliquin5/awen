@@ -32,7 +32,15 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
     },
-    "calibration_profile_id": { "type": "string", "minLength": 1 }
+    "calibration_profile_id": { "type": "string", "minLength": 1 },
+    "calibration_fingerprint": {
+      "type": "string",
+      "pattern": "^(sha256:[0-9a-f]{64}|fnv1a64:[0-9a-f]{16})$"
+    }
+  },
+  "dependentRequired": {
+    "calibration_profile_id": ["calibration_fingerprint"],
+    "calibration_fingerprint": ["calibration_profile_id"]
   },
   "additionalProperties": false
 }

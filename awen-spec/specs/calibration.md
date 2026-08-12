@@ -892,6 +892,8 @@ After calibration:
 ## 13. References
 
 - [AEP-0007: Calibration as Computation](../aeps/AEP-0007-calibration-computation.md)
+- [AEP-0018: Calibration-aware compilation, fault remapping, and artifact refresh](../aeps/AEP-0018-calibration-aware-compilation.md)
+- [calibration-aware-compilation.md](calibration-aware-compilation.md) — immutable compiler snapshot, topology binding, routing, and refresh contract
 - [computation-model.md](computation-model.md) — Section 9: Calibration as first-class computation
 - [observability.md](observability.md) — Integration with calibration spans/metrics
 - [reproducibility.md](reproducibility.md) — Calibration artifact schema

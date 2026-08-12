@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_calibration_snapshot.v1.json",
+  "title": "AWEN Calibration Snapshot v1",
+  "type": "object",
+  "required": [
+    "snapshot_version", "id", "fingerprint", "backend_id", "topology_fingerprint",
+    "measured_at", "environment", "gain", "offset", "phase_error_radians",
+    "insertion_loss_db", "uncertainty", "cells", "spare_cells", "channels"
+  ],
+  "properties": {
+    "snapshot_version": { "const": "awen.calibration-snapshot.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^(sha256:[0-9a-f]{64}|fnv1a64:[0-9a-f]{16})$"
+    },
+    "parent_id": { "type": "string", "minLength": 1 },
+    "backend_id": { "type": "string", "minLength": 1 },
+    "topology_fingerprint": {
+      "type": "string",
+      "pattern": "^fnv1a64:[0-9a-f]{16}$"
+    },
+    "measured_at": { "type": "string", "format": "date-time" },
+    "environment": { "$ref": "#/$defs/environment" },
+    "gain": { "type": "number" },
+    "offset": { "type": "number" },
+    "phase_error_radians": { "type": "number" },
+    "insertion_loss_db": { "type": "number", "minimum": 0 },
+    "uncertainty": { "type": "number", "minimum": 0 },
+    "cells": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cell" }
+    },
+    "spare_cells": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/spare_cell" }
+    },
+    "channels": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/channel" }
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "required": ["temperature_c", "laser_power_mw"],
+      "properties": {
+        "temperature_c": { "type": "number" },
+        "laser_power_mw": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "transfer": {
+      "type": "object",
+      "required": [
+        "id", "gain", "offset", "phase_error_radians", "insertion_loss_db",
+        "uncertainty"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "gain": { "type": "number" },
+        "offset": { "type": "number" },
+        "phase_error_radians": { "type": "number" },
+        "insertion_loss_db": { "type": "number", "minimum": 0 },
+        "uncertainty": { "type": "number", "minimum": 0 }
+      }
+    },
+    "cell": {
+      "allOf": [
+        { "$ref": "#/$defs/transfer" },
+        {
+          "type": "object",
+          "required": ["row", "column"],
+          "properties": {
+            "row": { "type": "integer", "minimum": 0 },
+            "column": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "spare_cell": {
+      "allOf": [{ "$ref": "#/$defs/transfer" }],
+      "unevaluatedProperties": false
+    },
+    "channel": {
+      "type": "object",
+      "required": [
+        "id", "wavelength_nm", "gain", "phase_error_radians",
+        "insertion_loss_db", "uncertainty"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "wavelength_nm": { "type": "number", "exclusiveMinimum": 0 },
+        "gain": { "type": "number" },
+        "phase_error_radians": { "type": "number" },
+        "insertion_loss_db": { "type": "number", "minimum": 0 },
+        "uncertainty": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

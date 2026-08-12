@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_artifact_refresh.v1.json",
+  "title": "AWEN Artifact Refresh v1",
+  "type": "object",
+  "required": ["refresh_version", "action", "reasons", "artifact"],
+  "properties": {
+    "refresh_version": { "const": "awen.artifact-refresh.v1" },
+    "action": { "enum": ["reused", "recompiled", "fell_back"] },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "artifact": { "$ref": "awen_compilation_artifact.v1.json" }
+  },
+  "additionalProperties": false
+}
