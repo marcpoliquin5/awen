@@ -1,0 +1,5 @@
+{
+  "inverse_step": "photonic",
+  "propagate": "photonic",
+  "spectral_step": "photonic"
+}

@@ -8,8 +8,13 @@ use crate::cost::{
 };
 use crate::ir::{validate_program, DType, TensorProgram};
 use crate::lowering::{lower, ClassicalPhotonicProgram, DeviceProgram};
+use crate::partition::{
+    partition_graph, GraphNode, GraphOpKind, GraphTensor, NodeCandidate, PartitionCost,
+    PartitionGraph, PartitionOptions, PartitionRequest, PartitionTrace, PARTITION_GRAPH_VERSION,
+};
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -19,6 +24,9 @@ pub struct CompileOptions {
     pub cpu_throughput_tops: f64,
     pub cpu_energy_pj_per_mac: f64,
     pub cpu_launch_latency_ns: f64,
+    pub gpu_throughput_tops: f64,
+    pub gpu_energy_pj_per_mac: f64,
+    pub gpu_launch_latency_ns: f64,
     pub autotune_seed: u64,
     pub batch_size: usize,
     pub allow_boundary_fusion: bool,
@@ -26,6 +34,17 @@ pub struct CompileOptions {
     pub queue_depth: usize,
     pub overlap_fraction: f64,
     pub resident_input_fraction: f64,
+    pub transfer_bandwidth_gbps: f64,
+    pub transfer_latency_ns: f64,
+    pub transfer_energy_pj_per_byte: f64,
+    pub crossing_penalty_ns: f64,
+    pub crossing_penalty_uj: f64,
+    pub crossing_error_fraction: f64,
+    pub cpu_memory_budget_bytes: u64,
+    pub gpu_memory_budget_bytes: u64,
+    pub photonic_memory_budget_bytes: u64,
+    pub partition_alternatives: usize,
+    pub partition_max_search_states: usize,
 }
 
 impl Default for CompileOptions {
@@ -36,6 +55,9 @@ impl Default for CompileOptions {
             cpu_throughput_tops: 25.0,
             cpu_energy_pj_per_mac: 20.0,
             cpu_launch_latency_ns: 2_500.0,
+            gpu_throughput_tops: 100.0,
+            gpu_energy_pj_per_mac: 10.0,
+            gpu_launch_latency_ns: 5_000.0,
             autotune_seed: 0,
             batch_size: 1,
             allow_boundary_fusion: false,
@@ -43,6 +65,17 @@ impl Default for CompileOptions {
             queue_depth: 0,
             overlap_fraction: 0.0,
             resident_input_fraction: 0.0,
+            transfer_bandwidth_gbps: 128.0,
+            transfer_latency_ns: 100.0,
+            transfer_energy_pj_per_byte: 1.0,
+            crossing_penalty_ns: 500.0,
+            crossing_penalty_uj: 0.001,
+            crossing_error_fraction: 0.0,
+            cpu_memory_budget_bytes: u64::MAX,
+            gpu_memory_budget_bytes: u64::MAX,
+            photonic_memory_budget_bytes: u64::MAX,
+            partition_alternatives: 3,
+            partition_max_search_states: 1_000_000,
         }
     }
 }
@@ -57,6 +90,7 @@ pub struct CompilationArtifact {
     pub options: CompileOptions,
     pub capability_negotiations: Vec<CapabilityNegotiation>,
     pub placement: Vec<PlacementDecision>,
+    pub partition_trace: PartitionTrace,
     pub photonic_ir: ClassicalPhotonicProgram,
     pub device_ir: DeviceProgram,
     pub diagnostics: Vec<String>,
@@ -103,8 +137,11 @@ pub fn compile_with_cost_model(
     if options.cpu_throughput_tops <= 0.0
         || options.cpu_energy_pj_per_mac <= 0.0
         || options.cpu_launch_latency_ns < 0.0
+        || options.gpu_throughput_tops <= 0.0
+        || options.gpu_energy_pj_per_mac <= 0.0
+        || options.gpu_launch_latency_ns < 0.0
     {
-        bail!("CPU cost-model parameters must be positive");
+        bail!("CPU and GPU cost-model parameters must be positive");
     }
     if options.batch_size == 0 {
         bail!("autotuner batch size must be non-zero");
@@ -128,6 +165,12 @@ pub fn compile_with_cost_model(
         throughput_tops: options.cpu_throughput_tops,
         energy_pj_per_mac: options.cpu_energy_pj_per_mac,
         launch_latency_ns: options.cpu_launch_latency_ns,
+        effective_bits: 16,
+    };
+    let gpu = DigitalBaseline {
+        throughput_tops: options.gpu_throughput_tops,
+        energy_pj_per_mac: options.gpu_energy_pj_per_mac,
+        launch_latency_ns: options.gpu_launch_latency_ns,
         effective_bits: 16,
     };
     let tuning = AutotuneOptions {
@@ -157,7 +200,7 @@ pub fn compile_with_cost_model(
             )
         })
         .collect();
-    let placement: Vec<_> = validated
+    let mut placement: Vec<_> = validated
         .iter()
         .zip(&capability_negotiations)
         .map(|(gemm, negotiation)| -> Result<PlacementDecision> {
@@ -185,10 +228,22 @@ pub fn compile_with_cost_model(
                 options.optimize_for,
                 options.target,
                 digital,
+                gpu,
                 tuning,
             )?;
             if !negotiation.eligible {
-                decision.selected_backend = TargetBackend::Cpu;
+                if decision.selected_backend == TargetBackend::Photonic {
+                    decision.selected_backend = match options.target {
+                        TargetBackend::Gpu => TargetBackend::Gpu,
+                        TargetBackend::Auto
+                            if estimate_score(options.optimize_for, &decision.gpu)
+                                < estimate_score(options.optimize_for, &decision.cpu) =>
+                        {
+                            TargetBackend::Gpu
+                        }
+                        _ => TargetBackend::Cpu,
+                    };
+                }
                 decision.photonic = None;
                 decision.selected_plan = None;
                 decision.alternatives.clear();
@@ -225,16 +280,37 @@ pub fn compile_with_cost_model(
         }
     }
 
-    let (photonic_ir, device_ir) = lower(program, &validated, &placement, capabilities)?;
-    let diagnostics = placement
+    let partition_request = compiler_partition_request(program, &validated, &placement, options)?;
+    let partition_trace = partition_graph(&partition_request)?;
+    let placement_by_id = partition_trace
+        .nodes
         .iter()
-        .map(|decision| {
-            format!(
-                "{} -> {:?}: {}",
-                decision.op_id, decision.selected_backend, decision.rationale
-            )
-        })
-        .collect();
+        .map(|node| (node.node_id.as_str(), node))
+        .collect::<HashMap<_, _>>();
+    for decision in &mut placement {
+        let trace = placement_by_id
+            .get(decision.op_id.as_str())
+            .expect("partition trace covers every validated operation");
+        decision.selected_backend = trace.selected_device;
+        if trace.selected_device != TargetBackend::Photonic {
+            decision.optical_electrical_boundary_crossings = 0;
+        }
+        decision.rationale = trace.rationale.clone();
+    }
+
+    let (photonic_ir, device_ir) = lower(program, &validated, &placement, capabilities)?;
+    let mut diagnostics = vec![partition_trace.rationale.clone()];
+    diagnostics.extend(
+        placement
+            .iter()
+            .map(|decision| {
+                format!(
+                    "{} -> {:?}: {}",
+                    decision.op_id, decision.selected_backend, decision.rationale
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
     Ok(CompilationArtifact {
         artifact_version: "awen.compilation.v1".to_string(),
         source_ir_version: program.ir_version.clone(),
@@ -244,8 +320,198 @@ pub fn compile_with_cost_model(
         options,
         capability_negotiations,
         placement,
+        partition_trace,
         photonic_ir,
         device_ir,
         diagnostics,
     })
+}
+
+fn compiler_partition_request(
+    program: &TensorProgram,
+    validated: &[crate::ir::ValidatedGemm<'_>],
+    placement: &[PlacementDecision],
+    options: CompileOptions,
+) -> Result<PartitionRequest> {
+    let produced = validated
+        .iter()
+        .map(|gemm| gemm.output.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let consumed = validated
+        .iter()
+        .flat_map(|gemm| [gemm.lhs.id.as_str(), gemm.rhs.id.as_str()])
+        .collect::<BTreeSet<_>>();
+    let tensors = program
+        .tensors
+        .iter()
+        .map(|tensor| {
+            let elements = tensor
+                .shape
+                .iter()
+                .try_fold(1_u64, |total, dimension| {
+                    total.checked_mul(*dimension as u64)
+                })
+                .ok_or_else(|| anyhow::anyhow!("tensor '{}' byte size overflows u64", tensor.id))?;
+            let bytes = elements
+                .checked_mul(u64::from(tensor.dtype.bits()))
+                .and_then(|bits| bits.checked_add(7))
+                .map(|bits| bits / 8)
+                .ok_or_else(|| anyhow::anyhow!("tensor '{}' byte size overflows u64", tensor.id))?;
+            Ok(GraphTensor {
+                id: tensor.id.clone(),
+                bytes,
+                initial_device: (!produced.contains(tensor.id.as_str()))
+                    .then_some(TargetBackend::Cpu),
+                required_device: (!consumed.contains(tensor.id.as_str()))
+                    .then_some(TargetBackend::Cpu),
+                persistent: !produced.contains(tensor.id.as_str()),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let nodes = validated
+        .iter()
+        .zip(placement)
+        .map(|(gemm, decision)| {
+            let allows = |device| options.target == TargetBackend::Auto || options.target == device;
+            let operations = 2.0
+                * gemm.shape.m as f64
+                * gemm.shape.n as f64
+                * gemm.shape.k as f64
+                * options.batch_size as f64
+                * if gemm.op.cost_hints().structured_sparsity {
+                    1.0 - gemm.op.cost_hints().sparsity_fraction
+                } else {
+                    1.0
+                };
+            let mut candidates = vec![
+                NodeCandidate {
+                    device: TargetBackend::Cpu,
+                    eligible: allows(TargetBackend::Cpu),
+                    cost: allows(TargetBackend::Cpu)
+                        .then(|| graph_internal_cost(&decision.cpu, operations, false)),
+                    reason: if allows(TargetBackend::Cpu) {
+                        "CPU reference implementation satisfies the numerical contract".to_string()
+                    } else {
+                        "excluded by the explicit compilation target".to_string()
+                    },
+                },
+                NodeCandidate {
+                    device: TargetBackend::Gpu,
+                    eligible: allows(TargetBackend::Gpu),
+                    cost: allows(TargetBackend::Gpu)
+                        .then(|| graph_internal_cost(&decision.gpu, operations, false)),
+                    reason: if allows(TargetBackend::Gpu) {
+                        "GPU digital implementation satisfies the numerical contract".to_string()
+                    } else {
+                        "excluded by the explicit compilation target".to_string()
+                    },
+                },
+            ];
+            let photonic_eligible = allows(TargetBackend::Photonic) && decision.photonic.is_some();
+            candidates.push(NodeCandidate {
+                device: TargetBackend::Photonic,
+                eligible: photonic_eligible,
+                cost: decision
+                    .photonic
+                    .as_ref()
+                    .filter(|_| photonic_eligible)
+                    .map(|estimate| graph_internal_cost(estimate, operations, true)),
+                reason: if photonic_eligible {
+                    "capability negotiation and the numerical contract admit a photonic plan"
+                        .to_string()
+                } else if options.target != TargetBackend::Auto
+                    && options.target != TargetBackend::Photonic
+                {
+                    "excluded by the explicit compilation target".to_string()
+                } else {
+                    "photonic capability or numerical-contract requirements are not satisfied"
+                        .to_string()
+                },
+            });
+            let crate::ir::TensorOp::Gemm {
+                lhs, rhs, output, ..
+            } = gemm.op;
+            GraphNode {
+                id: gemm.op.id().to_string(),
+                kind: GraphOpKind::Gemm,
+                inputs: vec![lhs.clone(), rhs.clone()],
+                outputs: vec![output.clone()],
+                dynamic_shape: false,
+                control_flow_barrier: false,
+                candidates,
+            }
+        })
+        .collect();
+    Ok(PartitionRequest {
+        graph: PartitionGraph {
+            graph_version: PARTITION_GRAPH_VERSION.to_string(),
+            tensors,
+            nodes,
+        },
+        options: PartitionOptions {
+            objective: options.optimize_for,
+            seed: options.autotune_seed,
+            transfer_bandwidth_gbps: options.transfer_bandwidth_gbps,
+            transfer_latency_ns: options.transfer_latency_ns,
+            transfer_energy_pj_per_byte: options.transfer_energy_pj_per_byte,
+            crossing_penalty_ns: options.crossing_penalty_ns,
+            crossing_penalty_uj: options.crossing_penalty_uj,
+            crossing_error_fraction: options.crossing_error_fraction,
+            cpu_memory_budget_bytes: options.cpu_memory_budget_bytes,
+            gpu_memory_budget_bytes: options.gpu_memory_budget_bytes,
+            photonic_memory_budget_bytes: options.photonic_memory_budget_bytes,
+            alternatives: options.partition_alternatives,
+            max_search_states: options.partition_max_search_states,
+        },
+    })
+}
+
+fn graph_internal_cost(
+    estimate: &crate::cost::CostEstimate,
+    operations: f64,
+    photonic: bool,
+) -> PartitionCost {
+    let excluded_latency = estimate.latency_breakdown_ns.host_transfer
+        + estimate.latency_breakdown_ns.memory
+        + if photonic {
+            estimate.latency_breakdown_ns.boundary_conversion
+                + estimate.latency_breakdown_ns.dac
+                + estimate.latency_breakdown_ns.adc
+        } else {
+            0.0
+        };
+    let excluded_energy = estimate.energy_breakdown_uj.host_transfer
+        + estimate.energy_breakdown_uj.memory
+        + if photonic {
+            estimate.energy_breakdown_uj.dac + estimate.energy_breakdown_uj.adc
+        } else {
+            0.0
+        };
+    let source = estimate
+        .provenance
+        .iter()
+        .map(|item| item.source)
+        .max_by_key(|source| match source {
+            ParameterSource::Measured => 0,
+            ParameterSource::VendorSpecified => 1,
+            ParameterSource::Simulated => 2,
+            ParameterSource::Assumed => 3,
+        })
+        .unwrap_or(ParameterSource::Assumed);
+    PartitionCost {
+        latency_ns: (estimate.latency_ns - excluded_latency).max(f64::EPSILON),
+        energy_uj: (estimate.energy_uj - excluded_energy).max(0.0),
+        error_fraction: estimate.estimated_error_fraction,
+        operations,
+        source,
+    }
+}
+
+fn estimate_score(objective: OptimizationObjective, estimate: &crate::cost::CostEstimate) -> f64 {
+    match objective {
+        OptimizationObjective::Latency => estimate.latency_ns,
+        OptimizationObjective::Energy => estimate.energy_uj,
+        OptimizationObjective::Accuracy => estimate.estimated_error_fraction,
+        OptimizationObjective::Throughput => -estimate.throughput_gops,
+    }
 }

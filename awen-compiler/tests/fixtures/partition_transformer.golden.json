@@ -1,0 +1,12 @@
+{
+  "attention_scores": "photonic",
+  "attention_value": "photonic",
+  "gelu": "gpu",
+  "k_proj": "photonic",
+  "layer_norm": "gpu",
+  "mlp_down": "photonic",
+  "mlp_up": "photonic",
+  "q_proj": "photonic",
+  "softmax": "gpu",
+  "v_proj": "photonic"
+}

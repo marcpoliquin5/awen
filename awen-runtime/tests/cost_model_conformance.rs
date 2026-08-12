@@ -131,6 +131,7 @@ fn incomplete_inputs_fallback_in_auto_and_fail_when_forced() {
         OptimizationObjective::Latency,
         TargetBackend::Auto,
         DigitalBaseline::default(),
+        DigitalBaseline::default(),
         AutotuneOptions::default(),
     )
     .expect("auto fallback");
@@ -147,6 +148,7 @@ fn incomplete_inputs_fallback_in_auto_and_fail_when_forced() {
         OperationCostProfile::default(),
         OptimizationObjective::Latency,
         TargetBackend::Photonic,
+        DigitalBaseline::default(),
         DigitalBaseline::default(),
         AutotuneOptions::default(),
     )

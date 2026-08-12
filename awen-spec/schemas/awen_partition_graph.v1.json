@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_partition_graph.v1.json",
+  "title": "AWEN Whole-Graph Partition Request v1",
+  "type": "object",
+  "required": ["graph"],
+  "properties": {
+    "graph": {"$ref": "#/$defs/graph"},
+    "options": {"$ref": "#/$defs/options"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "device": {"enum": ["cpu", "gpu", "photonic"]},
+    "objective": {"enum": ["latency", "energy", "accuracy", "throughput"]},
+    "source": {"enum": ["measured", "vendor_specified", "simulated", "assumed"]},
+    "cost": {
+      "type": "object",
+      "required": ["latency_ns", "energy_uj", "error_fraction", "operations", "source"],
+      "properties": {
+        "latency_ns": {"type": "number", "exclusiveMinimum": 0},
+        "energy_uj": {"type": "number", "minimum": 0},
+        "error_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "operations": {"type": "number", "minimum": 0},
+        "source": {"$ref": "#/$defs/source"}
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["device", "eligible", "reason"],
+      "properties": {
+        "device": {"$ref": "#/$defs/device"},
+        "eligible": {"type": "boolean"},
+        "cost": {"$ref": "#/$defs/cost"},
+        "reason": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"eligible": {"const": true}}},
+          "then": {"required": ["cost"]},
+          "else": {"not": {"required": ["cost"]}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "tensor": {
+      "type": "object",
+      "required": ["id", "bytes"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "bytes": {"type": "integer", "minimum": 1},
+        "initial_device": {"$ref": "#/$defs/device"},
+        "required_device": {"$ref": "#/$defs/device"},
+        "persistent": {"type": "boolean", "default": false}
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind", "inputs", "outputs", "candidates"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["gemm", "batched_gemm", "layer_norm", "softmax", "gelu", "linear_transform", "host_irregular", "control_flow_barrier"]},
+        "inputs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "outputs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "dynamic_shape": {"type": "boolean", "default": false},
+        "control_flow_barrier": {"type": "boolean", "default": false},
+        "candidates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/candidate"}}
+      },
+      "additionalProperties": false
+    },
+    "graph": {
+      "type": "object",
+      "required": ["graph_version", "tensors", "nodes"],
+      "properties": {
+        "graph_version": {"const": "awen.partition-graph.v1"},
+        "tensors": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/tensor"}},
+        "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}}
+      },
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "objective": {"$ref": "#/$defs/objective"},
+        "seed": {"type": "integer", "minimum": 0},
+        "transfer_bandwidth_gbps": {"type": "number", "exclusiveMinimum": 0},
+        "transfer_latency_ns": {"type": "number", "minimum": 0},
+        "transfer_energy_pj_per_byte": {"type": "number", "minimum": 0},
+        "crossing_penalty_ns": {"type": "number", "minimum": 0},
+        "crossing_penalty_uj": {"type": "number", "minimum": 0},
+        "crossing_error_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "cpu_memory_budget_bytes": {"type": "integer", "minimum": 1},
+        "gpu_memory_budget_bytes": {"type": "integer", "minimum": 1},
+        "photonic_memory_budget_bytes": {"type": "integer", "minimum": 1},
+        "alternatives": {"type": "integer", "minimum": 0},
+        "max_search_states": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

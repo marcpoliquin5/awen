@@ -1,0 +1,120 @@
+{
+  "graph": {
+    "graph_version": "awen.partition-graph.v1",
+    "tensors": [
+      {"id":"x","bytes":4096,"initial_device":"cpu","persistent":true},
+      {"id":"norm","bytes":4096},
+      {"id":"wq","bytes":4096,"initial_device":"photonic","persistent":true},
+      {"id":"wk","bytes":4096,"initial_device":"photonic","persistent":true},
+      {"id":"wv","bytes":4096,"initial_device":"photonic","persistent":true},
+      {"id":"q","bytes":4096},
+      {"id":"k","bytes":4096},
+      {"id":"v","bytes":4096},
+      {"id":"scores","bytes":4096},
+      {"id":"probs","bytes":4096},
+      {"id":"context","bytes":4096},
+      {"id":"w1","bytes":4096,"initial_device":"photonic","persistent":true},
+      {"id":"hidden","bytes":4096},
+      {"id":"activated","bytes":4096},
+      {"id":"w2","bytes":4096,"initial_device":"photonic","persistent":true},
+      {"id":"output","bytes":4096,"required_device":"cpu"}
+    ],
+    "nodes": [
+      {
+        "id":"layer_norm","kind":"layer_norm","inputs":["x"],"outputs":["norm"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":100.0,"energy_uj":1.0,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"CPU normalization"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":20.0,"energy_uj":0.5,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"GPU normalization"},
+          {"device":"photonic","eligible":false,"reason":"normalization is nonlinear"}
+        ]
+      },
+      {
+        "id":"q_proj","kind":"gemm","inputs":["norm","wq"],"outputs":["q"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic projection"}
+        ]
+      },
+      {
+        "id":"k_proj","kind":"gemm","inputs":["norm","wk"],"outputs":["k"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic projection"}
+        ]
+      },
+      {
+        "id":"v_proj","kind":"gemm","inputs":["norm","wv"],"outputs":["v"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic projection"}
+        ]
+      },
+      {
+        "id":"attention_scores","kind":"batched_gemm","inputs":["q","k"],"outputs":["scores"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic attention GEMM"}
+        ]
+      },
+      {
+        "id":"softmax","kind":"softmax","inputs":["scores"],"outputs":["probs"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":100.0,"energy_uj":1.0,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"CPU softmax"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":20.0,"energy_uj":0.5,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"GPU softmax"},
+          {"device":"photonic","eligible":false,"reason":"softmax is nonlinear"}
+        ]
+      },
+      {
+        "id":"attention_value","kind":"batched_gemm","inputs":["probs","v"],"outputs":["context"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic attention GEMM"}
+        ]
+      },
+      {
+        "id":"mlp_up","kind":"gemm","inputs":["context","w1"],"outputs":["hidden"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic MLP projection"}
+        ]
+      },
+      {
+        "id":"gelu","kind":"gelu","inputs":["hidden"],"outputs":["activated"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":100.0,"energy_uj":1.0,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"CPU GELU"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":20.0,"energy_uj":0.5,"error_fraction":0.00001,"operations":1000.0,"source":"simulated"},"reason":"GPU GELU"},
+          {"device":"photonic","eligible":false,"reason":"GELU is nonlinear"}
+        ]
+      },
+      {
+        "id":"mlp_down","kind":"gemm","inputs":["activated","w2"],"outputs":["output"],
+        "candidates":[
+          {"device":"cpu","eligible":true,"cost":{"latency_ns":1000.0,"energy_uj":5.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+          {"device":"gpu","eligible":true,"cost":{"latency_ns":500.0,"energy_uj":2.0,"error_fraction":0.00001,"operations":1000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+          {"device":"photonic","eligible":true,"cost":{"latency_ns":50.0,"energy_uj":0.5,"error_fraction":0.001,"operations":1000000.0,"source":"simulated"},"reason":"photonic MLP projection"}
+        ]
+      }
+    ]
+  },
+  "options": {
+    "objective":"latency",
+    "seed":17,
+    "transfer_bandwidth_gbps":1024.0,
+    "transfer_latency_ns":0.0,
+    "transfer_energy_pj_per_byte":1.0,
+    "crossing_penalty_ns":100.0,
+    "crossing_penalty_uj":0.001,
+    "crossing_error_fraction":0.0,
+    "cpu_memory_budget_bytes":18446744073709551615,
+    "gpu_memory_budget_bytes":18446744073709551615,
+    "photonic_memory_budget_bytes":18446744073709551615,
+    "alternatives":3,
+    "max_search_states":1000000
+  }
+}

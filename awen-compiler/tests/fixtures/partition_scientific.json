@@ -1,0 +1,38 @@
+{
+  "graph": {
+    "graph_version": "awen.partition-graph.v1",
+    "tensors": [
+      {"id":"state","bytes":8192,"initial_device":"cpu","persistent":true},
+      {"id":"operator_a","bytes":65536,"initial_device":"photonic","persistent":true},
+      {"id":"stage_a","bytes":8192},
+      {"id":"operator_b","bytes":65536,"initial_device":"photonic","persistent":true},
+      {"id":"stage_b","bytes":8192},
+      {"id":"operator_c","bytes":65536,"initial_device":"photonic","persistent":true},
+      {"id":"solution","bytes":8192,"required_device":"cpu"}
+    ],
+    "nodes": [
+      {"id":"spectral_step","kind":"linear_transform","inputs":["state","operator_a"],"outputs":["stage_a"],"candidates":[
+        {"device":"cpu","eligible":true,"cost":{"latency_ns":2000.0,"energy_uj":8.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"CPU transform"},
+        {"device":"gpu","eligible":true,"cost":{"latency_ns":700.0,"energy_uj":3.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"GPU transform"},
+        {"device":"photonic","eligible":true,"cost":{"latency_ns":80.0,"energy_uj":0.7,"error_fraction":0.001,"operations":2000000.0,"source":"simulated"},"reason":"photonic transform"}
+      ]},
+      {"id":"propagate","kind":"gemm","inputs":["stage_a","operator_b"],"outputs":["stage_b"],"candidates":[
+        {"device":"cpu","eligible":true,"cost":{"latency_ns":2000.0,"energy_uj":8.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"CPU GEMM"},
+        {"device":"gpu","eligible":true,"cost":{"latency_ns":700.0,"energy_uj":3.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"GPU GEMM"},
+        {"device":"photonic","eligible":true,"cost":{"latency_ns":80.0,"energy_uj":0.7,"error_fraction":0.001,"operations":2000000.0,"source":"simulated"},"reason":"photonic GEMM"}
+      ]},
+      {"id":"inverse_step","kind":"linear_transform","inputs":["stage_b","operator_c"],"outputs":["solution"],"candidates":[
+        {"device":"cpu","eligible":true,"cost":{"latency_ns":2000.0,"energy_uj":8.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"CPU transform"},
+        {"device":"gpu","eligible":true,"cost":{"latency_ns":700.0,"energy_uj":3.0,"error_fraction":0.00001,"operations":2000000.0,"source":"simulated"},"reason":"GPU transform"},
+        {"device":"photonic","eligible":true,"cost":{"latency_ns":80.0,"energy_uj":0.7,"error_fraction":0.001,"operations":2000000.0,"source":"simulated"},"reason":"photonic transform"}
+      ]}
+    ]
+  },
+  "options": {
+    "objective":"latency","seed":9,"transfer_bandwidth_gbps":1024.0,"transfer_latency_ns":0.0,
+    "transfer_energy_pj_per_byte":1.0,"crossing_penalty_ns":100.0,"crossing_penalty_uj":0.001,
+    "crossing_error_fraction":0.0,"cpu_memory_budget_bytes":18446744073709551615,
+    "gpu_memory_budget_bytes":18446744073709551615,"photonic_memory_budget_bytes":18446744073709551615,
+    "alternatives":3,"max_search_states":1000000
+  }
+}

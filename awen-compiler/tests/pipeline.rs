@@ -275,3 +275,38 @@ fn live_channel_availability_limits_emitted_wavelength_allocation() {
         .iter()
         .all(|operation| operation.wavelength_channels.len() == 1));
 }
+
+#[test]
+fn compiler_embeds_whole_graph_trace_and_preserves_gpu_fallback_identity() {
+    let artifact = compile(
+        &program("4x4"),
+        &capabilities("2x2"),
+        CompileOptions {
+            target: TargetBackend::Gpu,
+            ..CompileOptions::default()
+        },
+    )
+    .expect("GPU compilation should succeed");
+
+    assert_eq!(
+        artifact.partition_trace.trace_version,
+        "awen.partition-trace.v1"
+    );
+    assert_eq!(artifact.partition_trace.nodes.len(), 1);
+    assert_eq!(
+        artifact.partition_trace.selected.assignments[&artifact.placement[0].op_id],
+        TargetBackend::Gpu
+    );
+    assert_eq!(artifact.photonic_ir.host_fallback_ops.len(), 1);
+    assert_eq!(
+        artifact.photonic_ir.host_fallback_ops[0].target,
+        TargetBackend::Gpu
+    );
+    assert!(artifact.device_ir.commands.iter().any(|command| matches!(
+        command,
+        awen_compiler::lowering::DeviceCommand::HostGemm {
+            target: TargetBackend::Gpu,
+            ..
+        }
+    )));
+}

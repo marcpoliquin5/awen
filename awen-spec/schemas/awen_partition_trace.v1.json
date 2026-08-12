@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_partition_trace.v1.json",
+  "title": "AWEN Whole-Graph Partition Trace v1",
+  "type": "object",
+  "required": ["trace_version", "graph_version", "graph_fingerprint", "objective", "search_strategy", "selected", "alternatives", "nodes", "transfers", "regions", "profiler_events", "visualization_edges", "rationale"],
+  "properties": {
+    "trace_version": {"const": "awen.partition-trace.v1"},
+    "graph_version": {"const": "awen.partition-graph.v1"},
+    "graph_fingerprint": {"type": "string", "pattern": "^fnv1a64:[0-9a-f]{16}$"},
+    "objective": {"$ref": "awen_partition_graph.v1.json#/$defs/objective"},
+    "search_strategy": {"type": "string", "minLength": 1},
+    "selected": {"$ref": "#/$defs/alternative"},
+    "alternatives": {"type": "array", "items": {"$ref": "#/$defs/alternative"}},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node_trace"}},
+    "transfers": {"type": "array", "items": {"$ref": "#/$defs/transfer"}},
+    "regions": {"type": "array", "items": {"$ref": "#/$defs/region"}},
+    "profiler_events": {"type": "array", "items": {"$ref": "#/$defs/profiler_event"}},
+    "visualization_edges": {"type": "array", "items": {"$ref": "#/$defs/visualization_edge"}},
+    "rationale": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "totals": {
+      "type": "object",
+      "required": ["latency_ns", "energy_uj", "error_fraction", "operations", "throughput_gops", "optical_electrical_boundary_crossings"],
+      "properties": {
+        "latency_ns": {"type": "number", "minimum": 0},
+        "energy_uj": {"type": "number", "minimum": 0},
+        "error_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "operations": {"type": "number", "minimum": 0},
+        "throughput_gops": {"type": "number", "minimum": 0},
+        "optical_electrical_boundary_crossings": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "memory_peak": {
+      "type": "object",
+      "required": ["device", "bytes", "budget_bytes"],
+      "properties": {
+        "device": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "bytes": {"type": "integer", "minimum": 0},
+        "budget_bytes": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "alternative": {
+      "type": "object",
+      "required": ["assignments", "totals", "objective_score", "memory_peaks"],
+      "properties": {
+        "assignments": {"type": "object", "additionalProperties": {"$ref": "awen_partition_graph.v1.json#/$defs/device"}},
+        "totals": {"$ref": "#/$defs/totals"},
+        "objective_score": {"type": "number"},
+        "memory_peaks": {"type": "array", "items": {"$ref": "#/$defs/memory_peak"}}
+      },
+      "additionalProperties": false
+    },
+    "node_trace": {
+      "type": "object",
+      "required": ["node_id", "kind", "selected_device", "local_best_device", "candidates", "rationale"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "awen_partition_graph.v1.json#/$defs/node/properties/kind"},
+        "selected_device": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "local_best_device": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "candidates": {"type": "array", "items": {"$ref": "awen_partition_graph.v1.json#/$defs/candidate"}},
+        "rationale": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "transfer": {
+      "type": "object",
+      "required": ["id", "tensor", "from", "to", "bytes", "latency_ns", "energy_uj", "error_fraction", "optical_electrical_boundary", "consumer_nodes"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "tensor": {"type": "string", "minLength": 1},
+        "from": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "to": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "latency_ns": {"type": "number", "minimum": 0},
+        "energy_uj": {"type": "number", "minimum": 0},
+        "error_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "optical_electrical_boundary": {"type": "boolean"},
+        "consumer_nodes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      },
+      "additionalProperties": false
+    },
+    "region": {
+      "type": "object",
+      "required": ["id", "device", "nodes", "external_inputs", "external_outputs", "fused", "node_cost"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^region-[0-9]{3}$"},
+        "device": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "nodes": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "external_inputs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "external_outputs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "fused": {"type": "boolean"},
+        "node_cost": {"$ref": "awen_partition_graph.v1.json#/$defs/cost"}
+      },
+      "additionalProperties": false
+    },
+    "profiler_event": {
+      "type": "object",
+      "required": ["sequence", "kind", "name", "bytes", "estimated_latency_ns", "estimated_energy_uj"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 0},
+        "kind": {"enum": ["tensor_transfer", "optical_electrical_boundary", "region_execute"]},
+        "name": {"type": "string", "minLength": 1},
+        "tensor": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "from": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "to": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "bytes": {"type": "integer", "minimum": 0},
+        "estimated_latency_ns": {"type": "number", "minimum": 0},
+        "estimated_energy_uj": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "visualization_edge": {
+      "type": "object",
+      "required": ["tensor", "consumer", "from", "to", "crosses_device"],
+      "properties": {
+        "tensor": {"type": "string", "minLength": 1},
+        "producer": {"type": "string", "minLength": 1},
+        "consumer": {"type": "string", "minLength": 1},
+        "from": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "to": {"$ref": "awen_partition_graph.v1.json#/$defs/device"},
+        "crosses_device": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

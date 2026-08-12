@@ -63,9 +63,21 @@ The runtime has extensive scheduler types/tests for dependencies, resources, coh
 
 Before this branch, no scheduler/partitioner modeled CPU/GPU/photonics placement, tensor residency, DAC/ADC conversion edges, host transfer, or region fusion.
 
-The new compiler makes per-GEMM placement decisions and records CPU and photonic latency/energy/throughput/effective-bit estimates. A standalone photonic selection always includes two optical/electrical boundaries, host transfer, reconfiguration, tiled conversion/compute time, laser energy, and ADC/DAC energy. It can optimize for latency, energy, accuracy, or throughput and fails forced photonic compilation when precision/capability requirements cannot be met.
+The compiler now records CPU, GPU, and photonic latency, energy, throughput, and
+effective-bit estimates. Its full-system cost model includes provenance,
+uncertainty, observations, calibration fitting, batching, queueing, overlap,
+residency, and deterministic autotuning. It fails forced photonic compilation
+when precision, capability, health, calibration, or cost-model requirements
+cannot be met.
 
-This first model is dimensional and deterministic, not fitted to hardware. It does not optimize whole graph regions, tensor residency, overlap, batching, queueing, or uncertainty. Crossing-aware region partitioning is #9; a provenance-aware measured cost model/autotuner is #10.
+The crossing-aware partitioner optimizes complete acyclic tensor graphs rather
+than selecting isolated GEMMs. It accounts for deduplicated tensor transfers,
+shared-operand fan-out, optical/electrical boundaries, required output
+residency, fusion barriers, and peak CPU/GPU/photonic memory. Compilation
+artifacts expose ranked assignments, fused regions, transfers, crossings,
+memory peaks, profiler events, visualization edges, local-versus-global
+rationales, and a deterministic request fingerprint. The implementation and
+contracts are specified by AEP-0013 and AEP-0014.
 
 ## Calibration and control
 
