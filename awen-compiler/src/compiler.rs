@@ -472,7 +472,6 @@ fn graph_internal_cost(
     photonic: bool,
 ) -> PartitionCost {
     let excluded_latency = estimate.latency_breakdown_ns.host_transfer
-        + estimate.latency_breakdown_ns.memory
         + if photonic {
             estimate.latency_breakdown_ns.boundary_conversion
                 + estimate.latency_breakdown_ns.dac
@@ -481,7 +480,6 @@ fn graph_internal_cost(
             0.0
         };
     let excluded_energy = estimate.energy_breakdown_uj.host_transfer
-        + estimate.energy_breakdown_uj.memory
         + if photonic {
             estimate.energy_breakdown_uj.dac + estimate.energy_breakdown_uj.adc
         } else {

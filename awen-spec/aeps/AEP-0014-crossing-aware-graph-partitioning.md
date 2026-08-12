@@ -77,10 +77,11 @@ transferred once, with every consumer listed. A second target device requires a
 second transfer. Required final residency is represented by a transfer with no
 consumer node.
 
-Compiler-derived node costs remove host transfer, generic memory movement, and
-photonic boundary conversion from per-operation estimates before graph search.
-The graph transfer model reintroduces those terms once, preventing isolated-op
-double counting and allowing intermediate residency to eliminate crossings.
+Compiler-derived node costs remove host-link transfer and photonic boundary
+conversion from per-operation estimates before graph search while retaining
+local device-memory access. The graph transfer model reintroduces inter-device
+movement and conversion once, preventing isolated-op double counting and
+allowing intermediate residency to eliminate crossings.
 
 The supported objectives are minimum latency, minimum energy, minimum numerical
 error, and maximum throughput. An individually faster photonic operation must

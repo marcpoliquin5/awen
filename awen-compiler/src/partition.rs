@@ -637,7 +637,7 @@ fn beam_search(
     choices: &[Vec<TargetBackend>],
     options: PartitionOptions,
 ) -> Result<Vec<EvaluatedAssignment>> {
-    let beam_width = options.max_search_states.min(4096).max(1);
+    let beam_width = options.max_search_states.clamp(1, 4096);
     let mut states = vec![Vec::new()];
     for (depth, node_choices) in choices.iter().enumerate() {
         let mut expanded = Vec::with_capacity(states.len() * node_choices.len());
