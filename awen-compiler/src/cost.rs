@@ -1,5 +1,6 @@
 use crate::capability::{
-    AccumulationMode, BackendHealth, BitSlicingMode, DeviceCapabilities, SaturationMode,
+    AccumulationMode, BackendHealth, BitSlicingMode, CalibrationProfile, DeviceCapabilities,
+    SaturationMode,
 };
 use crate::ir::{DType, GemmShape, Layout};
 use crate::precision::{AccumulatorDType, ErrorAttribution};
@@ -374,7 +375,8 @@ impl CostModelInputs {
         let profile_uncertainty = capabilities
             .calibration_profile
             .as_ref()
-            .map_or(0.05, |profile| profile.uncertainty.max(0.001));
+            .map_or(0.05, calibration_error_fraction)
+            .max(0.001);
         let parameters = [
             "host/link/memory transfer",
             "DAC/ADC conversion",
@@ -406,7 +408,10 @@ impl CostModelInputs {
             support_power_mw: (capabilities.total_power_budget_mw - capabilities.laser_power_mw)
                 .max(0.0),
             signal_to_noise_ratio_db: 6.02 * f64::from(capabilities.effective_bits) + 1.76,
-            insertion_loss_db: 0.0,
+            insertion_loss_db: capabilities
+                .calibration_profile
+                .as_ref()
+                .map_or(0.0, |profile| profile.insertion_loss_db),
             drift_fraction: 0.0,
             disabled_component_fraction: 0.0,
             latency_calibration_factor: 1.0,
@@ -449,7 +454,8 @@ impl CostModelInputs {
             uncertainty_fraction: capabilities
                 .calibration_profile
                 .as_ref()
-                .map_or(0.05, |profile| profile.uncertainty.max(0.001)),
+                .map_or(0.05, calibration_error_fraction)
+                .max(0.001),
         });
         model
     }
@@ -1348,7 +1354,7 @@ pub fn estimate_photonic_plan_with_profile(
     let calibration_uncertainty = capabilities
         .calibration_profile
         .as_ref()
-        .map_or(0.0, |profile| profile.uncertainty);
+        .map_or(0.0, calibration_error_fraction);
     let effective_bits = capabilities
         .effective_bits
         .saturating_mul(plan.bit_slices)
@@ -1746,7 +1752,7 @@ fn fingerprint(
     let calibration = capabilities
         .calibration_profile
         .as_ref()
-        .map_or("none", |profile| profile.id.as_str());
+        .map_or("none", |profile| profile.fingerprint.as_str());
     let model_json = serde_json::to_string(model).expect("cost model is serializable");
     let profile_json = serde_json::to_string(&profile).expect("cost profile is serializable");
     let input = format!(
@@ -1793,6 +1799,22 @@ fn fnv1a64(bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(0x100000001b3);
     }
     hash
+}
+
+fn calibration_error_fraction(profile: &CalibrationProfile) -> f64 {
+    let measured_count = profile.cells.len() + profile.spare_cells.len() + profile.channels.len();
+    let measured_uncertainty = profile
+        .cells
+        .iter()
+        .map(|cell| cell.uncertainty)
+        .chain(profile.spare_cells.iter().map(|cell| cell.uncertainty))
+        .chain(profile.channels.iter().map(|channel| channel.uncertainty))
+        .sum::<f64>()
+        / measured_count.max(1) as f64;
+    profile.uncertainty
+        + measured_uncertainty
+        + profile.phase_error_radians.abs() * 0.01
+        + profile.insertion_loss_db * 0.000_1
 }
 
 pub fn stable_fingerprint_bytes(bytes: &[u8]) -> u64 {
@@ -1965,7 +1987,10 @@ mod tests {
         )
         .expect("autotune");
         let mut changed = capabilities.clone();
-        changed.calibration_profile.as_mut().expect("profile").id = "new-calibration".to_string();
+        let changed_profile = changed.calibration_profile.as_mut().expect("profile");
+        changed_profile.id = "new-calibration".to_string();
+        changed_profile.fingerprint =
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
         let second = autotune(
             shape,
             DType::F16,

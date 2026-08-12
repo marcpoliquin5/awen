@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import math
+import struct
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 
@@ -17,6 +18,7 @@ CAPABILITY_VERSION = "awen.device-capability.v1"
 HEALTH_VERSION = "awen.backend-health.v1"
 RUNTIME_ABI_VERSION = "awen.runtime-backend.v1"
 PLUGIN_ABI_VERSION = "awen.backend-plugin.v1"
+CALIBRATION_SNAPSHOT_VERSION = "awen.calibration-snapshot.v1"
 
 
 class CapabilityError(ValueError):
@@ -49,15 +51,61 @@ class CalibrationRequirements:
 
 
 @dataclass(frozen=True)
-class CalibrationProfile:
-    id: str
-    backend_id: str
-    measured_at: str
+class CalibrationEnvironment:
     temperature_c: float
+    laser_power_mw: float
+
+
+@dataclass(frozen=True)
+class CalibrationCell:
+    id: str
+    row: int
+    column: int
     gain: float
     offset: float
     phase_error_radians: float
+    insertion_loss_db: float
     uncertainty: float
+
+
+@dataclass(frozen=True)
+class CalibrationSpareCell:
+    id: str
+    gain: float
+    offset: float
+    phase_error_radians: float
+    insertion_loss_db: float
+    uncertainty: float
+
+
+@dataclass(frozen=True)
+class CalibrationChannel:
+    id: str
+    wavelength_nm: float
+    gain: float
+    phase_error_radians: float
+    insertion_loss_db: float
+    uncertainty: float
+
+
+@dataclass(frozen=True)
+class CalibrationProfile:
+    snapshot_version: str
+    id: str
+    fingerprint: str
+    parent_id: Optional[str]
+    backend_id: str
+    topology_fingerprint: str
+    measured_at: str
+    environment: CalibrationEnvironment
+    gain: float
+    offset: float
+    phase_error_radians: float
+    insertion_loss_db: float
+    uncertainty: float
+    cells: Tuple[CalibrationCell, ...]
+    spare_cells: Tuple[CalibrationSpareCell, ...]
+    channels: Tuple[CalibrationChannel, ...]
 
 
 @dataclass(frozen=True)
@@ -385,11 +433,78 @@ class DeviceCapabilities:
             profile = self.calibration_profile
             if profile.backend_id != self.backend_id:
                 raise CapabilityError("calibration backend does not match capability")
-            if not profile.id or profile.gain == 0:
+            if profile.snapshot_version != CALIBRATION_SNAPSHOT_VERSION:
+                raise CapabilityError("unsupported calibration snapshot version")
+            if not profile.id or not profile.fingerprint or profile.gain == 0:
                 raise CapabilityError("invalid calibration identity or gain")
+            if not _valid_calibration_fingerprint(profile.fingerprint):
+                raise CapabilityError("invalid calibration fingerprint")
+            if profile.parent_id is not None and (
+                not profile.parent_id or profile.parent_id == profile.id
+            ):
+                raise CapabilityError("invalid calibration parent id")
+            if profile.topology_fingerprint != _topology_fingerprint(self):
+                raise CapabilityError("calibration topology fingerprint mismatch")
             _timestamp(profile.measured_at, "calibration measured_at")
-            if profile.uncertainty < 0:
-                raise CapabilityError("calibration uncertainty must be non-negative")
+            if profile.environment.laser_power_mw < 0:
+                raise CapabilityError("calibration laser power must be non-negative")
+            if profile.environment.laser_power_mw > self.total_power_budget_mw:
+                raise CapabilityError("calibration laser power exceeds device budget")
+            _validate_transfer(
+                profile.gain,
+                profile.offset,
+                profile.phase_error_radians,
+                profile.insertion_loss_db,
+                profile.uncertainty,
+                "calibration",
+            )
+            component_ids = []
+            coordinates = []
+            for cell in profile.cells:
+                component_ids.append(cell.id)
+                coordinates.append((cell.row, cell.column))
+                if not 0 <= cell.row < self.matrix_core.m or not 0 <= cell.column < self.matrix_core.n:
+                    raise CapabilityError("calibration cell lies outside matrix topology")
+                _validate_transfer(
+                    cell.gain,
+                    cell.offset,
+                    cell.phase_error_radians,
+                    cell.insertion_loss_db,
+                    cell.uncertainty,
+                    "cell calibration",
+                )
+            for spare in profile.spare_cells:
+                component_ids.append(spare.id)
+                _validate_transfer(
+                    spare.gain,
+                    spare.offset,
+                    spare.phase_error_radians,
+                    spare.insertion_loss_db,
+                    spare.uncertainty,
+                    "spare-cell calibration",
+                )
+            _non_empty_unique(component_ids, "calibration cells", allow_empty=True)
+            if len(coordinates) != len(set(coordinates)):
+                raise CapabilityError("calibration cell coordinates must be unique")
+            _non_empty_unique(
+                [channel.id for channel in profile.channels],
+                "calibration channels",
+                allow_empty=True,
+            )
+            calibrated_wavelengths = [channel.wavelength_nm for channel in profile.channels]
+            if len(calibrated_wavelengths) != len(set(calibrated_wavelengths)):
+                raise CapabilityError("calibration channel wavelengths must be unique")
+            for channel in profile.channels:
+                if channel.wavelength_nm not in self.supported_wavelengths_nm:
+                    raise CapabilityError("calibration channel is outside device topology")
+                _validate_transfer(
+                    channel.gain,
+                    0.0,
+                    channel.phase_error_radians,
+                    channel.insertion_loss_db,
+                    channel.uncertainty,
+                    "channel calibration",
+                )
 
     def operation(self, name: str) -> Optional[OperationCapability]:
         return next(
@@ -410,6 +525,7 @@ class BackendHealth:
     disabled_components: Tuple[str, ...]
     unavailable_resources: Tuple[str, ...]
     calibration_profile_id: Optional[str]
+    calibration_fingerprint: Optional[str]
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "BackendHealth":
@@ -424,7 +540,12 @@ class BackendHealth:
             "disabled_components",
             "unavailable_resources",
         }
-        _strict_keys(value, required, {"calibration_profile_id"}, "health")
+        _strict_keys(
+            value,
+            required,
+            {"calibration_profile_id", "calibration_fingerprint"},
+            "health",
+        )
         result = cls(
             health_version=str(value["health_version"]),
             backend_id=str(value["backend_id"]),
@@ -452,6 +573,11 @@ class BackendHealth:
                 if value.get("calibration_profile_id") is not None
                 else None
             ),
+            calibration_fingerprint=(
+                str(value["calibration_fingerprint"])
+                if value.get("calibration_fingerprint") is not None
+                else None
+            ),
         )
         result.validate()
         return result
@@ -469,6 +595,18 @@ class BackendHealth:
         _non_empty_unique(
             self.unavailable_resources, "unavailable resources", allow_empty=True
         )
+        if self.calibration_profile_id == "" or self.calibration_fingerprint == "":
+            raise CapabilityError("calibration health identifiers must not be empty")
+        if self.calibration_fingerprint is not None and not _valid_calibration_fingerprint(
+            self.calibration_fingerprint
+        ):
+            raise CapabilityError("invalid health calibration fingerprint")
+        if (self.calibration_profile_id is None) != (
+            self.calibration_fingerprint is None
+        ):
+            raise CapabilityError(
+                "calibration profile id and fingerprint must be provided together"
+            )
 
 
 @dataclass(frozen=True)
@@ -483,6 +621,18 @@ class BackendSnapshot:
             raise CapabilityError("health backend does not match capability")
         if self.health.available_channels > self.capabilities.simultaneous_channels:
             raise CapabilityError("health channel count exceeds capability")
+        profile = self.capabilities.calibration_profile
+        if profile is not None:
+            disabled_channels = sum(
+                channel.id in self.health.disabled_components
+                for channel in profile.channels
+            )
+            if self.health.available_channels > (
+                self.capabilities.simultaneous_channels - disabled_channels
+            ):
+                raise CapabilityError(
+                    "health channel count contradicts disabled calibrated channels"
+                )
 
     def negotiate_gemm(
         self,
@@ -504,6 +654,20 @@ class BackendSnapshot:
             reject("no_channels", "backend has no available wavelength channels")
         if "matrix_core" in self.health.unavailable_resources:
             reject("matrix_core_unavailable", "the matrix core is unavailable")
+        profile = self.capabilities.calibration_profile
+        if profile is not None:
+            disabled_cells = sum(
+                cell.id in self.health.disabled_components for cell in profile.cells
+            )
+            healthy_spares = sum(
+                spare.id not in self.health.disabled_components
+                for spare in profile.spare_cells
+            )
+            if disabled_cells > healthy_spares:
+                reject(
+                    "calibration_remap_capacity_exhausted",
+                    "disabled calibrated cells exceed healthy spare capacity",
+                )
         operation = self.capabilities.operation("gemm")
         if operation is None:
             reject("operation_unsupported", "backend does not advertise GEMM")
@@ -541,6 +705,11 @@ class BackendSnapshot:
             return
         if self.health.calibration_profile_id != profile.id:
             reject("calibration_mismatch", "health does not confirm calibration profile")
+        if self.health.calibration_fingerprint != profile.fingerprint:
+            reject(
+                "calibration_fingerprint_mismatch",
+                "health does not confirm exact calibration fingerprint",
+            )
         measured = _timestamp(profile.measured_at, "calibration measured_at")
         observed = _timestamp(self.health.observed_at, "health observed_at")
         age = int((observed - measured).total_seconds())
@@ -548,7 +717,7 @@ class BackendSnapshot:
             reject("calibration_from_future", "calibration is later than health snapshot")
         elif age > requirements.maximum_age_seconds:
             reject("calibration_expired", "calibration profile has expired")
-        if abs(self.health.temperature_c - profile.temperature_c) > requirements.temperature_tolerance_c:
+        if abs(self.health.temperature_c - profile.environment.temperature_c) > requirements.temperature_tolerance_c:
             reject("temperature_out_of_range", "temperature is outside calibration tolerance")
         if self.health.drift > requirements.drift_tolerance:
             reject("drift_out_of_range", "drift exceeds calibration tolerance")
@@ -576,27 +745,205 @@ def _operation(value: Mapping[str, Any]) -> OperationCapability:
 
 def _calibration_profile(value: Mapping[str, Any]) -> CalibrationProfile:
     fields = {
+        "snapshot_version",
         "id",
+        "fingerprint",
         "backend_id",
+        "topology_fingerprint",
         "measured_at",
-        "temperature_c",
+        "environment",
         "gain",
         "offset",
         "phase_error_radians",
+        "insertion_loss_db",
         "uncertainty",
+        "cells",
+        "spare_cells",
+        "channels",
     }
-    _strict_keys(value, fields, set(), "calibration_profile")
+    _strict_keys(value, fields, {"parent_id"}, "calibration_profile")
+    environment = _mapping(value["environment"], "calibration environment")
+    _strict_keys(
+        environment,
+        {"temperature_c", "laser_power_mw"},
+        set(),
+        "calibration environment",
+    )
     return CalibrationProfile(
+        snapshot_version=str(value["snapshot_version"]),
         id=str(value["id"]),
+        fingerprint=str(value["fingerprint"]),
+        parent_id=(
+            str(value["parent_id"]) if value.get("parent_id") is not None else None
+        ),
         backend_id=str(value["backend_id"]),
+        topology_fingerprint=str(value["topology_fingerprint"]),
         measured_at=str(value["measured_at"]),
-        temperature_c=_number(value["temperature_c"], "temperature_c"),
+        environment=CalibrationEnvironment(
+            temperature_c=_number(
+                environment["temperature_c"],
+                "calibration environment temperature_c",
+            ),
+            laser_power_mw=_number(
+                environment["laser_power_mw"],
+                "calibration environment laser_power_mw",
+            ),
+        ),
         gain=_number(value["gain"], "gain"),
         offset=_number(value["offset"], "offset"),
         phase_error_radians=_number(
             value["phase_error_radians"], "phase_error_radians"
         ),
+        insertion_loss_db=_number(
+            value["insertion_loss_db"], "insertion_loss_db"
+        ),
         uncertainty=_number(value["uncertainty"], "uncertainty"),
+        cells=tuple(
+            _calibration_cell(_mapping(item, "calibration cell"))
+            for item in _sequence(value["cells"], "calibration cells")
+        ),
+        spare_cells=tuple(
+            _calibration_spare_cell(_mapping(item, "calibration spare cell"))
+            for item in _sequence(value["spare_cells"], "calibration spare cells")
+        ),
+        channels=tuple(
+            _calibration_channel(_mapping(item, "calibration channel"))
+            for item in _sequence(value["channels"], "calibration channels")
+        ),
+    )
+
+
+def _calibration_cell(value: Mapping[str, Any]) -> CalibrationCell:
+    fields = {
+        "id",
+        "row",
+        "column",
+        "gain",
+        "offset",
+        "phase_error_radians",
+        "insertion_loss_db",
+        "uncertainty",
+    }
+    _strict_keys(value, fields, set(), "calibration cell")
+    return CalibrationCell(
+        id=str(value["id"]),
+        row=_integer(value["row"], "calibration cell row"),
+        column=_integer(value["column"], "calibration cell column"),
+        gain=_number(value["gain"], "calibration cell gain"),
+        offset=_number(value["offset"], "calibration cell offset"),
+        phase_error_radians=_number(
+            value["phase_error_radians"], "calibration cell phase error"
+        ),
+        insertion_loss_db=_number(
+            value["insertion_loss_db"], "calibration cell insertion loss"
+        ),
+        uncertainty=_number(value["uncertainty"], "calibration cell uncertainty"),
+    )
+
+
+def _calibration_spare_cell(value: Mapping[str, Any]) -> CalibrationSpareCell:
+    fields = {
+        "id",
+        "gain",
+        "offset",
+        "phase_error_radians",
+        "insertion_loss_db",
+        "uncertainty",
+    }
+    _strict_keys(value, fields, set(), "calibration spare cell")
+    return CalibrationSpareCell(
+        id=str(value["id"]),
+        gain=_number(value["gain"], "calibration spare gain"),
+        offset=_number(value["offset"], "calibration spare offset"),
+        phase_error_radians=_number(
+            value["phase_error_radians"], "calibration spare phase error"
+        ),
+        insertion_loss_db=_number(
+            value["insertion_loss_db"], "calibration spare insertion loss"
+        ),
+        uncertainty=_number(value["uncertainty"], "calibration spare uncertainty"),
+    )
+
+
+def _calibration_channel(value: Mapping[str, Any]) -> CalibrationChannel:
+    fields = {
+        "id",
+        "wavelength_nm",
+        "gain",
+        "phase_error_radians",
+        "insertion_loss_db",
+        "uncertainty",
+    }
+    _strict_keys(value, fields, set(), "calibration channel")
+    return CalibrationChannel(
+        id=str(value["id"]),
+        wavelength_nm=_number(
+            value["wavelength_nm"], "calibration channel wavelength"
+        ),
+        gain=_number(value["gain"], "calibration channel gain"),
+        phase_error_radians=_number(
+            value["phase_error_radians"], "calibration channel phase error"
+        ),
+        insertion_loss_db=_number(
+            value["insertion_loss_db"], "calibration channel insertion loss"
+        ),
+        uncertainty=_number(value["uncertainty"], "calibration channel uncertainty"),
+    )
+
+
+def _topology_fingerprint(capabilities: DeviceCapabilities) -> str:
+    payload = bytearray(capabilities.backend_id.encode())
+    for dimension in (
+        capabilities.matrix_core.m,
+        capabilities.matrix_core.n,
+        capabilities.matrix_core.k,
+        capabilities.simultaneous_channels,
+    ):
+        payload.extend(struct.pack("<Q", dimension))
+    for wavelength in capabilities.supported_wavelengths_nm:
+        payload.extend(struct.pack("<d", wavelength))
+    fingerprint = 0xCBF29CE484222325
+    for byte in payload:
+        fingerprint ^= byte
+        fingerprint = (fingerprint * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return "fnv1a64:{:016x}".format(fingerprint)
+
+
+def _validate_transfer(
+    gain: float,
+    offset: float,
+    phase_error_radians: float,
+    insertion_loss_db: float,
+    uncertainty: float,
+    name: str,
+) -> None:
+    if not all(
+        math.isfinite(value)
+        for value in (
+            gain,
+            offset,
+            phase_error_radians,
+            insertion_loss_db,
+            uncertainty,
+        )
+    ):
+        raise CapabilityError("{} transfer fields must be finite".format(name))
+    if gain == 0:
+        raise CapabilityError("{} gain must be non-zero".format(name))
+    if insertion_loss_db < 0 or uncertainty < 0:
+        raise CapabilityError(
+            "{} insertion loss and uncertainty must be non-negative".format(name)
+        )
+
+
+def _valid_calibration_fingerprint(value: str) -> bool:
+    prefix, separator, digest = value.partition(":")
+    expected_length = {"sha256": 64, "fnv1a64": 16}.get(prefix)
+    return (
+        separator == ":"
+        and expected_length is not None
+        and len(digest) == expected_length
+        and all(character in "0123456789abcdef" for character in digest)
     )
 
 

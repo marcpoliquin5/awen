@@ -8,5 +8,6 @@
   "available_channels": 2,
   "disabled_components": [],
   "unavailable_resources": [],
-  "calibration_profile_id": "reference-2x2-calibration-v1"
+  "calibration_profile_id": "reference-2x2-calibration-v1",
+  "calibration_fingerprint": "sha256:87a0fefcdae9f7b357e041ae13d05b0d7306808fa592bd32732ebac3d3e3ae37"
 }

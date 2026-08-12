@@ -8,5 +8,6 @@
   "available_channels": 16,
   "disabled_components": [],
   "unavailable_resources": [],
-  "calibration_profile_id": "reference-room-temperature-v1"
+  "calibration_profile_id": "reference-room-temperature-v1",
+  "calibration_fingerprint": "sha256:ef64f6a8fd46dfaaf57cd499e664a958faca5f99e6ee21bde8b0a54dca1bb8e6"
 }

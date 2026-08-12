@@ -1,0 +1,82 @@
+name: Calibration-aware compilation conformance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "awen-compiler/**"
+      - "awen-runtime/plugins/reference_sim/**"
+      - "awen-runtime/tests/backend_capability_conformance.rs"
+      - "awen-runtime/tests/cost_model_conformance.rs"
+      - "awen-runtime/tests/plugin_discovery.rs"
+      - "awen-runtime/tests/precision_conformance.rs"
+      - "awen-ecosystem/python_awen/awen_py/**"
+      - "awen-ecosystem/python_awen/tests/test_capabilities.py"
+      - "awen-spec/schemas/awen_calibration_snapshot.v1.json"
+      - "awen-spec/schemas/awen_compilation_artifact.v1.json"
+      - "awen-spec/schemas/awen_artifact_refresh.v1.json"
+      - "awen-spec/schemas/awen_backend_health.v1.json"
+      - "awen-spec/schemas/awen_device_capability.v1.json"
+      - "awen-spec/schemas/awen_photonic_ir.classical.v1.json"
+      - "awen-spec/schemas/awen_device_ir.v1.json"
+      - "awen-spec/aeps/AEP-0018-calibration-aware-compilation.md"
+      - "awen-spec/specs/calibration-aware-compilation.md"
+      - ".github/workflows/calibration-conformance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "awen-compiler/**"
+      - "awen-runtime/plugins/reference_sim/**"
+      - "awen-runtime/tests/backend_capability_conformance.rs"
+      - "awen-runtime/tests/cost_model_conformance.rs"
+      - "awen-runtime/tests/plugin_discovery.rs"
+      - "awen-runtime/tests/precision_conformance.rs"
+      - "awen-ecosystem/python_awen/awen_py/**"
+      - "awen-ecosystem/python_awen/tests/test_capabilities.py"
+      - "awen-spec/schemas/awen_calibration_snapshot.v1.json"
+      - "awen-spec/schemas/awen_compilation_artifact.v1.json"
+      - "awen-spec/schemas/awen_artifact_refresh.v1.json"
+      - "awen-spec/schemas/awen_backend_health.v1.json"
+      - "awen-spec/schemas/awen_device_capability.v1.json"
+      - "awen-spec/schemas/awen_photonic_ir.classical.v1.json"
+      - "awen-spec/schemas/awen_device_ir.v1.json"
+      - "awen-spec/aeps/AEP-0018-calibration-aware-compilation.md"
+      - "awen-spec/specs/calibration-aware-compilation.md"
+      - ".github/workflows/calibration-conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calibration:
+    name: Calibration snapshots, remapping, and refresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: awen-ecosystem/python_awen/pyproject.toml
+      - name: Install Python conformance dependencies
+        run: python -m pip install -e "awen-ecosystem/python_awen[test]"
+      - name: Format
+        run: |
+          cargo fmt --manifest-path awen-compiler/Cargo.toml --all -- --check
+          cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
+      - name: Lint calibration compiler surfaces
+        run: cargo clippy --manifest-path awen-compiler/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Run calibration-aware compiler integration
+        run: cargo test --manifest-path awen-compiler/Cargo.toml --test calibration_aware
+      - name: Validate serialized calibration artifacts
+        run: |
+          cargo test --manifest-path awen-runtime/Cargo.toml --test backend_capability_conformance
+          cargo test --manifest-path awen-runtime/Cargo.toml --test cost_model_conformance
+          cargo test --manifest-path awen-runtime/Cargo.toml --test plugin_discovery
+          cargo test --manifest-path awen-runtime/Cargo.toml --test precision_conformance
+      - name: Validate Python calibration contracts
+        run: python -m pytest awen-ecosystem/python_awen/tests/test_capabilities.py -q

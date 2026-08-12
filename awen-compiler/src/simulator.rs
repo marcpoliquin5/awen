@@ -407,8 +407,13 @@ fn simulate_photonic_gemm(
     ];
     if let Some(calibration) = &precision.calibration_compensation {
         provenance.push(format!(
-            "calibration: measured profile {} with inverse transfer compensation",
-            calibration.profile_id
+            "calibration: measured snapshot {} ({}) with inverse gain/phase/loss compensation",
+            calibration.profile_id, calibration.snapshot_fingerprint
+        ));
+        provenance.push(format!(
+            "calibration routing: channels=[{}], cell_remaps={}",
+            matching_tiles[0].channel_ids.join(","),
+            matching_tiles[0].cell_remaps.len()
         ));
     }
     Ok(SimulatedOutput {

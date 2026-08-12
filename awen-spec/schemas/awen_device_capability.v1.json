@@ -134,28 +134,7 @@
       "additionalProperties": false
     },
     "calibration_profile": {
-      "type": "object",
-      "required": [
-        "id",
-        "backend_id",
-        "measured_at",
-        "temperature_c",
-        "gain",
-        "offset",
-        "phase_error_radians",
-        "uncertainty"
-      ],
-      "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "backend_id": { "type": "string", "minLength": 1 },
-        "measured_at": { "type": "string", "format": "date-time" },
-        "temperature_c": { "type": "number" },
-        "gain": { "type": "number" },
-        "offset": { "type": "number" },
-        "phase_error_radians": { "type": "number" },
-        "uncertainty": { "type": "number", "minimum": 0 }
-      },
-      "additionalProperties": false
+      "$ref": "awen_calibration_snapshot.v1.json"
     },
     "host_bandwidth_gbps": { "type": "number", "exclusiveMinimum": 0 },
     "link_bandwidth_gbps": { "type": "number", "exclusiveMinimum": 0 },

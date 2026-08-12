@@ -8,6 +8,7 @@
 //! simulation, capability/cost selection, and conformance measurement.
 
 pub mod awenblas;
+pub mod calibration;
 pub mod capability;
 pub mod compiler;
 pub mod cost;
@@ -26,14 +27,20 @@ pub use awenblas::kernels::{
     KernelRequest, KernelResult, KernelSimulatorOptions, KernelStructure, KernelTensor,
     PhaseConvention, AWENBLAS_BENCHMARK_VERSION, AWENBLAS_VERSION,
 };
+pub use calibration::{
+    CalibrationArtifactRecord, CalibrationDecisionImpact, CellRemap, EffectiveTransfer,
+    CALIBRATION_DECISION_VERSION,
+};
 pub use capability::{
-    AccumulationMode, BackendHealth, BackendSnapshot, BitSlicingMode, CalibrationProfile,
+    AccumulationMode, BackendHealth, BackendSnapshot, BitSlicingMode, CalibrationCell,
+    CalibrationChannel, CalibrationEnvironment, CalibrationProfile, CalibrationSpareCell,
     CapabilityNegotiation, DeviceCapabilities, DynamicRange, HealthStatus, MatrixCore,
-    OperationCapability, OperationKind, SaturationMode, CAPABILITY_VERSION, HEALTH_VERSION,
-    PLUGIN_ABI_VERSION, RUNTIME_ABI_VERSION,
+    OperationCapability, OperationKind, SaturationMode, CALIBRATION_SNAPSHOT_VERSION,
+    CAPABILITY_VERSION, HEALTH_VERSION, PLUGIN_ABI_VERSION, RUNTIME_ABI_VERSION,
 };
 pub use compiler::{
-    compile, compile_with_backend, compile_with_cost_model, CompilationArtifact, CompileOptions,
+    compile, compile_with_backend, compile_with_cost_model, refresh_for_backend, ArtifactRefresh,
+    ArtifactRefreshAction, CompilationArtifact, CompileOptions, ARTIFACT_REFRESH_VERSION,
 };
 pub use cost::{
     autotune, autotune_with_profile, decide_placement_with_model, estimate_digital_with_context,

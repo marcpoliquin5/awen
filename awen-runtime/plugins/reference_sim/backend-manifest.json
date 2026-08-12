@@ -53,14 +53,44 @@
         "drift_tolerance": 0.01
       },
       "calibration_profile": {
+        "snapshot_version": "awen.calibration-snapshot.v1",
         "id": "reference-2x2-calibration-v1",
+        "fingerprint": "sha256:87a0fefcdae9f7b357e041ae13d05b0d7306808fa592bd32732ebac3d3e3ae37",
         "backend_id": "reference-photonic-2x2",
+        "topology_fingerprint": "fnv1a64:ac18945364000c52",
         "measured_at": "2026-08-11T22:00:00Z",
-        "temperature_c": 22.0,
+        "environment": { "temperature_c": 22.0, "laser_power_mw": 50.0 },
         "gain": 0.99,
         "offset": 0.001,
         "phase_error_radians": 0.002,
-        "uncertainty": 0.003
+        "insertion_loss_db": 0.9,
+        "uncertainty": 0.003,
+        "cells": [
+          {
+            "id": "cell-0-0", "row": 0, "column": 0, "gain": 0.989,
+            "offset": 0.001, "phase_error_radians": 0.0021,
+            "insertion_loss_db": 0.95, "uncertainty": 0.0031
+          }
+        ],
+        "spare_cells": [
+          {
+            "id": "spare-cell-a", "gain": 0.995, "offset": 0.0005,
+            "phase_error_radians": 0.0015, "insertion_loss_db": 0.8,
+            "uncertainty": 0.002
+          }
+        ],
+        "channels": [
+          {
+            "id": "channel-0", "wavelength_nm": 1550.0, "gain": 0.998,
+            "phase_error_radians": 0.001, "insertion_loss_db": 0.7,
+            "uncertainty": 0.002
+          },
+          {
+            "id": "channel-1", "wavelength_nm": 1551.6, "gain": 0.996,
+            "phase_error_radians": 0.0015, "insertion_loss_db": 0.9,
+            "uncertainty": 0.0025
+          }
+        ]
       },
       "host_bandwidth_gbps": 128.0,
       "link_bandwidth_gbps": 128.0,

@@ -1,3 +1,4 @@
+use crate::calibration::{artifact_record, derated_matrix_core, CalibrationArtifactRecord};
 use crate::capability::{
     BackendHealth, BackendSnapshot, CapabilityNegotiation, DeviceCapabilities,
 };
@@ -14,7 +15,9 @@ use crate::partition::{
 };
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+
+pub const ARTIFACT_REFRESH_VERSION: &str = "awen.artifact-refresh.v1";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -83,6 +86,8 @@ impl Default for CompileOptions {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CompilationArtifact {
     pub artifact_version: String,
+    pub source_graph_fingerprint: String,
+    pub backend_snapshot_fingerprint: String,
     pub source_ir_version: String,
     pub capability_version: String,
     pub backend_id: String,
@@ -93,7 +98,24 @@ pub struct CompilationArtifact {
     pub partition_trace: PartitionTrace,
     pub photonic_ir: ClassicalPhotonicProgram,
     pub device_ir: DeviceProgram,
+    pub calibration_record: Option<CalibrationArtifactRecord>,
     pub diagnostics: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ArtifactRefreshAction {
+    Reused,
+    Recompiled,
+    FellBack,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ArtifactRefresh {
+    pub refresh_version: String,
+    pub action: ArtifactRefreshAction,
+    pub reasons: Vec<String>,
+    pub artifact: CompilationArtifact,
 }
 
 pub fn compile(
@@ -129,6 +151,8 @@ pub fn compile_with_cost_model(
     snapshot.capabilities.validate()?;
     snapshot.health.validate(&snapshot.capabilities)?;
     let mut effective_capabilities = snapshot.capabilities.clone();
+    effective_capabilities.matrix_core =
+        derated_matrix_core(&snapshot.capabilities, &snapshot.health);
     effective_capabilities.simultaneous_channels = snapshot
         .health
         .available_channels
@@ -315,7 +339,28 @@ pub fn compile_with_cost_model(
         );
     }
 
-    let (photonic_ir, device_ir) = lower(program, &validated, &placement, capabilities)?;
+    let (photonic_ir, device_ir) = lower(
+        program,
+        &validated,
+        &placement,
+        capabilities,
+        &snapshot.health,
+    )?;
+    let calibration_record = capabilities.calibration_profile.as_ref().map(|profile| {
+        let impacts = photonic_ir
+            .ops
+            .iter()
+            .map(|op| {
+                (
+                    op.calibration_impact.op_id.clone(),
+                    op.calibration_impact.clone(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>()
+            .into_values()
+            .collect();
+        artifact_record(profile, &snapshot.health, impacts)
+    });
     let mut diagnostics = vec![partition_trace.rationale.clone()];
     diagnostics.extend(
         placement
@@ -330,6 +375,8 @@ pub fn compile_with_cost_model(
     );
     Ok(CompilationArtifact {
         artifact_version: "awen.compilation.v1".to_string(),
+        source_graph_fingerprint: fingerprint_json(program)?,
+        backend_snapshot_fingerprint: fingerprint_json(snapshot)?,
         source_ir_version: program.ir_version.clone(),
         capability_version: capabilities.capability_version.clone(),
         backend_id: capabilities.backend_id.clone(),
@@ -340,8 +387,123 @@ pub fn compile_with_cost_model(
         partition_trace,
         photonic_ir,
         device_ir,
+        calibration_record,
         diagnostics,
     })
+}
+
+pub fn refresh_for_backend(
+    program: &TensorProgram,
+    artifact: &CompilationArtifact,
+    current_snapshot: &BackendSnapshot,
+) -> Result<ArtifactRefresh> {
+    current_snapshot.capabilities.validate()?;
+    current_snapshot
+        .health
+        .validate(&current_snapshot.capabilities)?;
+    let source_graph_fingerprint = fingerprint_json(program)?;
+    if source_graph_fingerprint != artifact.source_graph_fingerprint {
+        bail!("artifact refresh requires the exact source graph used for compilation");
+    }
+    let current_snapshot_fingerprint = fingerprint_json(current_snapshot)?;
+    if current_snapshot_fingerprint == artifact.backend_snapshot_fingerprint {
+        return Ok(ArtifactRefresh {
+            refresh_version: ARTIFACT_REFRESH_VERSION.to_string(),
+            action: ArtifactRefreshAction::Reused,
+            reasons: Vec::new(),
+            artifact: artifact.clone(),
+        });
+    }
+
+    let mut reasons = Vec::new();
+    if artifact.backend_id != current_snapshot.capabilities.backend_id {
+        reasons.push(format!(
+            "backend identity changed from '{}' to '{}'",
+            artifact.backend_id, current_snapshot.capabilities.backend_id
+        ));
+    }
+    match (
+        artifact.calibration_record.as_ref(),
+        current_snapshot.capabilities.calibration_profile.as_ref(),
+    ) {
+        (Some(previous), Some(current)) => {
+            if previous.snapshot_id != current.id {
+                reasons.push(format!(
+                    "calibration snapshot changed from '{}' to '{}'",
+                    previous.snapshot_id, current.id
+                ));
+            }
+            if previous.fingerprint != current.fingerprint {
+                reasons.push("calibration fingerprint changed".to_string());
+            }
+            if previous.topology_fingerprint != current.topology_fingerprint {
+                reasons.push("calibration topology fingerprint changed".to_string());
+            }
+        }
+        (Some(_), None) => {
+            reasons.push("the current backend has no calibration snapshot".to_string())
+        }
+        (None, Some(_)) => reasons.push("a calibration snapshot became available".to_string()),
+        (None, None) => {}
+    }
+    if artifact.health_snapshot.observed_at != current_snapshot.health.observed_at {
+        reasons.push("backend health observation changed".to_string());
+    }
+    if artifact.health_snapshot.status != current_snapshot.health.status {
+        reasons.push("backend health status changed".to_string());
+    }
+    if artifact.health_snapshot.drift.to_bits() != current_snapshot.health.drift.to_bits() {
+        reasons.push("measured hardware drift changed".to_string());
+    }
+    if artifact.health_snapshot.temperature_c.to_bits()
+        != current_snapshot.health.temperature_c.to_bits()
+    {
+        reasons.push("measured hardware temperature changed".to_string());
+    }
+    if artifact.health_snapshot.disabled_components != current_snapshot.health.disabled_components {
+        reasons.push("disabled component set changed".to_string());
+    }
+    if artifact.health_snapshot.unavailable_resources
+        != current_snapshot.health.unavailable_resources
+    {
+        reasons.push("unavailable resource set changed".to_string());
+    }
+    if reasons.is_empty() {
+        reasons.push("backend snapshot fingerprint changed".to_string());
+    }
+
+    let mut options = artifact.options;
+    options.target = TargetBackend::Auto;
+    let mut refreshed = compile_with_backend(program, current_snapshot, options)?;
+    refreshed.diagnostics.splice(
+        0..0,
+        reasons
+            .iter()
+            .map(|reason| format!("artifact invalidated: {reason}")),
+    );
+    let fell_back = artifact
+        .placement
+        .iter()
+        .any(|decision| decision.selected_backend == TargetBackend::Photonic)
+        && refreshed
+            .placement
+            .iter()
+            .all(|decision| decision.selected_backend != TargetBackend::Photonic);
+    Ok(ArtifactRefresh {
+        refresh_version: ARTIFACT_REFRESH_VERSION.to_string(),
+        action: if fell_back {
+            ArtifactRefreshAction::FellBack
+        } else {
+            ArtifactRefreshAction::Recompiled
+        },
+        reasons,
+        artifact: refreshed,
+    })
+}
+
+fn fingerprint_json(value: &impl Serialize) -> Result<String> {
+    let bytes = serde_json::to_vec(value)?;
+    Ok(format!("fnv1a64:{:016x}", stable_fingerprint_bytes(&bytes)))
 }
 
 fn compiler_partition_request(

@@ -9,12 +9,14 @@ awen.tensor graph
   -> shape/layout/precision validation
   -> explicit storage, compute, accumulator, and output precision
   -> scaling, signed bit slicing, saturation, and error-contract validation
+  -> calibration ID/fingerprint/topology/environment/health validation
+  -> measured wavelength selection and disabled-cell-to-spare remapping
   -> whole-graph CPU, GPU, or photonic region placement
   -> residency-aware transfer, crossing, reuse, and memory optimization
   -> M/N/K tiling for a declared photonic matrix core
   -> classical Photonic IR
   -> Device IR command buffer
-  -> seeded analog-noise/calibration simulator and attributed CPU comparison
+  -> seeded analog-noise/calibrated-transfer simulator and attributed CPU comparison
 
 awen.blas kernel request
   -> exact kind/shape/layout/dtype/structure/phase validation
@@ -49,7 +51,7 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
+- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration-snapshot validation, measured channel/cell routing, fault remapping, drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
@@ -106,8 +108,10 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
 
 The example lowers to eight 128×128×128 optical GEMM tiles. The output contains
 operation cost decisions, the complete graph partition trace, transfers,
-crossings, regions, profiler events, typed classical Photonic IR, a calibration
-reference, and the Device IR command stream.
+crossings, regions, profiler events, typed classical Photonic IR, immutable
+calibration identity/fingerprint/environment/lineage, measured channel choices,
+cell remaps, capacity/error impacts, and the executable Device IR command
+stream.
 
 ## Compile and load StableHLO through MLIR
 
@@ -143,6 +147,24 @@ output dtype, and compares against the digital reference GEMM. Its
 floating-point accumulation, overflow, clipping, and propagated-input error.
 Compilation rejects forced photonic placement when the effective-bit or error
 contract cannot be met; automatic placement records a digital fallback.
+
+## Refresh a calibration-bound artifact
+
+`refresh_for_backend` compares an existing compilation artifact with a current
+backend snapshot before reuse. Exact source and backend-snapshot fingerprints
+return the original artifact. Calibration, health, drift, temperature,
+disabled-component, resource, backend, or topology changes produce named
+invalidation reasons and deterministic recompilation. If current photonic
+hardware cannot satisfy the complete contract, refresh changes the old forced
+target to automatic placement and emits a diagnosed digital fallback.
+
+The calibration contract is specified by AEP-0018 and
+`awen.calibration-snapshot.v1`. A snapshot carries its ID, exact fingerprint,
+parent lineage, backend/topology binding, measured time and environment,
+global/per-cell/per-spare/per-channel transfer data, and uncertainty. Health
+must confirm both the snapshot ID and fingerprint. Photonic IR and Device IR
+record the selected channel IDs, wavelengths, cell remaps, effective transfer,
+inverse rescaling, capacity loss, and attributed calibration error.
 
 ## Status and evidence
 

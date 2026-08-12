@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 pub const CAPABILITY_VERSION: &str = "awen.device-capability.v1";
 pub const HEALTH_VERSION: &str = "awen.backend-health.v1";
+pub const CALIBRATION_SNAPSHOT_VERSION: &str = "awen.calibration-snapshot.v1";
 pub const RUNTIME_ABI_VERSION: &str = "awen.runtime-backend.v1";
 pub const PLUGIN_ABI_VERSION: &str = "awen.backend-plugin.v1";
 
@@ -84,15 +85,69 @@ pub struct CalibrationRequirements {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct CalibrationProfile {
-    pub id: String,
-    pub backend_id: String,
-    pub measured_at: String,
+pub struct CalibrationEnvironment {
     pub temperature_c: f64,
+    pub laser_power_mw: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CalibrationCell {
+    pub id: String,
+    pub row: usize,
+    pub column: usize,
     pub gain: f64,
     pub offset: f64,
     pub phase_error_radians: f64,
+    pub insertion_loss_db: f64,
     pub uncertainty: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CalibrationSpareCell {
+    pub id: String,
+    pub gain: f64,
+    pub offset: f64,
+    pub phase_error_radians: f64,
+    pub insertion_loss_db: f64,
+    pub uncertainty: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CalibrationChannel {
+    pub id: String,
+    pub wavelength_nm: f64,
+    pub gain: f64,
+    pub phase_error_radians: f64,
+    pub insertion_loss_db: f64,
+    pub uncertainty: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CalibrationProfile {
+    pub snapshot_version: String,
+    pub id: String,
+    pub fingerprint: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    pub backend_id: String,
+    pub topology_fingerprint: String,
+    pub measured_at: String,
+    pub environment: CalibrationEnvironment,
+    pub gain: f64,
+    pub offset: f64,
+    pub phase_error_radians: f64,
+    pub insertion_loss_db: f64,
+    pub uncertainty: f64,
+    #[serde(default)]
+    pub cells: Vec<CalibrationCell>,
+    #[serde(default)]
+    pub spare_cells: Vec<CalibrationSpareCell>,
+    #[serde(default)]
+    pub channels: Vec<CalibrationChannel>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -156,6 +211,8 @@ pub struct BackendHealth {
     pub unavailable_resources: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calibration_profile_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calibration_fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -180,7 +237,7 @@ pub struct BackendSnapshot {
 
 impl DeviceCapabilities {
     pub fn pace_like_128() -> Self {
-        Self {
+        let mut capabilities = Self {
             capability_version: CAPABILITY_VERSION.to_string(),
             runtime_abi_version: RUNTIME_ABI_VERSION.to_string(),
             plugin_abi_version: PLUGIN_ABI_VERSION.to_string(),
@@ -230,16 +287,7 @@ impl DeviceCapabilities {
                 temperature_tolerance_c: 0.5,
                 drift_tolerance: 0.01,
             },
-            calibration_profile: Some(CalibrationProfile {
-                id: "reference-room-temperature-v1".to_string(),
-                backend_id: "reference-pace-like-128".to_string(),
-                measured_at: "2026-08-11T22:00:00Z".to_string(),
-                temperature_c: 22.0,
-                gain: 0.997,
-                offset: 0.0002,
-                phase_error_radians: 0.001,
-                uncertainty: 0.002,
-            }),
+            calibration_profile: None,
             host_bandwidth_gbps: 256.0,
             link_bandwidth_gbps: 256.0,
             boundary_latency_ns: 500.0,
@@ -247,7 +295,78 @@ impl DeviceCapabilities {
             total_power_budget_mw: 2_000.0,
             dac_energy_pj_per_sample: 2.0,
             adc_energy_pj_per_sample: 4.0,
+        };
+        capabilities.calibration_profile = Some(CalibrationProfile {
+            snapshot_version: CALIBRATION_SNAPSHOT_VERSION.to_string(),
+            id: "reference-room-temperature-v1".to_string(),
+            fingerprint: "sha256:ef64f6a8fd46dfaaf57cd499e664a958faca5f99e6ee21bde8b0a54dca1bb8e6"
+                .to_string(),
+            parent_id: None,
+            backend_id: capabilities.backend_id.clone(),
+            topology_fingerprint: capabilities.topology_fingerprint(),
+            measured_at: "2026-08-11T22:00:00Z".to_string(),
+            environment: CalibrationEnvironment {
+                temperature_c: 22.0,
+                laser_power_mw: 500.0,
+            },
+            gain: 0.997,
+            offset: 0.0002,
+            phase_error_radians: 0.001,
+            insertion_loss_db: 1.2,
+            uncertainty: 0.002,
+            cells: vec![CalibrationCell {
+                id: "cell-0-0".to_string(),
+                row: 0,
+                column: 0,
+                gain: 0.996,
+                offset: 0.000_1,
+                phase_error_radians: 0.001_1,
+                insertion_loss_db: 1.25,
+                uncertainty: 0.002_1,
+            }],
+            spare_cells: vec![
+                CalibrationSpareCell {
+                    id: "spare-cell-a".to_string(),
+                    gain: 0.998,
+                    offset: 0.000_1,
+                    phase_error_radians: 0.000_8,
+                    insertion_loss_db: 1.1,
+                    uncertainty: 0.001_5,
+                },
+                CalibrationSpareCell {
+                    id: "spare-cell-b".to_string(),
+                    gain: 0.994,
+                    offset: 0.000_2,
+                    phase_error_radians: 0.001_4,
+                    insertion_loss_db: 1.4,
+                    uncertainty: 0.002_5,
+                },
+            ],
+            channels: (0..16)
+                .map(|index| CalibrationChannel {
+                    id: format!("channel-{index}"),
+                    wavelength_nm: 1530.0 + index as f64 * 1.6,
+                    gain: 0.999 - index as f64 * 0.000_05,
+                    phase_error_radians: 0.000_5 + index as f64 * 0.000_01,
+                    insertion_loss_db: 0.8 + index as f64 * 0.01,
+                    uncertainty: 0.001 + index as f64 * 0.000_02,
+                })
+                .collect(),
+        });
+        capabilities
+    }
+
+    pub fn topology_fingerprint(&self) -> String {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(self.backend_id.as_bytes());
+        for dimension in [self.matrix_core.m, self.matrix_core.n, self.matrix_core.k] {
+            bytes.extend_from_slice(&(dimension as u64).to_le_bytes());
         }
+        bytes.extend_from_slice(&(self.simultaneous_channels as u64).to_le_bytes());
+        for wavelength in &self.supported_wavelengths_nm {
+            bytes.extend_from_slice(&wavelength.to_bits().to_le_bytes());
+        }
+        format!("fnv1a64:{:016x}", fnv1a64(&bytes))
     }
 
     pub fn validate(&self) -> Result<()> {
@@ -369,7 +488,7 @@ impl DeviceCapabilities {
             bail!("required calibration must have a non-zero maximum age");
         }
         if let Some(profile) = &self.calibration_profile {
-            profile.validate(&self.backend_id)?;
+            profile.validate(self)?;
         }
         Ok(())
     }
@@ -386,25 +505,125 @@ impl DeviceCapabilities {
 }
 
 impl CalibrationProfile {
-    fn validate(&self, backend_id: &str) -> Result<()> {
+    fn validate(&self, capabilities: &DeviceCapabilities) -> Result<()> {
+        validate_version(
+            &self.snapshot_version,
+            CALIBRATION_SNAPSHOT_VERSION,
+            "calibration snapshot",
+        )?;
         if self.id.trim().is_empty() {
             bail!("calibration profile id must not be empty");
         }
-        if self.backend_id != backend_id {
+        if self.fingerprint.trim().is_empty() {
+            bail!("calibration fingerprint must not be empty");
+        }
+        validate_calibration_fingerprint(&self.fingerprint, "calibration fingerprint")?;
+        if self
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent| parent.trim().is_empty() || parent == &self.id)
+        {
+            bail!("calibration parent id must be non-empty and differ from the snapshot id");
+        }
+        if self.backend_id != capabilities.backend_id {
             bail!(
                 "calibration profile backend '{}' does not match capability backend '{}'",
                 self.backend_id,
-                backend_id
+                capabilities.backend_id
+            );
+        }
+        let expected_topology = capabilities.topology_fingerprint();
+        if self.topology_fingerprint != expected_topology {
+            bail!(
+                "calibration topology fingerprint '{}' does not match device topology '{}'",
+                self.topology_fingerprint,
+                expected_topology
             );
         }
         parse_timestamp(&self.measured_at, "calibration measured_at")?;
-        validate_finite(self.temperature_c, "calibration temperature")?;
-        validate_finite(self.gain, "calibration gain")?;
-        validate_finite(self.offset, "calibration offset")?;
-        validate_finite(self.phase_error_radians, "calibration phase error")?;
-        validate_non_negative(self.uncertainty, "calibration uncertainty")?;
-        if self.gain == 0.0 {
-            bail!("calibration gain must be non-zero");
+        validate_finite(
+            self.environment.temperature_c,
+            "calibration environment temperature",
+        )?;
+        validate_non_negative(
+            self.environment.laser_power_mw,
+            "calibration environment laser power",
+        )?;
+        if self.environment.laser_power_mw > capabilities.total_power_budget_mw {
+            bail!("calibration environment laser power exceeds the device power budget");
+        }
+        validate_transfer_metrics(
+            self.gain,
+            self.offset,
+            self.phase_error_radians,
+            self.insertion_loss_db,
+            self.uncertainty,
+            "calibration transfer",
+        )?;
+        let mut component_ids = HashSet::new();
+        let mut logical_cells = HashSet::new();
+        for cell in &self.cells {
+            if !component_ids.insert(cell.id.as_str()) || cell.id.trim().is_empty() {
+                bail!("calibration cell ids must be non-empty and unique");
+            }
+            if !logical_cells.insert((cell.row, cell.column)) {
+                bail!("calibration cell coordinates must be unique");
+            }
+            if cell.row >= capabilities.matrix_core.m || cell.column >= capabilities.matrix_core.n {
+                bail!(
+                    "calibration cell '{}' lies outside the matrix topology",
+                    cell.id
+                );
+            }
+            validate_transfer_metrics(
+                cell.gain,
+                cell.offset,
+                cell.phase_error_radians,
+                cell.insertion_loss_db,
+                cell.uncertainty,
+                "cell calibration",
+            )?;
+        }
+        for spare in &self.spare_cells {
+            if !component_ids.insert(spare.id.as_str()) || spare.id.trim().is_empty() {
+                bail!("calibration cell and spare ids must be non-empty and unique");
+            }
+            validate_transfer_metrics(
+                spare.gain,
+                spare.offset,
+                spare.phase_error_radians,
+                spare.insertion_loss_db,
+                spare.uncertainty,
+                "spare-cell calibration",
+            )?;
+        }
+        let mut channel_ids = HashSet::new();
+        let mut channel_wavelengths = HashSet::new();
+        for channel in &self.channels {
+            if !channel_ids.insert(channel.id.as_str()) || channel.id.trim().is_empty() {
+                bail!("calibration channel ids must be non-empty and unique");
+            }
+            if !channel_wavelengths.insert(channel.wavelength_nm.to_bits()) {
+                bail!("calibration channel wavelengths must be unique");
+            }
+            if !capabilities
+                .supported_wavelengths_nm
+                .iter()
+                .any(|wavelength| wavelength.to_bits() == channel.wavelength_nm.to_bits())
+            {
+                bail!(
+                    "calibration channel '{}' is not present in the device topology",
+                    channel.id
+                );
+            }
+            validate_transfer_metrics(
+                channel.gain,
+                0.0,
+                channel.phase_error_radians,
+                channel.insertion_loss_db,
+                channel.uncertainty,
+                "channel calibration",
+            )?;
         }
         Ok(())
     }
@@ -430,6 +649,23 @@ impl BackendHealth {
                 capabilities.simultaneous_channels
             );
         }
+        if let Some(profile) = &capabilities.calibration_profile {
+            let disabled_channels = profile
+                .channels
+                .iter()
+                .filter(|channel| self.disabled_components.contains(&channel.id))
+                .count();
+            let maximum_available = capabilities
+                .simultaneous_channels
+                .saturating_sub(disabled_channels);
+            if self.available_channels > maximum_available {
+                bail!(
+                    "health available_channels {} contradicts {} disabled calibrated channels",
+                    self.available_channels,
+                    disabled_channels
+                );
+            }
+        }
         ensure_non_empty_unique(&self.disabled_components, "disabled components")?;
         ensure_non_empty_unique(&self.unavailable_resources, "unavailable resources")?;
         if self
@@ -438,6 +674,21 @@ impl BackendHealth {
             .is_some_and(|id| id.trim().is_empty())
         {
             bail!("health calibration_profile_id must not be empty");
+        }
+        if self
+            .calibration_fingerprint
+            .as_ref()
+            .is_some_and(|fingerprint| fingerprint.trim().is_empty())
+        {
+            bail!("health calibration_fingerprint must not be empty");
+        }
+        if let Some(fingerprint) = &self.calibration_fingerprint {
+            validate_calibration_fingerprint(fingerprint, "health calibration_fingerprint")?;
+        }
+        if self.calibration_profile_id.is_some() != self.calibration_fingerprint.is_some() {
+            bail!(
+                "health must provide calibration_profile_id and calibration_fingerprint together"
+            );
         }
         Ok(())
     }
@@ -457,6 +708,10 @@ impl BackendSnapshot {
             .calibration_profile
             .as_ref()
             .map(|profile| profile.id.clone());
+        let calibration_fingerprint = capabilities
+            .calibration_profile
+            .as_ref()
+            .map(|profile| profile.fingerprint.clone());
         let health = BackendHealth {
             health_version: HEALTH_VERSION.to_string(),
             backend_id: capabilities.backend_id.clone(),
@@ -465,12 +720,13 @@ impl BackendSnapshot {
             temperature_c: capabilities
                 .calibration_profile
                 .as_ref()
-                .map_or(20.0, |profile| profile.temperature_c),
+                .map_or(20.0, |profile| profile.environment.temperature_c),
             drift: 0.0,
             available_channels: capabilities.simultaneous_channels,
             disabled_components: Vec::new(),
             unavailable_resources: Vec::new(),
             calibration_profile_id,
+            calibration_fingerprint,
         };
         Self::new(capabilities, health)
     }
@@ -520,6 +776,28 @@ impl BackendSnapshot {
                 "matrix_core_unavailable",
                 "the matrix core is unavailable",
             );
+        }
+        if let Some(profile) = &capabilities.calibration_profile {
+            let disabled_cells = profile
+                .cells
+                .iter()
+                .filter(|cell| health.disabled_components.contains(&cell.id))
+                .count();
+            let healthy_spares = profile
+                .spare_cells
+                .iter()
+                .filter(|spare| !health.disabled_components.contains(&spare.id))
+                .count();
+            if disabled_cells > healthy_spares {
+                reject(
+                    &mut diagnostics,
+                    "calibration_remap_capacity_exhausted",
+                    format!(
+                        "{disabled_cells} calibrated cells are disabled but only {} calibrated spares are available",
+                        healthy_spares
+                    ),
+                );
+            }
         }
         let Some(operation) = capabilities.operation(OperationKind::Gemm) else {
             reject(
@@ -608,6 +886,13 @@ impl BackendSnapshot {
                 "health snapshot does not confirm the advertised calibration profile",
             );
         }
+        if self.health.calibration_fingerprint.as_deref() != Some(profile.fingerprint.as_str()) {
+            reject(
+                diagnostics,
+                "calibration_fingerprint_mismatch",
+                "health snapshot does not confirm the exact calibration fingerprint",
+            );
+        }
         let measured = parse_timestamp(&profile.measured_at, "calibration measured_at")
             .expect("validated capability timestamp");
         let observed = parse_timestamp(&self.health.observed_at, "health observed_at")
@@ -629,7 +914,7 @@ impl BackendSnapshot {
                 ),
             );
         }
-        if (self.health.temperature_c - profile.temperature_c).abs()
+        if (self.health.temperature_c - profile.environment.temperature_c).abs()
             > requirements.temperature_tolerance_c
         {
             reject(
@@ -707,6 +992,51 @@ fn validate_non_negative(value: f64, field: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_transfer_metrics(
+    gain: f64,
+    offset: f64,
+    phase_error_radians: f64,
+    insertion_loss_db: f64,
+    uncertainty: f64,
+    field: &str,
+) -> Result<()> {
+    validate_finite(gain, &format!("{field} gain"))?;
+    validate_finite(offset, &format!("{field} offset"))?;
+    validate_finite(phase_error_radians, &format!("{field} phase error"))?;
+    validate_non_negative(insertion_loss_db, &format!("{field} insertion loss"))?;
+    validate_non_negative(uncertainty, &format!("{field} uncertainty"))?;
+    if gain == 0.0 {
+        bail!("{field} gain must be non-zero");
+    }
+    Ok(())
+}
+
+fn validate_calibration_fingerprint(value: &str, field: &str) -> Result<()> {
+    let valid = value
+        .strip_prefix("sha256:")
+        .is_some_and(|digest| digest.len() == 64 && digest.bytes().all(is_lower_hex))
+        || value
+            .strip_prefix("fnv1a64:")
+            .is_some_and(|digest| digest.len() == 16 && digest.bytes().all(is_lower_hex));
+    if !valid {
+        bail!("{field} must be a sha256 or fnv1a64 lowercase hexadecimal digest");
+    }
+    Ok(())
+}
+
+fn is_lower_hex(byte: u8) -> bool {
+    byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+}
+
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
 fn validate_positive_values(values: &[f64], field: &str) -> Result<()> {
     for value in values {
         validate_positive(*value, field)?;
@@ -757,6 +1087,10 @@ mod tests {
                 disabled_components: Vec::new(),
                 unavailable_resources: Vec::new(),
                 calibration_profile_id: Some("reference-room-temperature-v1".to_string()),
+                calibration_fingerprint: capabilities
+                    .calibration_profile
+                    .as_ref()
+                    .map(|profile| profile.fingerprint.clone()),
             },
         )
         .expect("reference snapshot must validate")

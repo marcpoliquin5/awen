@@ -1,5 +1,9 @@
+use crate::calibration::{
+    route_calibrated_hardware, CalibrationDecisionImpact, CellRemap, EffectiveTransfer,
+};
 use crate::capability::{
-    AccumulationMode, BitSlicingMode, CalibrationProfile, DeviceCapabilities, DynamicRange,
+    AccumulationMode, BackendHealth, BitSlicingMode, CalibrationProfile, DeviceCapabilities,
+    DynamicRange,
 };
 use crate::cost::{PlacementDecision, TargetBackend, TuningPlan};
 use crate::ir::{DType, GemmShape, Layout, Tensor, TensorOp, TensorProgram, ValidatedGemm};
@@ -67,8 +71,11 @@ pub struct PrecisionPlan {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CalibrationCompensation {
     pub profile_id: String,
+    pub snapshot_fingerprint: String,
     pub measured_gain: f64,
     pub measured_offset: f64,
+    pub measured_phase_error_radians: f64,
+    pub measured_insertion_loss_db: f64,
     pub rescale: f64,
     pub rebias: f64,
     pub residual_uncertainty: f64,
@@ -86,7 +93,10 @@ pub struct PhotonicGemmTile {
     pub transpose_rhs: bool,
     pub tile: Tile,
     pub precision: PrecisionPlan,
+    pub channel_ids: Vec<String>,
     pub wavelength_channels: Vec<f64>,
+    pub cell_remaps: Vec<CellRemap>,
+    pub calibration_impact: CalibrationDecisionImpact,
     pub accumulation_mode: AccumulationMode,
     pub calibration_handle: Option<String>,
     pub timing: Timing,
@@ -129,6 +139,20 @@ pub struct DeviceProgram {
 pub enum DeviceCommand {
     Calibrate {
         profile_id: String,
+        fingerprint: String,
+        topology_fingerprint: String,
+    },
+    RemapCell {
+        op_id: String,
+        disabled_cell: String,
+        replacement_cell: String,
+        logical_row: usize,
+        logical_column: usize,
+    },
+    SelectChannels {
+        op_id: String,
+        channel_ids: Vec<String>,
+        wavelengths_nm: Vec<f64>,
     },
     ConfigureMatrix {
         op_id: String,
@@ -182,6 +206,7 @@ pub enum DeviceCommand {
         scale: f64,
         offset: f64,
         calibration_handle: String,
+        calibration_fingerprint: String,
     },
     HostGemm {
         op_id: String,
@@ -195,6 +220,7 @@ pub fn lower(
     validated: &[ValidatedGemm<'_>],
     decisions: &[PlacementDecision],
     capabilities: &DeviceCapabilities,
+    health: &BackendHealth,
 ) -> Result<(ClassicalPhotonicProgram, DeviceProgram)> {
     let decision_by_id: HashMap<&str, &PlacementDecision> = decisions
         .iter()
@@ -216,6 +242,8 @@ pub fn lower(
                 if let Some(profile) = &capabilities.calibration_profile {
                     commands.push(DeviceCommand::Calibrate {
                         profile_id: profile.id.clone(),
+                        fingerprint: profile.fingerprint.clone(),
+                        topology_fingerprint: profile.topology_fingerprint.clone(),
                     });
                     current_time_ns += capabilities.reconfiguration_latency_ns;
                 }
@@ -225,6 +253,7 @@ pub fn lower(
                 program,
                 gemm,
                 capabilities,
+                health,
                 decision.selected_plan,
                 &mut current_time_ns,
                 &mut photonic_ops,
@@ -265,10 +294,12 @@ pub fn lower(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lower_photonic_gemm(
     program: &TensorProgram,
     gemm: &ValidatedGemm<'_>,
     capabilities: &DeviceCapabilities,
+    health: &BackendHealth,
     selected_plan: Option<TuningPlan>,
     current_time_ns: &mut f64,
     ops: &mut Vec<PhotonicGemmTile>,
@@ -345,10 +376,18 @@ fn lower_photonic_gemm(
         plan.bit_slices,
         Some(output_dynamic_range(gemm)),
     )?;
+    let routing = route_calibrated_hardware(
+        gemm.op.id(),
+        plan.wavelength_channels
+            .min(capabilities.simultaneous_channels),
+        [plan.tile_m, plan.tile_n, plan.tile_k],
+        capabilities,
+        health,
+    )?;
     let calibration_compensation = capabilities
         .calibration_profile
         .as_ref()
-        .map(calibration_compensation)
+        .map(|profile| calibration_compensation(profile, &routing.impact.effective_transfer))
         .transpose()?;
     let precision = PrecisionPlan {
         source_dtype: gemm.lhs.dtype,
@@ -403,14 +442,25 @@ fn lower_photonic_gemm(
         }
     }
 
+    for remap in &routing.impact.cell_remaps {
+        commands.push(DeviceCommand::RemapCell {
+            op_id: gemm.op.id().to_string(),
+            disabled_cell: remap.disabled_cell.clone(),
+            replacement_cell: remap.replacement_cell.clone(),
+            logical_row: remap.logical_row,
+            logical_column: remap.logical_column,
+        });
+    }
+    commands.push(DeviceCommand::SelectChannels {
+        op_id: gemm.op.id().to_string(),
+        channel_ids: routing.impact.selected_channels.clone(),
+        wavelengths_nm: routing.wavelength_channels.clone(),
+    });
+
     for tile in tiles_with_plan(gemm.shape, plan) {
-        let wavelength_count = plan
-            .wavelength_channels
-            .min(capabilities.simultaneous_channels)
-            .min(capabilities.supported_wavelengths_nm.len())
-            .min(tile.k);
+        let wavelength_count = routing.wavelength_channels.len().min(tile.k);
         let duration_ns = tile_duration_ns(tile, capabilities, plan.bit_slices, wavelength_count);
-        let wavelengths = capabilities.supported_wavelengths_nm[..wavelength_count].to_vec();
+        let wavelengths = routing.wavelength_channels.clone();
         let op_id = format!(
             "{}__m{}_n{}_k{}",
             gemm.op.id(),
@@ -432,7 +482,10 @@ fn lower_photonic_gemm(
             transpose_rhs: *transpose_rhs,
             tile,
             precision: precision.clone(),
+            channel_ids: routing.impact.selected_channels.clone(),
             wavelength_channels: wavelengths.clone(),
+            cell_remaps: routing.impact.cell_remaps.clone(),
+            calibration_impact: routing.impact.clone(),
             accumulation_mode,
             calibration_handle,
             timing: Timing {
@@ -501,6 +554,7 @@ fn lower_photonic_gemm(
             scale: compensation.rescale,
             offset: compensation.rebias,
             calibration_handle: compensation.profile_id,
+            calibration_fingerprint: compensation.snapshot_fingerprint,
         });
     }
     commands.push(DeviceCommand::ConvertTensor {
@@ -589,8 +643,13 @@ fn output_dynamic_range(gemm: &ValidatedGemm<'_>) -> DynamicRange {
     }
 }
 
-fn calibration_compensation(profile: &CalibrationProfile) -> Result<CalibrationCompensation> {
-    if !profile.gain.is_finite() || profile.gain == 0.0 {
+fn calibration_compensation(
+    profile: &CalibrationProfile,
+    transfer: &EffectiveTransfer,
+) -> Result<CalibrationCompensation> {
+    let attenuation = 10.0_f64.powf(-transfer.insertion_loss_db / 20.0);
+    let measured_gain = transfer.gain * attenuation * transfer.phase_error_radians.cos();
+    if !measured_gain.is_finite() || measured_gain == 0.0 {
         anyhow::bail!(
             "calibration profile '{}' has a non-invertible gain",
             profile.id
@@ -598,11 +657,14 @@ fn calibration_compensation(profile: &CalibrationProfile) -> Result<CalibrationC
     }
     Ok(CalibrationCompensation {
         profile_id: profile.id.clone(),
-        measured_gain: profile.gain,
-        measured_offset: profile.offset,
-        rescale: profile.gain.recip(),
-        rebias: -profile.offset / profile.gain,
-        residual_uncertainty: profile.uncertainty,
+        snapshot_fingerprint: profile.fingerprint.clone(),
+        measured_gain,
+        measured_offset: transfer.offset,
+        measured_phase_error_radians: transfer.phase_error_radians,
+        measured_insertion_loss_db: transfer.insertion_loss_db,
+        rescale: measured_gain.recip(),
+        rebias: -transfer.offset / measured_gain,
+        residual_uncertainty: transfer.uncertainty,
     })
 }
 
