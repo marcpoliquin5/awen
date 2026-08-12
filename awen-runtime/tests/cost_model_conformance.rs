@@ -75,8 +75,13 @@ fn estimate_is_full_system_dimensioned_and_uncertain() {
             structured_sparsity: true,
             input_error_fraction: 0.0001,
             maximum_input_magnitude: Some(1.0),
+            estimated_output_magnitude: None,
             maximum_absolute_error: Some(0.02),
             maximum_relative_error: Some(0.02),
+            requested_compute_dtype: None,
+            requested_accumulator_dtype: None,
+            allowed_bit_slicing_mode_mask: None,
+            noise_seed: None,
         },
         OptimizationObjective::Latency,
         AutotuneOptions {

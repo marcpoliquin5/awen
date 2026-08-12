@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_error_report.v1.json",
+  "title": "AWEN Empirical Error Report v1",
+  "type": "object",
+  "required": [
+    "version", "operation_id", "seed", "static_fraction", "observed_absolute",
+    "maximum_absolute_error", "maximum_relative_error", "passed", "provenance"
+  ],
+  "properties": {
+    "version": { "const": "awen.error-report.v1" },
+    "operation_id": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer", "minimum": 0 },
+    "static_fraction": { "$ref": "#/$defs/static_attribution" },
+    "observed_absolute": { "$ref": "#/$defs/attribution" },
+    "maximum_absolute_error": { "type": "number", "minimum": 0 },
+    "maximum_relative_error": { "type": "number", "minimum": 0 },
+    "passed": { "type": "boolean" },
+    "provenance": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "$defs": {
+    "attribution": {
+      "type": "object",
+      "required": [
+        "quantization", "shot_noise", "thermal_noise", "phase_noise", "detector_noise",
+        "calibration_residual", "floating_point_accumulation", "integer_overflow",
+        "clipping", "propagated_input", "total"
+      ],
+      "properties": {
+        "quantization": { "type": "number", "minimum": 0 },
+        "shot_noise": { "type": "number", "minimum": 0 },
+        "thermal_noise": { "type": "number", "minimum": 0 },
+        "phase_noise": { "type": "number", "minimum": 0 },
+        "detector_noise": { "type": "number", "minimum": 0 },
+        "calibration_residual": { "type": "number", "minimum": 0 },
+        "floating_point_accumulation": { "type": "number", "minimum": 0 },
+        "integer_overflow": { "type": "number", "minimum": 0 },
+        "clipping": { "type": "number", "minimum": 0 },
+        "propagated_input": { "type": "number", "minimum": 0 },
+        "total": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "static_attribution": {
+      "allOf": [
+        { "$ref": "#/$defs/attribution" },
+        {
+          "type": "object",
+          "properties": { "total": { "type": "number", "minimum": 0, "maximum": 1 } }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

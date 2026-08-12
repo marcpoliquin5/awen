@@ -2,6 +2,10 @@ use crate::awenblas::{accumulate_tile, reference_gemm};
 use crate::compiler::CompilationArtifact;
 use crate::cost::{ModelErrorReport, Observation, TargetBackend, COST_MODEL_VERSION};
 use crate::ir::{validate_program, Tensor, TensorOp, TensorProgram};
+use crate::precision::{
+    apply_noise, maximum_absolute, quantize, EmpiricalErrorReport, ErrorAttribution,
+    ERROR_REPORT_VERSION,
+};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -15,6 +19,7 @@ pub struct OutputComparison {
     pub max_abs_error: f64,
     pub max_rel_error: f64,
     pub passed: bool,
+    pub error_report: EmpiricalErrorReport,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -77,7 +82,7 @@ pub fn benchmark_with_observations(
             gemm.shape.n,
             gemm.shape.k,
         )?;
-        let values = match decision.selected_backend {
+        let simulation = match decision.selected_backend {
             TargetBackend::Photonic => simulate_photonic_gemm(
                 gemm.op.id(),
                 gemm.lhs,
@@ -85,16 +90,44 @@ pub fn benchmark_with_observations(
                 *transpose_lhs,
                 *transpose_rhs,
                 gemm.shape.n,
+                &reference,
                 artifact,
             )?,
-            TargetBackend::Cpu | TargetBackend::Gpu => reference.clone(),
+            TargetBackend::Cpu | TargetBackend::Gpu => SimulatedOutput {
+                values: reference.clone(),
+                error_attribution: ErrorAttribution::default().checked()?,
+                seed: 0,
+                provenance: vec!["exact deterministic digital reference kernel".to_string()],
+            },
             TargetBackend::Auto => bail!("compiled artifacts must not contain auto placement"),
         };
+        let values = simulation.values;
         let (max_abs_error, max_rel_error) = compare(&values, &reference);
         let passed = values.iter().zip(&reference).all(|(actual, expected)| {
             (actual - expected).abs()
                 <= accuracy.max_abs_error + accuracy.max_rel_error * expected.abs()
         });
+        let static_fraction = match decision.selected_backend {
+            TargetBackend::Photonic => decision
+                .photonic
+                .as_ref()
+                .map_or(decision.cpu.error_attribution, |estimate| {
+                    estimate.error_attribution
+                }),
+            TargetBackend::Gpu => decision.gpu.error_attribution,
+            _ => decision.cpu.error_attribution,
+        };
+        let error_report = EmpiricalErrorReport {
+            version: ERROR_REPORT_VERSION.to_string(),
+            operation_id: gemm.op.id().to_string(),
+            seed: simulation.seed,
+            static_fraction,
+            observed_absolute: simulation.error_attribution,
+            maximum_absolute_error: max_abs_error,
+            maximum_relative_error: max_rel_error,
+            passed,
+            provenance: simulation.provenance,
+        };
         produced.insert(output.clone(), values.clone());
         outputs.push(OutputComparison {
             tensor: output.clone(),
@@ -104,6 +137,7 @@ pub fn benchmark_with_observations(
             max_abs_error,
             max_rel_error,
             passed,
+            error_report,
         });
     }
 
@@ -182,6 +216,13 @@ pub fn benchmark_with_observations(
     })
 }
 
+struct SimulatedOutput {
+    values: Vec<f64>,
+    error_attribution: ErrorAttribution,
+    seed: u64,
+    provenance: Vec<String>,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn simulate_photonic_gemm(
     op_id: &str,
@@ -190,8 +231,9 @@ fn simulate_photonic_gemm(
     transpose_lhs: bool,
     transpose_rhs: bool,
     output_columns: usize,
+    reference: &[f64],
     artifact: &CompilationArtifact,
-) -> Result<Vec<f64>> {
+) -> Result<SimulatedOutput> {
     let lhs_data = lhs
         .data
         .as_ref()
@@ -214,51 +256,167 @@ fn simulate_photonic_gemm(
         .map(|tile| tile.tile.m_offset + tile.tile.m)
         .max()
         .unwrap_or(0);
-    let effective_bits = matching_tiles[0].precision.optical_effective_bits;
-    let quantized_lhs = quantize(lhs_data, effective_bits);
-    let quantized_rhs = quantize(rhs_data, effective_bits);
+    let precision = &matching_tiles[0].precision;
+    let quantized_lhs = quantize(
+        lhs_data,
+        &lhs.shape,
+        &precision.lhs_quantization,
+        precision.noise_seed,
+    )?;
+    let quantized_rhs = quantize(
+        rhs_data,
+        &rhs.shape,
+        &precision.rhs_quantization,
+        precision.noise_seed.wrapping_add(1),
+    )?;
+    let clamped_lhs = lhs_data
+        .iter()
+        .map(|value| {
+            value.clamp(
+                precision.lhs_quantization.clipping_min,
+                precision.lhs_quantization.clipping_max,
+            )
+        })
+        .collect::<Vec<_>>();
+    let clamped_rhs = rhs_data
+        .iter()
+        .map(|value| {
+            value.clamp(
+                precision.rhs_quantization.clipping_min,
+                precision.rhs_quantization.clipping_max,
+            )
+        })
+        .collect::<Vec<_>>();
+    let inner = if transpose_lhs {
+        lhs.shape[0]
+    } else {
+        lhs.shape[1]
+    };
     let mut output = vec![0.0; rows * output_columns];
-    for compiled_tile in matching_tiles {
+    for compiled_tile in &matching_tiles {
         accumulate_tile(
             &mut output,
             lhs,
             rhs,
-            &quantized_lhs,
-            &quantized_rhs,
+            &quantized_lhs.dequantized,
+            &quantized_rhs.dequantized,
             transpose_lhs,
             transpose_rhs,
             compiled_tile.tile,
             output_columns,
         )?;
     }
+    let mut full_precision_accumulation = vec![0.0; rows * output_columns];
+    accumulate_tile(
+        &mut full_precision_accumulation,
+        lhs,
+        rhs,
+        &quantized_lhs.dequantized,
+        &quantized_rhs.dequantized,
+        transpose_lhs,
+        transpose_rhs,
+        crate::lowering::Tile {
+            m_offset: 0,
+            n_offset: 0,
+            k_offset: 0,
+            m: rows,
+            n: output_columns,
+            k: inner,
+        },
+        output_columns,
+    )?;
+    let mut clamped_reference = vec![0.0; rows * output_columns];
+    accumulate_tile(
+        &mut clamped_reference,
+        lhs,
+        rhs,
+        &clamped_lhs,
+        &clamped_rhs,
+        transpose_lhs,
+        transpose_rhs,
+        crate::lowering::Tile {
+            m_offset: 0,
+            n_offset: 0,
+            k_offset: 0,
+            m: rows,
+            n: output_columns,
+            k: inner,
+        },
+        output_columns,
+    )?;
+    let floating_point_accumulation = compare(&output, &full_precision_accumulation).0;
+    let input_quantization = compare(&full_precision_accumulation, &clamped_reference).0;
+    let input_clipping = compare(&clamped_reference, reference).0;
 
-    if let Some(calibration) = &artifact.photonic_ir.calibration {
-        // Model the measured transfer function and its compiler-provided
-        // inverse compensation. Keeping both steps explicit makes calibration
-        // part of executable semantics rather than device setup metadata.
+    let noise = apply_noise(&output, precision.analog_noise, precision.noise_seed)?;
+    output = noise.values;
+
+    let mut calibration_residual = 0.0_f64;
+    if let Some(calibration) = &precision.calibration_compensation {
         for value in &mut output {
-            let measured = *value * calibration.gain + calibration.offset;
-            *value = (measured - calibration.offset) / calibration.gain;
+            let original = *value;
+            let measured = original * calibration.measured_gain + calibration.measured_offset;
+            *value = measured * calibration.rescale + calibration.rebias;
+            calibration_residual = calibration_residual.max((*value - original).abs());
         }
     }
-    Ok(output)
-}
 
-fn quantize(values: &[f64], effective_bits: u8) -> Vec<f64> {
-    let max_abs = values
+    let output_quantized = quantize(
+        &output,
+        &[rows, output_columns],
+        &precision.output_quantization,
+        precision.noise_seed.wrapping_add(2),
+    )?;
+    let clamped_output = output
         .iter()
-        .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
-    if max_abs == 0.0 {
-        return values.to_vec();
+        .map(|value| {
+            value.clamp(
+                precision.output_quantization.clipping_min,
+                precision.output_quantization.clipping_max,
+            )
+        })
+        .collect::<Vec<_>>();
+    let output_quantization = compare(&output_quantized.dequantized, &clamped_output).0;
+    let clipping = input_clipping + compare(&clamped_output, &output).0;
+    let error_attribution = ErrorAttribution {
+        quantization: input_quantization + output_quantization,
+        shot_noise: maximum_absolute(&noise.shot_noise),
+        thermal_noise: maximum_absolute(&noise.thermal_noise),
+        phase_noise: maximum_absolute(&noise.phase_noise),
+        detector_noise: maximum_absolute(&noise.detector_noise),
+        calibration_residual,
+        floating_point_accumulation,
+        integer_overflow: 0.0,
+        clipping,
+        propagated_input: 0.0,
+        total: 0.0,
     }
-    let levels = (2_u64
-        .pow(u32::from(effective_bits.saturating_sub(1)))
-        .saturating_sub(1)
-        .max(1)) as f64;
-    values
-        .iter()
-        .map(|value| (value / max_abs * levels).round() / levels * max_abs)
-        .collect()
+    .checked_absolute()?;
+    let mut provenance = vec![
+        format!(
+            "quantization: lhs={} bits, rhs={} bits, output={} bits",
+            precision.lhs_quantization.bits,
+            precision.rhs_quantization.bits,
+            precision.output_quantization.bits
+        ),
+        format!("analog noise: deterministic seed {}", precision.noise_seed),
+        format!(
+            "accumulation: {:?} with {:?}",
+            matching_tiles[0].accumulation_mode, precision.accumulator_dtype
+        ),
+    ];
+    if let Some(calibration) = &precision.calibration_compensation {
+        provenance.push(format!(
+            "calibration: measured profile {} with inverse transfer compensation",
+            calibration.profile_id
+        ));
+    }
+    Ok(SimulatedOutput {
+        values: output_quantized.dequantized,
+        error_attribution,
+        seed: precision.noise_seed,
+        provenance,
+    })
 }
 
 fn compare(actual: &[f64], expected: &[f64]) -> (f64, f64) {

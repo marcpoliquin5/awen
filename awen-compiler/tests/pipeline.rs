@@ -74,7 +74,11 @@ fn calibrated_simulator_executes_tiled_gemm_within_contract() {
     let report = benchmark(&program, &artifact).expect("benchmark should run");
 
     assert_eq!(artifact.photonic_ir.ops.len(), 8);
-    assert!(report.all_outputs_within_tolerance);
+    assert!(
+        report.all_outputs_within_tolerance,
+        "comparison: {:#?}",
+        report.outputs[0]
+    );
     assert_eq!(report.optical_electrical_boundary_crossings, 2);
     assert_eq!(report.outputs[0].values.len(), 16);
 }
@@ -213,7 +217,11 @@ fn transpose_and_column_major_inputs_execute_correctly() {
     let report = benchmark(&program, &artifact).expect("benchmark should run");
     let expected = [13.0, 18.0, 17.0, 24.0, 21.0, 30.0];
 
-    assert!(report.all_outputs_within_tolerance);
+    assert!(
+        report.all_outputs_within_tolerance,
+        "comparison: {:#?}",
+        report.outputs[0]
+    );
     for (actual, expected) in report.outputs[0].values.iter().zip(expected) {
         assert!((actual - expected).abs() < 0.01);
     }

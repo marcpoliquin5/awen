@@ -193,7 +193,8 @@ pub fn compile_with_cost_model(
             } = gemm.op;
             snapshot.negotiate_gemm(
                 gemm.shape,
-                gemm.lhs.dtype,
+                gemm.precision_policy
+                    .map_or(gemm.lhs.dtype, |policy| policy.compute_dtype),
                 gemm.op.accuracy().minimum_effective_bits,
                 *transpose_lhs,
                 *transpose_rhs,
@@ -214,8 +215,27 @@ pub fn compile_with_cost_model(
                 structured_sparsity: cost_hints.structured_sparsity,
                 input_error_fraction: cost_hints.input_error_fraction,
                 maximum_input_magnitude: cost_hints.maximum_input_magnitude,
+                estimated_output_magnitude: estimate_output_magnitude(gemm),
                 maximum_absolute_error: Some(accuracy.max_abs_error),
                 maximum_relative_error: Some(accuracy.max_rel_error),
+                requested_compute_dtype: gemm.precision_policy.map(|policy| policy.compute_dtype),
+                requested_accumulator_dtype: gemm
+                    .precision_policy
+                    .map(|policy| policy.accumulator_dtype),
+                allowed_bit_slicing_mode_mask: gemm.precision_policy.map(|policy| {
+                    policy
+                        .allowed_bit_slicing_modes
+                        .iter()
+                        .fold(0_u8, |mask, mode| {
+                            mask | 1_u8
+                                << match mode {
+                                    crate::capability::BitSlicingMode::None => 0,
+                                    crate::capability::BitSlicingMode::TwosComplement => 1,
+                                    crate::capability::BitSlicingMode::SignedMagnitude => 2,
+                                }
+                        })
+                }),
+                noise_seed: gemm.precision_policy.map(|policy| policy.stochastic_seed),
             };
             let mut decision = decide_placement_with_model(
                 gemm.op.id(),
@@ -460,6 +480,29 @@ fn compiler_partition_request(
             alternatives: options.partition_alternatives,
             max_search_states: options.partition_max_search_states,
         },
+    })
+}
+
+fn estimate_output_magnitude(gemm: &crate::ir::ValidatedGemm<'_>) -> Option<f64> {
+    let crate::ir::TensorOp::Gemm {
+        transpose_lhs,
+        transpose_rhs,
+        ..
+    } = gemm.op;
+    crate::awenblas::reference_gemm(
+        gemm.lhs,
+        gemm.rhs,
+        *transpose_lhs,
+        *transpose_rhs,
+        gemm.shape.m,
+        gemm.shape.n,
+        gemm.shape.k,
+    )
+    .ok()
+    .map(|values| {
+        values
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()))
     })
 }
 

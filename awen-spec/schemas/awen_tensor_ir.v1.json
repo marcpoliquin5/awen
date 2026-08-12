@@ -6,6 +6,7 @@
   "required": ["ir_version", "tensors", "ops"],
   "properties": {
     "ir_version": { "const": "awen.tensor.v1" },
+    "precision": { "$ref": "awen_precision.v1.json" },
     "metadata": {
       "type": "object",
       "additionalProperties": { "type": "string" }
@@ -64,7 +65,7 @@
         "sparsity_fraction": { "type": "number", "minimum": 0, "maximum": 1, "default": 0 },
         "structured_sparsity": { "type": "boolean", "default": false },
         "input_error_fraction": { "type": "number", "minimum": 0, "maximum": 1, "default": 0 },
-        "maximum_input_magnitude": { "type": "number", "minimum": 0 }
+        "maximum_input_magnitude": { "type": ["number", "null"], "minimum": 0 }
       },
       "additionalProperties": false
     },

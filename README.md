@@ -7,12 +7,14 @@ The implemented compiler paths are deliberately narrow:
 ```text
 awen.tensor graph
   -> shape/layout/precision validation
+  -> explicit storage, compute, accumulator, and output precision
+  -> scaling, signed bit slicing, saturation, and error-contract validation
   -> whole-graph CPU, GPU, or photonic region placement
   -> residency-aware transfer, crossing, reuse, and memory optimization
   -> M/N/K tiling for a declared photonic matrix core
   -> classical Photonic IR
   -> Device IR command buffer
-  -> calibrated reference simulator and CPU comparison
+  -> seeded analog-noise/calibration simulator and attributed CPU comparison
 
 awen.blas kernel request
   -> exact kind/shape/layout/dtype/structure/phase validation
@@ -47,7 +49,7 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
+- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
@@ -132,7 +134,15 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   --output awen_benchmark.json
 ```
 
-This command quantizes literal inputs to the backend's advertised effective precision, executes the emitted tiles, applies the calibration transfer function and inverse compensation, compares against the digital reference GEMM, and fails when the declared accuracy contract is exceeded.
+This command applies the emitted tensor/channel/block quantization and signed
+bit-slice plan, executes the tiles with the selected accumulator, injects
+deterministically seeded shot/thermal/phase/detector noise, applies the measured
+calibration transfer and emitted inverse rescale, converts to the declared
+output dtype, and compares against the digital reference GEMM. Its
+`awen.error-report.v1` output separates quantization, analog, calibration,
+floating-point accumulation, overflow, clipping, and propagated-input error.
+Compilation rejects forced photonic placement when the effective-bit or error
+contract cannot be met; automatic placement records a digital fallback.
 
 ## Status and evidence
 

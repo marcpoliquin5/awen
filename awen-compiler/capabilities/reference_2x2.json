@@ -24,6 +24,12 @@
   "bit_slicing_modes": ["none", "twos_complement"],
   "saturation_mode": "clamp",
   "input_dynamic_range": { "minimum": -1.0, "maximum": 1.0 },
+  "analog_noise": {
+    "shot_noise_fraction": 0.00005,
+    "thermal_noise_fraction": 0.00002,
+    "phase_noise_radians": 0.00001,
+    "detector_noise_fraction": 0.00002
+  },
   "sample_rate_gsps": 10.0,
   "reconfiguration_latency_ns": 100.0,
   "detector_bandwidth_ghz": 10.0,

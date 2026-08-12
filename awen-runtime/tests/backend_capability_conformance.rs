@@ -51,9 +51,10 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
 }
 
 #[test]
-fn missing_precision_timing_power_and_calibration_fields_are_not_accepted() {
+fn missing_precision_noise_timing_power_and_calibration_fields_are_not_accepted() {
     for field in [
         "effective_bits",
+        "analog_noise",
         "boundary_latency_ns",
         "total_power_budget_mw",
         "calibration_requirements",

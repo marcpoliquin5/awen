@@ -2,6 +2,8 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
+use crate::precision::{OperationPrecisionPolicy, PrecisionConfiguration};
+
 pub const TENSOR_IR_VERSION: &str = "awen.tensor.v1";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -145,6 +147,8 @@ pub struct TensorProgram {
     pub ir_version: String,
     pub tensors: Vec<Tensor>,
     pub ops: Vec<TensorOp>,
+    #[serde(default, skip_serializing_if = "PrecisionConfiguration::is_empty")]
+    pub precision: PrecisionConfiguration,
     #[serde(default)]
     pub metadata: BTreeMap<String, String>,
 }
@@ -163,6 +167,19 @@ pub struct ValidatedGemm<'a> {
     pub rhs: &'a Tensor,
     pub output: &'a Tensor,
     pub shape: GemmShape,
+    pub precision_policy: Option<&'a OperationPrecisionPolicy>,
+}
+
+impl ValidatedGemm<'_> {
+    pub fn compute_dtype(&self) -> DType {
+        self.precision_policy
+            .map_or(self.lhs.dtype, |policy| policy.compute_dtype)
+    }
+
+    pub fn output_dtype(&self) -> DType {
+        self.precision_policy
+            .map_or(self.output.dtype, |policy| policy.output_dtype)
+    }
 }
 
 pub fn validate_program(program: &TensorProgram) -> Result<Vec<ValidatedGemm<'_>>> {
@@ -205,6 +222,7 @@ pub fn validate_program(program: &TensorProgram) -> Result<Vec<ValidatedGemm<'_>
             bail!("duplicate tensor id '{}'", tensor.id);
         }
     }
+    program.precision.validate(&program.tensors, &program.ops)?;
 
     let mut op_ids = HashMap::new();
     let mut validated = Vec::with_capacity(program.ops.len());
@@ -256,10 +274,32 @@ pub fn validate_program(program: &TensorProgram) -> Result<Vec<ValidatedGemm<'_>
                         op.id()
                     )
                 })?;
-
-                if lhs_tensor.dtype != rhs_tensor.dtype || lhs_tensor.dtype != output_tensor.dtype {
+                let precision_policy = program.precision.operation(op.id());
+                if let Some(policy) = precision_policy {
+                    if output_tensor.dtype != policy.output_dtype {
+                        bail!(
+                            "operation '{}' precision output dtype {:?} does not match tensor '{}' dtype {:?}",
+                            op.id(),
+                            policy.output_dtype,
+                            output_tensor.id,
+                            output_tensor.dtype
+                        );
+                    }
+                    if accuracy
+                        .minimum_effective_bits
+                        .is_some_and(|bits| bits > policy.compute_dtype.bits())
+                    {
+                        bail!(
+                            "operation '{}' minimum effective bits exceed its compute dtype {:?}",
+                            op.id(),
+                            policy.compute_dtype
+                        );
+                    }
+                } else if lhs_tensor.dtype != rhs_tensor.dtype
+                    || lhs_tensor.dtype != output_tensor.dtype
+                {
                     bail!(
-                        "operation '{}' requires matching operand/output dtypes, got {:?}, {:?}, {:?}",
+                        "operation '{}' requires matching operand/output dtypes without an explicit precision policy, got {:?}, {:?}, {:?}",
                         op.id(),
                         lhs_tensor.dtype,
                         rhs_tensor.dtype,
@@ -294,6 +334,7 @@ pub fn validate_program(program: &TensorProgram) -> Result<Vec<ValidatedGemm<'_>
                     rhs: rhs_tensor,
                     output: output_tensor,
                     shape: GemmShape { m, n, k: lhs_k },
+                    precision_policy,
                 });
             }
         }

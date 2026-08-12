@@ -1,5 +1,8 @@
-use crate::capability::{AccumulationMode, BackendHealth, DeviceCapabilities, SaturationMode};
+use crate::capability::{
+    AccumulationMode, BackendHealth, BitSlicingMode, DeviceCapabilities, SaturationMode,
+};
 use crate::ir::{DType, GemmShape, Layout};
+use crate::precision::{AccumulatorDType, ErrorAttribution};
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -173,6 +176,7 @@ pub struct CostEstimate {
     pub throughput_gops: f64,
     pub effective_bits: u8,
     pub estimated_error_fraction: f64,
+    pub error_attribution: ErrorAttribution,
     pub error_interval: EstimateInterval,
     pub latency_breakdown_ns: LatencyBreakdownNs,
     pub energy_breakdown_uj: EnergyBreakdownUj,
@@ -185,6 +189,10 @@ pub struct TuningPlan {
     pub tile_n: usize,
     pub tile_k: usize,
     pub bit_slices: u8,
+    pub bit_slicing_mode: BitSlicingMode,
+    pub compute_dtype: DType,
+    pub accumulator_dtype: AccumulatorDType,
+    pub noise_seed: u64,
     pub wavelength_channels: usize,
     pub accumulation_mode: AccumulationMode,
     pub batch_size: usize,
@@ -243,8 +251,13 @@ pub struct OperationCostProfile {
     pub structured_sparsity: bool,
     pub input_error_fraction: f64,
     pub maximum_input_magnitude: Option<f64>,
+    pub estimated_output_magnitude: Option<f64>,
     pub maximum_absolute_error: Option<f64>,
     pub maximum_relative_error: Option<f64>,
+    pub requested_compute_dtype: Option<DType>,
+    pub requested_accumulator_dtype: Option<AccumulatorDType>,
+    pub allowed_bit_slicing_mode_mask: Option<u8>,
+    pub noise_seed: Option<u64>,
 }
 
 impl Default for OperationCostProfile {
@@ -257,8 +270,13 @@ impl Default for OperationCostProfile {
             structured_sparsity: false,
             input_error_fraction: 0.0,
             maximum_input_magnitude: None,
+            estimated_output_magnitude: None,
             maximum_absolute_error: None,
             maximum_relative_error: None,
+            requested_compute_dtype: None,
+            requested_accumulator_dtype: None,
+            allowed_bit_slicing_mode_mask: None,
+            noise_seed: None,
         }
     }
 }
@@ -269,6 +287,9 @@ impl OperationCostProfile {
         fraction(self.input_error_fraction, "input_error_fraction")?;
         if let Some(value) = self.maximum_input_magnitude {
             non_negative(value, "maximum_input_magnitude")?;
+        }
+        if let Some(value) = self.estimated_output_magnitude {
+            non_negative(value, "estimated_output_magnitude")?;
         }
         for (value, name) in [
             (self.maximum_absolute_error, "maximum_absolute_error"),
@@ -289,11 +310,24 @@ impl OperationCostProfile {
     }
 
     fn error_contract_satisfied(self, estimate: &CostEstimate) -> bool {
-        self.maximum_absolute_error
-            .is_none_or(|bound| estimate.estimated_error_fraction <= bound)
-            && self
-                .maximum_relative_error
-                .is_none_or(|bound| estimate.estimated_error_fraction <= bound)
+        let contract_fraction = (estimate.error_attribution.quantization
+            + estimate.error_attribution.shot_noise
+            + estimate.error_attribution.thermal_noise
+            + estimate.error_attribution.phase_noise
+            + estimate.error_attribution.detector_noise
+            + estimate.error_attribution.calibration_residual
+            + estimate.error_attribution.floating_point_accumulation
+            + estimate.error_attribution.integer_overflow
+            + estimate.error_attribution.clipping
+            + estimate.error_attribution.propagated_input)
+            .min(1.0);
+        self.maximum_absolute_error.is_none_or(|bound| {
+            self.estimated_output_magnitude
+                .map_or(contract_fraction, |magnitude| contract_fraction * magnitude)
+                <= bound
+        }) && self
+            .maximum_relative_error
+            .is_none_or(|bound| contract_fraction <= bound)
     }
 }
 
@@ -790,7 +824,7 @@ pub fn decide_placement_with_model(
         tuning,
         TargetBackend::Gpu,
     );
-    let autotuned = capabilities.supports(dtype).then(|| {
+    let autotuned = (!dtype.is_complex()).then(|| {
         autotune_with_profile(
             shape,
             dtype,
@@ -976,23 +1010,26 @@ pub fn autotune_with_profile(
         "autotune resident_input_fraction",
     )?;
     let required_bits = minimum_effective_bits.unwrap_or(capabilities.effective_bits);
-    let minimum_slices = required_bits.div_ceil(capabilities.effective_bits).max(1);
+    let compute_dtypes = if let Some(requested) = profile.requested_compute_dtype {
+        if !capabilities.supports(requested) {
+            bail!("requested compute dtype {requested:?} is unsupported by the backend");
+        }
+        vec![requested]
+    } else {
+        capabilities
+            .supported_dtypes
+            .iter()
+            .copied()
+            .filter(|candidate| !candidate.is_complex())
+            .collect::<Vec<_>>()
+    };
+    if compute_dtypes.is_empty() {
+        bail!("backend advertises no real compute dtype");
+    }
     let supports_bit_slicing = capabilities
         .bit_slicing_modes
         .iter()
-        .any(|mode| *mode != crate::capability::BitSlicingMode::None);
-    if minimum_slices > 1 && !supports_bit_slicing {
-        bail!("accuracy contract requires bit slicing but the backend advertises none");
-    }
-    let maximum_slices = if supports_bit_slicing {
-        dtype
-            .bits()
-            .div_ceil(capabilities.effective_bits)
-            .max(minimum_slices)
-    } else {
-        1
-    };
-    let slice_options = unique_u8s(&[minimum_slices, maximum_slices]);
+        .any(|mode| *mode != BitSlicingMode::None);
     let tile_options = unique_tiles(capabilities);
     let channel_options = unique_usizes(&[
         1,
@@ -1005,36 +1042,73 @@ pub fn autotune_with_profile(
         &[false]
     };
     let mut candidates = Vec::new();
-    for (tile_m, tile_n, tile_k) in tile_options {
-        for channels in &channel_options {
-            for accumulation_mode in &capabilities.accumulation_modes {
-                for bit_slices in &slice_options {
-                    for fuse_boundaries in fusion_options {
-                        let plan = TuningPlan {
-                            tile_m,
-                            tile_n,
-                            tile_k,
-                            bit_slices: *bit_slices,
-                            wavelength_channels: *channels,
-                            accumulation_mode: *accumulation_mode,
-                            batch_size: options.batch_size,
-                            fuse_boundaries: *fuse_boundaries,
-                        };
-                        let estimate = estimate_photonic_plan_with_profile(
-                            shape,
-                            dtype,
-                            capabilities,
-                            model,
-                            profile,
-                            plan,
-                            options,
-                        )?;
-                        if profile.error_contract_satisfied(&estimate) {
-                            candidates.push(TuningCandidate {
-                                objective_score: objective_score(objective, &estimate),
-                                plan,
-                                estimate,
-                            });
+    for compute_dtype in compute_dtypes {
+        if required_bits > compute_dtype.bits() {
+            continue;
+        }
+        let minimum_slices = required_bits.div_ceil(capabilities.effective_bits).max(1);
+        if minimum_slices > 1 && !supports_bit_slicing {
+            continue;
+        }
+        let maximum_slices = if supports_bit_slicing {
+            compute_dtype
+                .bits()
+                .div_ceil(capabilities.effective_bits)
+                .max(minimum_slices)
+        } else {
+            1
+        };
+        let slice_options = unique_u8s(&[minimum_slices, maximum_slices]);
+        for (tile_m, tile_n, tile_k) in &tile_options {
+            for channels in &channel_options {
+                for accumulation_mode in &capabilities.accumulation_modes {
+                    let accumulators = accumulator_options(
+                        compute_dtype,
+                        *accumulation_mode,
+                        profile.requested_accumulator_dtype,
+                    );
+                    for accumulator_dtype in accumulators {
+                        for bit_slices in &slice_options {
+                            let bit_modes = bit_slicing_options(capabilities, *bit_slices);
+                            for bit_slicing_mode in bit_modes {
+                                if profile.allowed_bit_slicing_mode_mask.is_some_and(|mask| {
+                                    mask & (1 << bit_slicing_key(bit_slicing_mode)) == 0
+                                }) {
+                                    continue;
+                                }
+                                for fuse_boundaries in fusion_options {
+                                    let plan = TuningPlan {
+                                        tile_m: *tile_m,
+                                        tile_n: *tile_n,
+                                        tile_k: *tile_k,
+                                        bit_slices: *bit_slices,
+                                        bit_slicing_mode,
+                                        compute_dtype,
+                                        accumulator_dtype,
+                                        noise_seed: profile.noise_seed.unwrap_or(options.seed),
+                                        wavelength_channels: *channels,
+                                        accumulation_mode: *accumulation_mode,
+                                        batch_size: options.batch_size,
+                                        fuse_boundaries: *fuse_boundaries,
+                                    };
+                                    let estimate = estimate_photonic_plan_with_profile(
+                                        shape,
+                                        dtype,
+                                        capabilities,
+                                        model,
+                                        profile,
+                                        plan,
+                                        options,
+                                    )?;
+                                    if profile.error_contract_satisfied(&estimate) {
+                                        candidates.push(TuningCandidate {
+                                            objective_score: objective_score(objective, &estimate),
+                                            plan,
+                                            estimate,
+                                        });
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1139,13 +1213,27 @@ pub fn estimate_photonic_plan_with_profile(
     {
         bail!("tuning plan requests an unsupported accumulation mode");
     }
+    if !capabilities.supports(plan.compute_dtype) {
+        bail!("tuning plan requests an unsupported compute dtype");
+    }
+    if plan.accumulation_mode == AccumulationMode::Optical
+        && plan.accumulator_dtype != AccumulatorDType::Optical
+    {
+        bail!("optical accumulation requires an optical accumulator");
+    }
+    if plan.accumulation_mode != AccumulationMode::Optical && !plan.accumulator_dtype.is_digital() {
+        bail!("digital or hybrid accumulation requires a digital accumulator");
+    }
     if plan.bit_slices > 1
         && !capabilities
             .bit_slicing_modes
             .iter()
-            .any(|mode| *mode != crate::capability::BitSlicingMode::None)
+            .any(|mode| *mode == plan.bit_slicing_mode && *mode != BitSlicingMode::None)
     {
-        bail!("tuning plan requests bit slicing but the backend advertises none");
+        bail!("tuning plan requests an unsupported non-trivial bit-slicing mode");
+    }
+    if plan.bit_slices == 1 && plan.bit_slicing_mode != BitSlicingMode::None {
+        bail!("a single-slice tuning plan must use bit-slicing mode none");
     }
     let batches = plan.batch_size as f64;
     let density = if profile.structured_sparsity {
@@ -1175,10 +1263,19 @@ pub fn estimate_photonic_plan_with_profile(
     } else {
         0.0
     };
+    let precision_conversion_operations = if dtype == plan.compute_dtype {
+        0.0
+    } else {
+        input_elements * f64::from(plan.compute_dtype.bits()) / 8.0
+    };
     let digital_accumulation = matches!(
         plan.accumulation_mode,
         AccumulationMode::Digital | AccumulationMode::Hybrid
     );
+    let accumulator_cost_factor = match plan.accumulator_dtype {
+        AccumulatorDType::F64 | AccumulatorDType::I64 => 2.0,
+        _ => 1.0,
+    };
     let supported_magnitude = capabilities
         .input_dynamic_range
         .minimum
@@ -1215,9 +1312,11 @@ pub fn estimate_photonic_plan_with_profile(
         detection: conversion_samples / capabilities.detector_bandwidth_ghz,
         adc: conversion_samples / capabilities.sample_rate_gsps,
         digital_accumulation: if digital_accumulation {
-            accumulation_macs / model.digital_accumulation_throughput_gops
+            (accumulation_macs + precision_conversion_operations)
+                / model.digital_accumulation_throughput_gops
+                * accumulator_cost_factor
         } else {
-            0.0
+            precision_conversion_operations / model.digital_accumulation_throughput_gops
         },
     };
     latency_breakdown_ns.scale(model.latency_calibration_factor);
@@ -1232,9 +1331,13 @@ pub fn estimate_photonic_plan_with_profile(
         detector: conversion_samples * model.detector_energy_pj_per_sample / 1_000_000.0,
         adc: conversion_samples * capabilities.adc_energy_pj_per_sample / 1_000_000.0,
         digital_accumulation: if digital_accumulation {
-            accumulation_macs * model.digital_accumulation_energy_pj_per_mac / 1_000_000.0
+            (accumulation_macs + precision_conversion_operations)
+                * model.digital_accumulation_energy_pj_per_mac
+                * accumulator_cost_factor
+                / 1_000_000.0
         } else {
-            0.0
+            precision_conversion_operations * model.digital_accumulation_energy_pj_per_mac
+                / 1_000_000.0
         },
         support_system: model.support_power_mw * latency_ns / 1_000_000.0,
         calibration_amortization: model.calibration_amortization_energy_uj,
@@ -1246,24 +1349,56 @@ pub fn estimate_photonic_plan_with_profile(
         .calibration_profile
         .as_ref()
         .map_or(0.0, |profile| profile.uncertainty);
-    let effective_bits = capabilities.effective_bits.saturating_mul(plan.bit_slices);
+    let effective_bits = capabilities
+        .effective_bits
+        .saturating_mul(plan.bit_slices)
+        .min(plan.compute_dtype.bits());
     let quantization_error = 2.0_f64.powi(-i32::from(effective_bits));
-    let effective_snr_db = (model.signal_to_noise_ratio_db - model.insertion_loss_db).max(0.0);
-    let snr_error = 10.0_f64.powf(-effective_snr_db / 20.0);
     let k_accumulations = shape.k.div_ceil(plan.tile_k).saturating_sub(1) as f64;
     let accumulation_error = match plan.accumulation_mode {
         AccumulationMode::Optical => quantization_error * k_accumulations * 0.5,
         AccumulationMode::Hybrid => quantization_error * k_accumulations * 0.25,
         AccumulationMode::Digital => 0.0,
     };
-    let estimated_error_fraction = (quantization_error.max(snr_error)
-        + calibration_uncertainty
-        + model.drift_fraction
-        + model.error_calibration_offset
-        + accumulation_error
-        + saturation_error
-        + profile.input_error_fraction)
-        .min(1.0);
+    let floating_point_accumulation = match plan.accumulator_dtype {
+        AccumulatorDType::F32 => shape.k as f64 * 2.0_f64.powi(-24),
+        AccumulatorDType::F64 => shape.k as f64 * 2.0_f64.powi(-53),
+        _ => 0.0,
+    };
+    let maximum_input = profile
+        .maximum_input_magnitude
+        .unwrap_or(supported_magnitude);
+    let maximum_integer_code = match plan.accumulator_dtype {
+        AccumulatorDType::I32 => f64::from(i32::MAX),
+        AccumulatorDType::I64 => i64::MAX as f64,
+        _ => f64::INFINITY,
+    };
+    let predicted_integer_sum = maximum_input.powi(2) * shape.k as f64;
+    let integer_overflow = if predicted_integer_sum > maximum_integer_code {
+        ((predicted_integer_sum - maximum_integer_code) / predicted_integer_sum).min(1.0)
+    } else {
+        0.0
+    };
+    if integer_overflow > 0.0 && capabilities.saturation_mode == SaturationMode::Error {
+        bail!("tuning plan can overflow the declared integer accumulator");
+    }
+    let error_attribution = ErrorAttribution {
+        quantization: quantization_error,
+        shot_noise: capabilities.analog_noise.shot_noise_fraction,
+        thermal_noise: capabilities.analog_noise.thermal_noise_fraction,
+        phase_noise: capabilities.analog_noise.phase_noise_radians,
+        detector_noise: capabilities.analog_noise.detector_noise_fraction,
+        calibration_residual: calibration_uncertainty * 0.01
+            + model.drift_fraction
+            + model.error_calibration_offset,
+        floating_point_accumulation: floating_point_accumulation + accumulation_error,
+        integer_overflow,
+        clipping: saturation_error,
+        propagated_input: profile.input_error_fraction,
+        total: 0.0,
+    }
+    .checked()?;
+    let estimated_error_fraction = error_attribution.total;
     let operations = 2.0 * macs;
     Ok(CostEstimate {
         latency_ns,
@@ -1273,6 +1408,7 @@ pub fn estimate_photonic_plan_with_profile(
         throughput_gops: operations / latency_ns,
         effective_bits,
         estimated_error_fraction,
+        error_attribution,
         error_interval: interval(estimated_error_fraction, uncertainty),
         latency_breakdown_ns,
         energy_breakdown_uj,
@@ -1315,6 +1451,14 @@ fn estimate_cpu(shape: GemmShape, baseline: DigitalBaseline) -> CostEstimate {
         reference: "compile options".to_string(),
         uncertainty_fraction: 0.1,
     }];
+    let quantization_error = 2.0_f64.powi(-i32::from(baseline.effective_bits));
+    let error_attribution = ErrorAttribution {
+        quantization: quantization_error,
+        floating_point_accumulation: shape.k as f64 * 2.0_f64.powi(-24),
+        ..ErrorAttribution::default()
+    }
+    .checked()
+    .expect("digital baseline error attribution is valid");
     CostEstimate {
         latency_ns,
         latency_interval_ns: interval(latency_ns, 0.1),
@@ -1322,8 +1466,9 @@ fn estimate_cpu(shape: GemmShape, baseline: DigitalBaseline) -> CostEstimate {
         energy_interval_uj: interval(energy_uj, 0.1),
         throughput_gops: operations / latency_ns,
         effective_bits: baseline.effective_bits,
-        estimated_error_fraction: 2.0_f64.powi(-i32::from(baseline.effective_bits)),
-        error_interval: interval(2.0_f64.powi(-i32::from(baseline.effective_bits)), 0.1),
+        estimated_error_fraction: error_attribution.total,
+        error_attribution,
+        error_interval: interval(error_attribution.total, 0.1),
         latency_breakdown_ns: LatencyBreakdownNs {
             scheduling: baseline.launch_latency_ns,
             digital_accumulation: latency_ns - baseline.launch_latency_ns,
@@ -1378,8 +1523,15 @@ pub fn estimate_digital_with_context(
     };
     let energy_uj = energy_breakdown_uj.total();
     let uncertainty = model.uncertainty().max(0.1);
-    let estimated_error_fraction =
-        (2.0_f64.powi(-i32::from(baseline.effective_bits)) + profile.input_error_fraction).min(1.0);
+    let error_attribution = ErrorAttribution {
+        quantization: 2.0_f64.powi(-i32::from(baseline.effective_bits)),
+        floating_point_accumulation: shape.k as f64 * 2.0_f64.powi(-24),
+        propagated_input: profile.input_error_fraction,
+        ..ErrorAttribution::default()
+    }
+    .checked()
+    .expect("digital error attribution is valid");
+    let estimated_error_fraction = error_attribution.total;
     let mut provenance = model.provenance.clone();
     provenance.push(ParameterProvenance {
         parameter: format!("{device:?} digital compute baseline"),
@@ -1395,6 +1547,7 @@ pub fn estimate_digital_with_context(
         throughput_gops: operations / latency_ns,
         effective_bits: baseline.effective_bits,
         estimated_error_fraction,
+        error_attribution,
         error_interval: interval(estimated_error_fraction, uncertainty),
         latency_breakdown_ns,
         energy_breakdown_uj,
@@ -1463,12 +1616,51 @@ fn unique_u8s(values: &[u8]) -> Vec<u8> {
     result
 }
 
-fn plan_key(plan: TuningPlan) -> (usize, usize, usize, u8, usize, u8, usize, bool) {
+fn accumulator_options(
+    dtype: DType,
+    mode: AccumulationMode,
+    requested: Option<AccumulatorDType>,
+) -> Vec<AccumulatorDType> {
+    if let Some(requested) = requested {
+        return if (mode == AccumulationMode::Optical && requested == AccumulatorDType::Optical)
+            || (mode != AccumulationMode::Optical && requested.is_digital())
+        {
+            vec![requested]
+        } else {
+            Vec::new()
+        };
+    }
+    if mode == AccumulationMode::Optical {
+        vec![AccumulatorDType::Optical]
+    } else if matches!(dtype, DType::Int8 | DType::Int4) {
+        vec![AccumulatorDType::I32, AccumulatorDType::I64]
+    } else {
+        vec![AccumulatorDType::F32, AccumulatorDType::F64]
+    }
+}
+
+fn bit_slicing_options(capabilities: &DeviceCapabilities, bit_slices: u8) -> Vec<BitSlicingMode> {
+    if bit_slices == 1 {
+        vec![BitSlicingMode::None]
+    } else {
+        capabilities
+            .bit_slicing_modes
+            .iter()
+            .copied()
+            .filter(|mode| *mode != BitSlicingMode::None)
+            .collect()
+    }
+}
+
+fn plan_key(plan: TuningPlan) -> (usize, usize, usize, u8, u8, u8, u8, usize, u8, usize, bool) {
     (
         plan.tile_m,
         plan.tile_n,
         plan.tile_k,
         plan.bit_slices,
+        bit_slicing_key(plan.bit_slicing_mode),
+        dtype_key(plan.compute_dtype),
+        accumulator_key(plan.accumulator_dtype),
         plan.wavelength_channels,
         accumulation_key(plan.accumulation_mode),
         plan.batch_size,
@@ -1486,6 +1678,35 @@ fn accumulation_key(mode: AccumulationMode) -> u8 {
         AccumulationMode::Optical => 0,
         AccumulationMode::Digital => 1,
         AccumulationMode::Hybrid => 2,
+    }
+}
+
+fn bit_slicing_key(mode: BitSlicingMode) -> u8 {
+    match mode {
+        BitSlicingMode::None => 0,
+        BitSlicingMode::TwosComplement => 1,
+        BitSlicingMode::SignedMagnitude => 2,
+    }
+}
+
+fn dtype_key(dtype: DType) -> u8 {
+    match dtype {
+        DType::Int4 => 0,
+        DType::Int8 => 1,
+        DType::F16 => 2,
+        DType::Bf16 => 3,
+        DType::F32 => 4,
+        DType::ComplexF32 => 5,
+    }
+}
+
+fn accumulator_key(dtype: AccumulatorDType) -> u8 {
+    match dtype {
+        AccumulatorDType::F32 => 0,
+        AccumulatorDType::F64 => 1,
+        AccumulatorDType::I32 => 2,
+        AccumulatorDType::I64 => 3,
+        AccumulatorDType::Optical => 4,
     }
 }
 
@@ -1647,6 +1868,10 @@ mod tests {
             tile_n: 128,
             tile_k: 128,
             bit_slices: 1,
+            bit_slicing_mode: BitSlicingMode::None,
+            compute_dtype: DType::F16,
+            accumulator_dtype: AccumulatorDType::F32,
+            noise_seed: 0,
             wavelength_channels: 16,
             accumulation_mode: AccumulationMode::Digital,
             batch_size: 1,
@@ -1802,6 +2027,10 @@ mod tests {
             tile_n: 1,
             tile_k: 1,
             bit_slices: 1,
+            bit_slicing_mode: BitSlicingMode::None,
+            compute_dtype: DType::Int8,
+            accumulator_dtype: AccumulatorDType::I32,
+            noise_seed: 0,
             wavelength_channels: 1,
             accumulation_mode: AccumulationMode::Digital,
             batch_size: 1,
@@ -1894,6 +2123,10 @@ mod tests {
             tile_n: 1,
             tile_k: 1,
             bit_slices: 1,
+            bit_slicing_mode: BitSlicingMode::None,
+            compute_dtype: DType::Int8,
+            accumulator_dtype: AccumulatorDType::I32,
+            noise_seed: 0,
             wavelength_channels: 1,
             accumulation_mode: AccumulationMode::Digital,
             batch_size: 1,
