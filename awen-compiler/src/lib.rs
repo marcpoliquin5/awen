@@ -1,9 +1,11 @@
 //! AWEN's hardware-aware tensor-to-photonic compiler.
 //!
-//! The executable vertical slice accepts a typed tensor GEMM program, partitions
-//! the whole graph across CPU, GPU, and photonic regions, tiles supported GEMMs
-//! for a matrix-core backend, emits classical Photonic IR and Device IR, and
-//! validates numerical behavior with the calibrated reference simulator.
+//! The compiler accepts typed tensor graphs, partitions them across CPU, GPU,
+//! and photonic regions, tiles supported GEMMs for matrix-core backends, emits
+//! classical Photonic IR and Device IR, and validates numerical behavior with
+//! calibrated reference simulation. The crate also exposes the versioned
+//! awenBLAS registry with executable CPU references, deterministic accelerator
+//! simulation, capability/cost selection, and conformance measurement.
 
 pub mod awenblas;
 pub mod capability;
@@ -15,10 +17,19 @@ pub mod lowering;
 pub mod partition;
 pub mod simulator;
 
+pub use awenblas::kernels::{
+    benchmark_kernel, execute_reference as execute_kernel_reference,
+    execute_simulator as execute_kernel_simulator, select_kernel, CalibrationInput, ComplexValue,
+    KernelAttributes, KernelBackendProfile, KernelBenchmarkReport, KernelCandidateTrace,
+    KernelCostEstimate, KernelData, KernelDescriptor, KernelExecutionPlan, KernelKind,
+    KernelRequest, KernelResult, KernelSimulatorOptions, KernelStructure, KernelTensor,
+    PhaseConvention, AWENBLAS_BENCHMARK_VERSION, AWENBLAS_VERSION,
+};
 pub use capability::{
-    BackendHealth, BackendSnapshot, BitSlicingMode, CalibrationProfile, CapabilityNegotiation,
-    DeviceCapabilities, DynamicRange, HealthStatus, MatrixCore, OperationCapability, OperationKind,
-    SaturationMode, CAPABILITY_VERSION, HEALTH_VERSION, PLUGIN_ABI_VERSION, RUNTIME_ABI_VERSION,
+    AccumulationMode, BackendHealth, BackendSnapshot, BitSlicingMode, CalibrationProfile,
+    CapabilityNegotiation, DeviceCapabilities, DynamicRange, HealthStatus, MatrixCore,
+    OperationCapability, OperationKind, SaturationMode, CAPABILITY_VERSION, HEALTH_VERSION,
+    PLUGIN_ABI_VERSION, RUNTIME_ABI_VERSION,
 };
 pub use compiler::{
     compile, compile_with_backend, compile_with_cost_model, CompilationArtifact, CompileOptions,

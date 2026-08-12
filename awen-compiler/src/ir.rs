@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 
 pub const TENSOR_IR_VERSION: &str = "awen.tensor.v1";
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum DType {
     F32,

@@ -4,7 +4,7 @@
 
 This audit examined `marcpoliquin5/awen` at `main` commit `568bac9` and read-only public repository state for `marcpoliquin5/awen-labs` and `marcpoliquin5/awenphotonics.github.io`. The main repository contained 170 tracked source/specification/document files before this branch. The audit covered repository history, open/closed pull requests and issues, releases, branch protection, GitHub Actions, Rust crates and tests, schemas/specifications, the Python package, Studio/Cloud/Ecosystem scaffolding, tracked artifacts, environment files, and website claims.
 
-The compiler implementation and CI repairs described below are changes on `codex/awen-compiler-gemm`, not statements about the pre-branch release tag.
+The compiler implementation and CI repairs described below were delivered incrementally through the GEMM, MLIR/ABI, capability, cost-model, and partitioner changes merged before this branch. The executable awenBLAS library described below is implemented on `codex/awenblas-kernel-library`. None of those changes are statements about the earlier release tag.
 
 ## Repository and product boundary
 
@@ -41,7 +41,7 @@ The V5 schema does not encode tensor shapes, dynamic dimensions, dtype, layout, 
 
 The Python wrapper mutates legacy `nodes`, while its description implies a bridge to broader framework IR. That confirms API drift rather than compatibility.
 
-This branch adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, and `awen.device.v1`. AEP-0010 states that production dialects must use MLIR/StableHLO and that the JSON bootstrap must not become a competing general-purpose compiler infrastructure. MLIR implementation remains #6; classical/quantum separation remains #16.
+The compiler adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, and `awen.device.v1`. The implemented `awen-mlir` path registers Tensor, Classical Photonic, Quantum Photonic, and Device dialects, normalizes supported StableHLO rank-two `dot_general`, lowers GEMM into Device IR, emits `AWENEXE`, and is consumed directly by the Rust runtime. AEP-0010 still requires production framework paths to use MLIR/StableHLO rather than growing the JSON bootstrap into a competing general-purpose infrastructure. Complete classical/quantum semantic separation remains #16.
 
 ## Simulator and numerical semantics
 
@@ -55,7 +55,7 @@ The existing HAL code has useful device discovery, measurement, calibration, hea
 
 The new compiler capability contract includes matrix-core M/N/K size, supported dtypes and complex mode, wavelengths, modulation/sample rates, coherence mode, ADC/DAC/effective bits, reconfiguration latency, detector bandwidth, insertion-loss budget, simultaneous channels, accumulation modes, calibration requirements/profile, host bandwidth/boundary latency, laser power, and conversion energy. The included 2×2 and PACE-like 128×128 profiles are reference simulator inputs only. They are not assertions about Lightelligence or any shipping device.
 
-Capability discovery, live health negotiation, plugin ABI versioning, calibration freshness, per-cell faults, and backend conformance remain #8.
+Capability discovery, live health negotiation, runtime/plugin ABI versioning, calibration freshness, resource availability, partial-tile legality, complex-mode consistency, typed fallback reasons, and schema/Rust conformance are implemented under #8. Per-cell fault remapping and drift-triggered recompilation remain part of #14.
 
 ## Scheduling, partitioning, and cost
 
@@ -93,7 +93,7 @@ The new compiler requires a profile when a backend declares calibration mandator
 
 The Python package runs `awenctl` as a subprocess, searches the working directory for the newest `awen_run_*` or `awen_grad_*` directory, and reads JSON artifacts. Its smoke test references an `example_ir.json` that is not present under `awen-ecosystem/python_awen`. The PyTorch wrapper is not a `torch.autograd.Function` subclass, returns a manually annotated tensor, exposes a separate manual backward helper, and uses one finite-difference CLI invocation. It cannot provide normal `torch.compile`, device, stream, async, buffer, dynamic-shape, or autograd semantics.
 
-This branch adds the first `awenBLAS` reference GEMM and runtime `compile`/`benchmark` commands. Broader executable kernels are #11. Native `torch.compile`, JAX/StableHLO, C++, NumPy, and removal of normal-path subprocess/filesystem glue are #12.
+The compiler now includes the original tiled-GEMM reference plus a separate executable `awen.blas.v1` registry with 22 kinds: GEMM, batched GEMM, complex GEMM, linear, transformer Q/K/V, attention scores, attention-value multiplication, MLP projection, one-dimensional convolution and correlation, DFT, FFT, Fourier filtering, low-rank multiplication, deterministic random projection, Toeplitz, circulant, block-circulant, beamforming, RF FIR, reservoir step, and propagation. Every kind has validated shape/layout/dtype/accuracy/accumulation/calibration/structure metadata, a CPU reference, deterministic simulator, capability/cost selection, diagnosed CPU fallback, and measured software-conformance execution. Complex and Fourier operations use explicit phase conventions; structured operators are never silently densified during selection. Runtime `kernel`, `kernel-plan`, and `kernel-benchmark` commands expose the versioned request, result, plan, and evidence contracts. Native `torch.compile`, JAX/StableHLO framework import beyond the existing narrow MLIR path, C++, NumPy, and removal of normal-path subprocess/filesystem glue remain #12.
 
 ## Artifacts, observability, and reproducibility
 
@@ -101,7 +101,7 @@ The runtime has real implementation and test coverage for deterministic identifi
 
 Gaps remain: the legacy engine still contains a TODO to persist the complete artifact bundle, some observability exporters are TODO or `todo!`, parent-span tracking is unfinished, and several phase documents describe intended behavior more completely than the source implements it.
 
-The compiler artifact now records source/artifact versions, backend, compile options, placement and cost decisions, boundary crossings, typed Photonic IR, Device IR, calibration identity, and diagnostics. Hardware-measured raw data, cost uncertainty, and executable binary packaging remain #6, #10, and #15.
+Compiler artifacts record source/artifact versions, backend, compile options, placement and full-system cost decisions, model provenance and uncertainty, boundary crossings, typed Photonic IR, Device IR, calibration identity, diagnostics, and deterministic fingerprints. The MLIR path emits a versioned binary package consumed directly by the runtime. awenBLAS result, selection-plan, and benchmark artifacts separately record kernel descriptors, every backend candidate, fallback rationale, measurement boundary, numerical error, and output checksums. Hardware-in-the-loop raw data and validated physical-device performance remain #15.
 
 ## Plugins, PDKs, and physical design
 
@@ -129,12 +129,13 @@ Full CI consolidation, release truth/evidence, and policy hardening remain #18.
 
 The branch was verified on a current Linux Rust toolchain through WSL, matching GitHub Actions more closely than an unconfigured Windows MSVC host.
 
-- `awen-compiler`: format check, strict Clippy, seven integration tests, and doc tests passed.
-- Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, precision rejection, conversion-aware auto placement, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, and column-major storage.
-- `awen-runtime`: format check, strict Clippy, 314 unit/integration/compile-fail/doc tests passed; one pre-existing phase-calibration test remains explicitly ignored.
+- `awen-compiler`: format check, strict Clippy, 52 unit/integration tests, and doc tests passed.
+- Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, precision rejection, conversion-aware auto placement, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, column-major storage, all 22 awenBLAS kinds, exact complex/Fourier conventions, randomized GEMM/FFT properties, calibration composition, structure preservation, deterministic simulation/planning, capacity/precision/complex rejection, and measured software-conformance execution.
+- `awen-runtime`: format and strict Clippy pass, the existing ordinary unit/integration/doc cases pass, and four new awenBLAS schema/CLI integration tests pass. One pre-existing phase-calibration test remains explicitly ignored. The pre-existing trybuild diagnostic snapshot is sensitive to the local WSL terminal width under Rust 1.97 and is left unchanged for the canonical GitHub Actions environment.
 - End-to-end CLI compile emitted eight photonic tiles, 42 device commands, two boundary crossings, and a calibration identity for the 256³ fixture.
 - End-to-end CLI benchmark emitted 16 output values and passed its numerical contract; observed maximum absolute error was approximately `0.110236` and maximum relative error approximately `0.007874` for the 8-effective-bit 4×4 fixture.
-- Nine JSON example/capability/schema documents parsed successfully.
+- All five awenBLAS schemas compile, the request and two backend fixtures validate, and generated CPU result, simulated result, selection plan, and benchmark records validate against their published schemas.
+- End-to-end `awenctl kernel`, `kernel-plan`, and `kernel-benchmark` executions produced a three-output transformer Q/K/V result, selected the explicit simulated photonic profile under the latency objective, and passed the declared numerical contract over the complete software measurement boundary.
 
 These are software conformance results, not hardware performance evidence.
 
@@ -149,12 +150,12 @@ The main repository tracks `awen-runtime/libcontrol_v0.rlib`, a generated compil
 ## Roadmap ownership
 
 - #5: compiler/runtime product epic and definition of done.
-- #6: StableHLO/MLIR dialects, lowering, and executable ABI.
-- #7: complete first GEMM vertical slice; this branch is the implementation PR.
-- #8: backend capabilities, discovery, health, and conformance.
-- #9: crossing-aware graph partitioner and tensor residency.
-- #10: measured cost model, uncertainty, and autotuning.
-- #11: `awenBLAS`, FFT, convolution/correlation, structured transforms, attention, RF, and reservoir kernels.
+- #6: StableHLO/MLIR dialects, lowering, and executable ABI (completed).
+- #7: complete first GEMM vertical slice (completed).
+- #8: backend capabilities, discovery, health, and conformance (completed).
+- #9: crossing-aware graph partitioner and tensor residency (completed).
+- #10: measured cost model, uncertainty, and autotuning (completed).
+- #11: `awenBLAS`, FFT, convolution/correlation, structured transforms, attention, RF, and reservoir kernels (implemented on this branch).
 - #12: `torch.compile`, JAX, C++, NumPy, buffers/streams/async/autograd.
 - #13: analog/mixed precision, bit slicing, scaling, saturation, and error attribution.
 - #14: calibration-aware mapping, fault remapping, and drift-triggered recompilation.

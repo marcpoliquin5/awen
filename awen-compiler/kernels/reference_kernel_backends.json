@@ -1,0 +1,36 @@
+[
+  {
+    "version": "awen.blas.v1",
+    "backend_id": "reference-gpu-kernels",
+    "target": "gpu",
+    "supported_kinds": ["gemm", "batched_gemm", "linear", "transformer_qkv", "attention_scores", "attention_value", "mlp_projection", "convolution1d", "correlation1d", "dft", "fft", "fourier_filter", "low_rank_gemm", "random_projection", "toeplitz", "circulant", "block_circulant", "beamforming", "rf_fir", "reservoir_step", "propagation"],
+    "supported_dtypes": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"],
+    "supported_structures": ["dense", "low_rank", "random_projection", "toeplitz", "circulant", "block_circulant", "convolutional", "fourier", "beamforming", "reservoir", "propagation"],
+    "supports_complex": true,
+    "maximum_tensor_elements": 16777216,
+    "effective_bits": 16,
+    "requires_calibration": false,
+    "launch_latency_ns": 5000.0,
+    "throughput_tops": 100.0,
+    "energy_pj_per_operation": 5.0,
+    "estimated_error_fraction": 0.0001,
+    "source": "assumed"
+  },
+  {
+    "version": "awen.blas.v1",
+    "backend_id": "reference-photonic-kernels",
+    "target": "photonic",
+    "supported_kinds": ["gemm", "batched_gemm", "complex_gemm", "linear", "transformer_qkv", "attention_scores", "attention_value", "mlp_projection", "convolution1d", "correlation1d", "dft", "fft", "fourier_filter", "low_rank_gemm", "random_projection", "toeplitz", "circulant", "block_circulant", "beamforming", "rf_fir", "reservoir_step", "propagation"],
+    "supported_dtypes": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"],
+    "supported_structures": ["dense", "low_rank", "random_projection", "toeplitz", "circulant", "block_circulant", "convolutional", "fourier", "beamforming", "reservoir", "propagation"],
+    "supports_complex": true,
+    "maximum_tensor_elements": 1048576,
+    "effective_bits": 12,
+    "requires_calibration": true,
+    "launch_latency_ns": 1000.0,
+    "throughput_tops": 250.0,
+    "energy_pj_per_operation": 0.5,
+    "estimated_error_fraction": 0.001,
+    "source": "simulated"
+  }
+]

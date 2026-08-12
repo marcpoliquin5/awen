@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_blas_plan.v1.json",
+  "title": "AWEN BLAS Kernel Execution Plan v1",
+  "type": "object",
+  "required": ["version", "request_id", "descriptor", "objective", "selected_backend_id", "selected_target", "selected_estimate", "candidates", "fallback", "fingerprint", "rationale"],
+  "properties": {
+    "version": {"const": "awen.blas.v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "descriptor": {"$ref": "awen_blas_result.v1.json#/$defs/descriptor"},
+    "objective": {"enum": ["latency", "energy", "accuracy", "throughput"]},
+    "selected_backend_id": {"type": "string", "minLength": 1},
+    "selected_target": {"enum": ["cpu", "gpu", "photonic"]},
+    "selected_estimate": {"$ref": "#/$defs/estimate"},
+    "candidates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/candidate"}},
+    "fallback": {"type": "boolean"},
+    "fingerprint": {"type": "string", "pattern": "^fnv1a64:[0-9a-f]{16}$"},
+    "rationale": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "source": {"enum": ["measured", "vendor_specified", "simulated", "assumed"]},
+    "estimate": {
+      "type": "object",
+      "required": ["latency_ns", "energy_uj", "error_fraction", "throughput_gops", "source"],
+      "properties": {
+        "latency_ns": {"type": "number", "minimum": 0},
+        "energy_uj": {"type": "number", "minimum": 0},
+        "error_fraction": {"type": "number", "minimum": 0},
+        "throughput_gops": {"type": "number", "minimum": 0},
+        "source": {"$ref": "#/$defs/source"}
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["backend_id", "target", "eligible", "estimate", "reason"],
+      "properties": {
+        "backend_id": {"type": "string", "minLength": 1},
+        "target": {"enum": ["cpu", "gpu", "photonic"]},
+        "eligible": {"type": "boolean"},
+        "estimate": {"oneOf": [{"$ref": "#/$defs/estimate"}, {"type": "null"}]},
+        "reason": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}
