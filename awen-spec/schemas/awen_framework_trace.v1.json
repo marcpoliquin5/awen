@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_framework_trace.v1.json",
+  "title": "AWEN In-Process Framework Execution Trace v1",
+  "type": "object",
+  "required": [
+    "version",
+    "plan_fingerprint",
+    "events",
+    "diagnostics",
+    "replay_fingerprint"
+  ],
+  "properties": {
+    "version": {"const": "awen.framework-trace.v1"},
+    "plan_fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "replay_fingerprint": {"$ref": "#/$defs/fingerprint"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "shape": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 0}
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "operation_id",
+        "operation",
+        "target",
+        "framework",
+        "device",
+        "stream",
+        "input_shapes",
+        "output_shapes",
+        "started_ns",
+        "duration_ns",
+        "asynchronous"
+      ],
+      "properties": {
+        "operation_id": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "framework": {"enum": ["numpy", "torch", "jax"]},
+        "device": {"type": "string", "minLength": 1},
+        "stream": {"type": "string", "minLength": 1},
+        "input_shapes": {"type": "array", "items": {"$ref": "#/$defs/shape"}},
+        "output_shapes": {"type": "array", "items": {"$ref": "#/$defs/shape"}},
+        "started_ns": {"type": "integer", "minimum": 0},
+        "duration_ns": {"type": "integer", "minimum": 0},
+        "asynchronous": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "message", "node", "action"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "node": {"oneOf": [{"type": "string"}, {"type": "null"}]},
+        "action": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

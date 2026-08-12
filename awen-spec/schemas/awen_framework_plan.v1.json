@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_framework_plan.v1.json",
+  "title": "AWEN In-Process Framework Operation Plan v1",
+  "type": "object",
+  "required": [
+    "version",
+    "operation_id",
+    "operation",
+    "target",
+    "framework",
+    "input_shapes",
+    "input_dtypes",
+    "attributes",
+    "contract",
+    "seed",
+    "fingerprint"
+  ],
+  "properties": {
+    "version": {"const": "awen.framework-plan.v1"},
+    "operation_id": {"type": "string", "pattern": "^[a-z_]+\\.[0-9a-f]{12}$"},
+    "operation": {
+      "enum": [
+        "gemm",
+        "batched_gemm",
+        "complex_gemm",
+        "linear",
+        "attention_scores",
+        "attention_value",
+        "mlp_projection",
+        "fft",
+        "ifft"
+      ]
+    },
+    "target": {"type": "string", "pattern": "^(framework:(cpu|cuda|mps|tpu)(:[0-9]+)?|simulated:photonic)$"},
+    "framework": {"enum": ["numpy", "torch", "jax"]},
+    "input_shapes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "items": {"type": "integer", "minimum": 0}
+      }
+    },
+    "input_dtypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "attributes": {"type": "object"},
+    "contract": {"$ref": "#/$defs/numerical_contract"},
+    "seed": {"type": "integer", "minimum": 0},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "numerical_contract": {
+      "type": "object",
+      "required": ["max_abs_error", "max_rel_error", "minimum_effective_bits"],
+      "properties": {
+        "max_abs_error": {"type": "number", "minimum": 0},
+        "max_rel_error": {"type": "number", "minimum": 0},
+        "minimum_effective_bits": {
+          "oneOf": [
+            {"type": "integer", "minimum": 1},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

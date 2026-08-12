@@ -1,8 +1,31 @@
 [project]
 name = "awen_py"
-version = "0.1.0"
-description = "Python contracts and convenience wrappers for the AWEN compiler/runtime."
-requires-python = ">=3.8"
+version = "0.2.0"
+description = "In-process NumPy, PyTorch, and JAX integrations for AWEN."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.26,<3"]
+torch = ["torch>=2.10,<2.14"]
+jax = [
+  "jax>=0.9,<0.12; python_version >= '3.12'",
+  "flatbuffers>=24; python_version >= '3.12'",
+]
+frameworks = [
+  "numpy>=1.26,<3",
+  "torch>=2.10,<2.14",
+  "jax>=0.9,<0.12; python_version >= '3.12'",
+  "flatbuffers>=24; python_version >= '3.12'",
+]
+test = [
+  "numpy>=1.26,<3",
+  "pytest>=8,<10",
+  "jsonschema>=4,<5",
+]
+
+[project.entry-points."torch_dynamo_backends"]
+awen = "awen_py.torch_backend:awen_backend"
 
 [build-system]
 requires = ["setuptools", "wheel"]

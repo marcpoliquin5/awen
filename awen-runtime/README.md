@@ -1,6 +1,6 @@
 # AWEN Runtime
 
-The Rust runtime provides the AWEN CLI, legacy graph engine, HAL, scheduler, calibration/control, observability, plugin registry, artifact storage, reference simulation, gradient experiments, and quantum-photonic experiments. It also exposes the first tensor compiler slice through `awenctl compile` and `awenctl benchmark`.
+The Rust runtime provides the AWEN CLI, legacy graph engine, HAL, scheduler, calibration/control, observability, plugin registry, artifact storage, reference simulation, gradient experiments, and quantum-photonic experiments. It also exposes the first tensor compiler slice through `awenctl compile` and `awenctl benchmark`, plus the compiled `awen.framework-c.v1` C/C++ tensor ABI.
 
 ## Prerequisites
 
@@ -21,6 +21,27 @@ cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-feature
 cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
 cargo build --release --manifest-path awen-runtime/Cargo.toml --bin awenctl
 ```
+
+## C and C++ framework ABI
+
+Building the library produces Rust, shared, and static library artifacts:
+
+```bash
+cargo build --release --manifest-path awen-runtime/Cargo.toml --lib
+```
+
+Headers are under `awen-runtime/include/awen`. The C ABI exposes checked,
+caller-owned row-major `f32` and `f64` GEMM plus thread-local errors. The C++20
+header adds a `std::span` wrapper:
+
+```bash
+g++ -std=c++20 -Iawen-runtime/include \
+  awen-runtime/examples/framework_cpp.cpp \
+  -Lawen-runtime/target/release -lawen_runtime -o framework_cpp
+```
+
+The Python/JAX/PyTorch/NumPy in-process runtime is documented in
+`awen-ecosystem/python_awen/README.md` and AEP-0016.
 
 ## Tensor compiler commands
 

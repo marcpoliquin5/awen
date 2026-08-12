@@ -19,3 +19,4 @@ Current proposals:
 - `AEP-0013`: full-system cost model, provenance, uncertainty, benchmark fitting, and deterministic autotuning.
 - `AEP-0014`: crossing-aware whole-graph CPU/GPU/photonic partitioning, residency, fusion, memory pressure, and explainable traces.
 - `AEP-0015`: executable awenBLAS kernel registry, numerical semantics, structured operators, capability/cost dispatch, deterministic simulation, and measured conformance evidence.
+- `AEP-0016`: in-process framework runtime, PyTorch compiler backend, portable JAX/StableHLO import, NumPy surface, and compiled C/C++ ABI.

@@ -1,4 +1,5 @@
-from .client import compute_gradients, run_ir
+"""Public Python API for AWEN framework integrations."""
+
 from .capabilities import (
     BackendHealth,
     BackendSnapshot,
@@ -6,13 +7,95 @@ from .capabilities import (
     CapabilityNegotiation,
     DeviceCapabilities,
 )
+from .errors import (
+    AWENError,
+    ContractError,
+    DeviceError,
+    ExecutionError,
+    SerializationError,
+    UnsupportedGraphError,
+)
+from .numpy_api import (
+    attention_scores,
+    attention_value,
+    batched_gemm,
+    compile_plan,
+    complex_gemm,
+    fft,
+    gemm,
+    ifft,
+    linear,
+    mlp_projection,
+)
+from .jax_stablehlo import (
+    JaxExecutable,
+    JaxImportReport,
+    assert_numerical_contract,
+    export_jax,
+    export_jax_value_and_grad,
+)
+from .runtime import (
+    AwenFuture,
+    Buffer,
+    BufferOwner,
+    Device,
+    Diagnostic,
+    ExecutionOptions,
+    ExecutionResult,
+    ExecutionTrace,
+    InProcessRuntime,
+    NumericalContract,
+    OperationPlan,
+    ProfileEvent,
+    Stream,
+    get_runtime,
+)
+from .torch_backend import awen_backend
+
+# ``torch.compile(model, backend=awen)`` after ``from awen_py import awen``.
+awen = awen_backend
 
 __all__ = [
+    "AWENError",
+    "AwenFuture",
     "BackendHealth",
     "BackendSnapshot",
+    "Buffer",
+    "BufferOwner",
     "CapabilityError",
     "CapabilityNegotiation",
+    "ContractError",
+    "Device",
     "DeviceCapabilities",
-    "compute_gradients",
-    "run_ir",
+    "DeviceError",
+    "Diagnostic",
+    "ExecutionError",
+    "ExecutionOptions",
+    "ExecutionResult",
+    "ExecutionTrace",
+    "InProcessRuntime",
+    "JaxExecutable",
+    "JaxImportReport",
+    "NumericalContract",
+    "OperationPlan",
+    "ProfileEvent",
+    "SerializationError",
+    "Stream",
+    "UnsupportedGraphError",
+    "awen",
+    "awen_backend",
+    "assert_numerical_contract",
+    "attention_scores",
+    "attention_value",
+    "batched_gemm",
+    "compile_plan",
+    "complex_gemm",
+    "fft",
+    "export_jax",
+    "export_jax_value_and_grad",
+    "gemm",
+    "get_runtime",
+    "ifft",
+    "linear",
+    "mlp_projection",
 ]
