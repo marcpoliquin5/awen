@@ -15,6 +15,7 @@ pub mod executable;
 pub mod ir;
 pub mod lowering;
 pub mod partition;
+pub mod precision;
 pub mod simulator;
 
 pub use awenblas::kernels::{
@@ -51,5 +52,12 @@ pub use partition::{
     PartitionProfilerEvent, PartitionRegion, PartitionRequest, PartitionTotals, PartitionTrace,
     ProfilerEventKind, TransferRecord, VisualizationEdge, PARTITION_GRAPH_VERSION,
     PARTITION_TRACE_VERSION,
+};
+pub use precision::{
+    accumulate_integer_products, apply_noise, bit_slice_signed, default_quantization, quantize,
+    reconstruct_bit_slices, AccumulationResult, AccumulatorDType, AnalogNoiseModel, BitSlicedValue,
+    EmpiricalErrorReport, ErrorAttribution, NoiseApplication, OperationPrecisionPolicy,
+    OverflowMode, PrecisionConfiguration, PrecisionEncoding, QuantizationSpec, QuantizedTensor,
+    RoundingMode, ScaleGranularity, TensorPrecisionPolicy, ERROR_REPORT_VERSION, PRECISION_VERSION,
 };
 pub use simulator::{benchmark, benchmark_with_observations, BenchmarkReport};

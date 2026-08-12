@@ -1,6 +1,11 @@
-use crate::capability::{AccumulationMode, CalibrationProfile, DeviceCapabilities};
+use crate::capability::{
+    AccumulationMode, BitSlicingMode, CalibrationProfile, DeviceCapabilities, DynamicRange,
+};
 use crate::cost::{PlacementDecision, TargetBackend, TuningPlan};
 use crate::ir::{DType, GemmShape, Layout, Tensor, TensorOp, TensorProgram, ValidatedGemm};
+use crate::precision::{
+    default_quantization, AccumulatorDType, AnalogNoiseModel, OverflowMode, QuantizationSpec,
+};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -40,11 +45,33 @@ pub struct Tile {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PrecisionPlan {
     pub source_dtype: DType,
+    pub rhs_source_dtype: DType,
+    pub compute_dtype: DType,
+    pub output_dtype: DType,
+    pub accumulator_dtype: AccumulatorDType,
+    pub minimum_accumulator_bits: u8,
     pub optical_effective_bits: u8,
     pub dac_bits: u8,
     pub adc_bits: u8,
     pub bit_slices: u8,
+    pub bit_slicing_mode: BitSlicingMode,
     pub digital_accumulation: bool,
+    pub lhs_quantization: QuantizationSpec,
+    pub rhs_quantization: QuantizationSpec,
+    pub output_quantization: QuantizationSpec,
+    pub analog_noise: AnalogNoiseModel,
+    pub noise_seed: u64,
+    pub calibration_compensation: Option<CalibrationCompensation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CalibrationCompensation {
+    pub profile_id: String,
+    pub measured_gain: f64,
+    pub measured_offset: f64,
+    pub rescale: f64,
+    pub rebias: f64,
+    pub residual_uncertainty: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -106,7 +133,22 @@ pub enum DeviceCommand {
     ConfigureMatrix {
         op_id: String,
         tile: Tile,
-        precision: PrecisionPlan,
+        precision: Box<PrecisionPlan>,
+    },
+    ConvertTensor {
+        tensor: String,
+        source_dtype: DType,
+        target_dtype: DType,
+        quantization: QuantizationSpec,
+        stochastic_seed: u64,
+    },
+    BitSlice {
+        tensor: String,
+        total_bits: u8,
+        slice_bits: u8,
+        passes: u8,
+        mode: BitSlicingMode,
+        overflow: OverflowMode,
     },
     UploadTile {
         tensor: String,
@@ -115,6 +157,7 @@ pub enum DeviceCommand {
         rows: usize,
         columns: usize,
         dac_bits: u8,
+        quantization: QuantizationSpec,
     },
     ExecuteGemm {
         op_id: String,
@@ -125,10 +168,20 @@ pub enum DeviceCommand {
         tensor: String,
         tile: Tile,
         mode: AccumulationMode,
+        accumulator_dtype: AccumulatorDType,
+        minimum_accumulator_bits: u8,
+        overflow: OverflowMode,
     },
     Download {
         tensor: String,
         adc_bits: u8,
+        measured_dtype: DType,
+    },
+    Rescale {
+        tensor: String,
+        scale: f64,
+        offset: f64,
+        calibration_handle: String,
     },
     HostGemm {
         op_id: String,
@@ -169,17 +222,14 @@ pub fn lower(
                 calibrated = true;
             }
             lower_photonic_gemm(
+                program,
                 gemm,
                 capabilities,
                 decision.selected_plan,
                 &mut current_time_ns,
                 &mut photonic_ops,
                 &mut commands,
-            );
-            commands.push(DeviceCommand::Download {
-                tensor: gemm.output.id.clone(),
-                adc_bits: capabilities.adc_bits,
-            });
+            )?;
         } else {
             let fallback = HostFallbackOp {
                 op_id: gemm.op.id().to_string(),
@@ -216,13 +266,14 @@ pub fn lower(
 }
 
 fn lower_photonic_gemm(
+    program: &TensorProgram,
     gemm: &ValidatedGemm<'_>,
     capabilities: &DeviceCapabilities,
     selected_plan: Option<TuningPlan>,
     current_time_ns: &mut f64,
     ops: &mut Vec<PhotonicGemmTile>,
     commands: &mut Vec<DeviceCommand>,
-) {
+) -> Result<()> {
     let TensorOp::Gemm {
         lhs,
         rhs,
@@ -231,20 +282,32 @@ fn lower_photonic_gemm(
         transpose_rhs,
         ..
     } = gemm.op;
+    let fallback_accumulation_mode = if capabilities
+        .accumulation_modes
+        .contains(&AccumulationMode::Hybrid)
+    {
+        AccumulationMode::Hybrid
+    } else {
+        AccumulationMode::Digital
+    };
+    let fallback_compute_dtype = gemm.compute_dtype();
     let plan = selected_plan.unwrap_or(TuningPlan {
         tile_m: capabilities.matrix_core.m,
         tile_n: capabilities.matrix_core.n,
         tile_k: capabilities.matrix_core.k,
         bit_slices: 1,
-        wavelength_channels: capabilities.simultaneous_channels,
-        accumulation_mode: if capabilities
-            .accumulation_modes
-            .contains(&AccumulationMode::Hybrid)
-        {
-            AccumulationMode::Hybrid
+        bit_slicing_mode: BitSlicingMode::None,
+        compute_dtype: fallback_compute_dtype,
+        accumulator_dtype: if matches!(fallback_compute_dtype, DType::Int8 | DType::Int4) {
+            AccumulatorDType::I32
         } else {
-            AccumulationMode::Digital
+            AccumulatorDType::F32
         },
+        noise_seed: gemm
+            .precision_policy
+            .map_or(0, |policy| policy.stochastic_seed),
+        wavelength_channels: capabilities.simultaneous_channels,
+        accumulation_mode: fallback_accumulation_mode,
         batch_size: 1,
         fuse_boundaries: false,
     });
@@ -252,15 +315,93 @@ fn lower_photonic_gemm(
         plan.accumulation_mode,
         AccumulationMode::Digital | AccumulationMode::Hybrid
     );
+    let output_dtype = gemm.output_dtype();
+    let minimum_accumulator_bits = gemm
+        .precision_policy
+        .map_or(plan.accumulator_dtype.bits(), |policy| {
+            policy.minimum_accumulator_bits
+        });
+    let lhs_quantization = tensor_quantization(
+        program,
+        gemm.lhs,
+        plan.compute_dtype,
+        capabilities,
+        plan.bit_slices,
+        None,
+    )?;
+    let rhs_quantization = tensor_quantization(
+        program,
+        gemm.rhs,
+        plan.compute_dtype,
+        capabilities,
+        plan.bit_slices,
+        None,
+    )?;
+    let output_quantization = tensor_quantization(
+        program,
+        gemm.output,
+        output_dtype,
+        capabilities,
+        plan.bit_slices,
+        Some(output_dynamic_range(gemm)),
+    )?;
+    let calibration_compensation = capabilities
+        .calibration_profile
+        .as_ref()
+        .map(calibration_compensation)
+        .transpose()?;
     let precision = PrecisionPlan {
         source_dtype: gemm.lhs.dtype,
-        optical_effective_bits: capabilities.effective_bits.saturating_mul(plan.bit_slices),
+        rhs_source_dtype: gemm.rhs.dtype,
+        compute_dtype: plan.compute_dtype,
+        output_dtype,
+        accumulator_dtype: plan.accumulator_dtype,
+        minimum_accumulator_bits,
+        optical_effective_bits: capabilities
+            .effective_bits
+            .saturating_mul(plan.bit_slices)
+            .min(plan.compute_dtype.bits()),
         dac_bits: capabilities.dac_bits,
         adc_bits: capabilities.adc_bits,
         bit_slices: plan.bit_slices,
+        bit_slicing_mode: plan.bit_slicing_mode,
         digital_accumulation,
+        lhs_quantization: lhs_quantization.clone(),
+        rhs_quantization: rhs_quantization.clone(),
+        output_quantization: output_quantization.clone(),
+        analog_noise: capabilities.analog_noise,
+        noise_seed: plan.noise_seed,
+        calibration_compensation: calibration_compensation.clone(),
     };
     let accumulation_mode = plan.accumulation_mode;
+
+    commands.push(DeviceCommand::ConvertTensor {
+        tensor: lhs.clone(),
+        source_dtype: gemm.lhs.dtype,
+        target_dtype: plan.compute_dtype,
+        quantization: lhs_quantization.clone(),
+        stochastic_seed: plan.noise_seed,
+    });
+    commands.push(DeviceCommand::ConvertTensor {
+        tensor: rhs.clone(),
+        source_dtype: gemm.rhs.dtype,
+        target_dtype: plan.compute_dtype,
+        quantization: rhs_quantization.clone(),
+        stochastic_seed: plan.noise_seed.wrapping_add(1),
+    });
+    if plan.bit_slices > 1 {
+        let slice_bits = plan.compute_dtype.bits().div_ceil(plan.bit_slices);
+        for tensor in [lhs, rhs] {
+            commands.push(DeviceCommand::BitSlice {
+                tensor: tensor.clone(),
+                total_bits: plan.compute_dtype.bits(),
+                slice_bits,
+                passes: plan.bit_slices,
+                mode: plan.bit_slicing_mode,
+                overflow: capabilities.saturation_mode.into(),
+            });
+        }
+    }
 
     for tile in tiles_with_plan(gemm.shape, plan) {
         let wavelength_count = plan
@@ -303,7 +444,7 @@ fn lower_photonic_gemm(
         commands.push(DeviceCommand::ConfigureMatrix {
             op_id: op_id.clone(),
             tile,
-            precision: precision.clone(),
+            precision: Box::new(precision.clone()),
         });
         let (lhs_row_offset, lhs_column_offset, lhs_rows, lhs_columns) = if *transpose_lhs {
             (tile.k_offset, tile.m_offset, tile.k, tile.m)
@@ -317,6 +458,7 @@ fn lower_photonic_gemm(
             rows: lhs_rows,
             columns: lhs_columns,
             dac_bits: capabilities.dac_bits,
+            quantization: lhs_quantization.clone(),
         });
         let (rhs_row_offset, rhs_column_offset, rhs_rows, rhs_columns) = if *transpose_rhs {
             (tile.n_offset, tile.k_offset, tile.n, tile.k)
@@ -330,6 +472,7 @@ fn lower_photonic_gemm(
             rows: rhs_rows,
             columns: rhs_columns,
             dac_bits: capabilities.dac_bits,
+            quantization: rhs_quantization.clone(),
         });
         commands.push(DeviceCommand::ExecuteGemm {
             op_id,
@@ -340,9 +483,127 @@ fn lower_photonic_gemm(
             tensor: output.clone(),
             tile,
             mode: accumulation_mode,
+            accumulator_dtype: plan.accumulator_dtype,
+            minimum_accumulator_bits,
+            overflow: capabilities.saturation_mode.into(),
         });
         *current_time_ns += duration_ns;
     }
+
+    commands.push(DeviceCommand::Download {
+        tensor: output.clone(),
+        adc_bits: capabilities.adc_bits,
+        measured_dtype: plan.compute_dtype,
+    });
+    if let Some(compensation) = calibration_compensation {
+        commands.push(DeviceCommand::Rescale {
+            tensor: output.clone(),
+            scale: compensation.rescale,
+            offset: compensation.rebias,
+            calibration_handle: compensation.profile_id,
+        });
+    }
+    commands.push(DeviceCommand::ConvertTensor {
+        tensor: output.clone(),
+        source_dtype: plan.compute_dtype,
+        target_dtype: output_dtype,
+        quantization: output_quantization,
+        stochastic_seed: plan.noise_seed.wrapping_add(2),
+    });
+    Ok(())
+}
+
+fn tensor_quantization(
+    program: &TensorProgram,
+    tensor: &Tensor,
+    target_dtype: DType,
+    capabilities: &DeviceCapabilities,
+    bit_slices: u8,
+    fallback_range: Option<DynamicRange>,
+) -> Result<QuantizationSpec> {
+    if let Some(policy) = program.precision.tensor(&tensor.id) {
+        return Ok(policy.quantization.clone());
+    }
+    let dynamic_range = tensor.data.as_ref().map_or_else(
+        || fallback_range.unwrap_or(capabilities.input_dynamic_range),
+        |data| {
+            let maximum = data
+                .iter()
+                .fold(0.0_f64, |current, value| current.max(value.abs()))
+                .max(f64::EPSILON);
+            DynamicRange {
+                minimum: -maximum,
+                maximum,
+            }
+        },
+    );
+    default_quantization(
+        target_dtype,
+        capabilities
+            .effective_bits
+            .saturating_mul(bit_slices)
+            .min(target_dtype.bits()),
+        dynamic_range,
+        capabilities.saturation_mode.into(),
+    )
+}
+
+fn output_dynamic_range(gemm: &ValidatedGemm<'_>) -> DynamicRange {
+    let TensorOp::Gemm {
+        transpose_lhs,
+        transpose_rhs,
+        ..
+    } = gemm.op;
+    if let Ok(values) = crate::awenblas::reference_gemm(
+        gemm.lhs,
+        gemm.rhs,
+        *transpose_lhs,
+        *transpose_rhs,
+        gemm.shape.m,
+        gemm.shape.n,
+        gemm.shape.k,
+    ) {
+        let maximum = values
+            .iter()
+            .fold(0.0_f64, |current, value| current.max(value.abs()))
+            .max(f64::EPSILON);
+        return DynamicRange {
+            minimum: -maximum,
+            maximum,
+        };
+    }
+    let lhs = gemm.lhs.data.as_ref().map_or(1.0, |values| {
+        values
+            .iter()
+            .fold(0.0_f64, |current, value| current.max(value.abs()))
+    });
+    let rhs = gemm.rhs.data.as_ref().map_or(1.0, |values| {
+        values
+            .iter()
+            .fold(0.0_f64, |current, value| current.max(value.abs()))
+    });
+    let maximum = (lhs * rhs * gemm.shape.k as f64).max(f64::EPSILON);
+    DynamicRange {
+        minimum: -maximum,
+        maximum,
+    }
+}
+
+fn calibration_compensation(profile: &CalibrationProfile) -> Result<CalibrationCompensation> {
+    if !profile.gain.is_finite() || profile.gain == 0.0 {
+        anyhow::bail!(
+            "calibration profile '{}' has a non-invertible gain",
+            profile.id
+        );
+    }
+    Ok(CalibrationCompensation {
+        profile_id: profile.id.clone(),
+        measured_gain: profile.gain,
+        measured_offset: profile.offset,
+        rescale: profile.gain.recip(),
+        rebias: -profile.offset / profile.gain,
+        residual_uncertainty: profile.uncertainty,
+    })
 }
 
 pub fn tiles(shape: GemmShape, capabilities: &DeviceCapabilities) -> Vec<Tile> {

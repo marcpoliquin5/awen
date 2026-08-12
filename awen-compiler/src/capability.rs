@@ -1,4 +1,5 @@
 use crate::ir::{DType, GemmShape};
+use crate::precision::AnalogNoiseModel;
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -113,6 +114,7 @@ pub struct DeviceCapabilities {
     pub bit_slicing_modes: Vec<BitSlicingMode>,
     pub saturation_mode: SaturationMode,
     pub input_dynamic_range: DynamicRange,
+    pub analog_noise: AnalogNoiseModel,
     pub sample_rate_gsps: f64,
     pub reconfiguration_latency_ns: f64,
     pub detector_bandwidth_ghz: f64,
@@ -208,6 +210,12 @@ impl DeviceCapabilities {
             input_dynamic_range: DynamicRange {
                 minimum: -1.0,
                 maximum: 1.0,
+            },
+            analog_noise: AnalogNoiseModel {
+                shot_noise_fraction: 0.000_05,
+                thermal_noise_fraction: 0.000_02,
+                phase_noise_radians: 0.000_01,
+                detector_noise_fraction: 0.000_02,
             },
             sample_rate_gsps: 20.0,
             reconfiguration_latency_ns: 2_000.0,
@@ -333,6 +341,7 @@ impl DeviceCapabilities {
         if self.input_dynamic_range.minimum >= self.input_dynamic_range.maximum {
             bail!("input dynamic-range minimum must be less than maximum");
         }
+        self.analog_noise.validate()?;
         if self.simultaneous_channels == 0 {
             bail!("simultaneous_channels must be non-zero");
         }

@@ -14,7 +14,12 @@
     "tensors": { "type": "array", "items": { "$ref": "#/$defs/tensor" } },
     "ops": { "type": "array", "items": { "$ref": "#/$defs/tile_op" } },
     "host_fallback_ops": { "type": "array", "items": { "$ref": "#/$defs/fallback" } },
-    "calibration": { "$ref": "awen_device_capability.v1.json#/properties/calibration_profile" }
+    "calibration": {
+      "oneOf": [
+        { "$ref": "awen_device_capability.v1.json#/properties/calibration_profile" },
+        { "type": "null" }
+      ]
+    }
   },
   "$defs": {
     "tensor": {
@@ -43,14 +48,47 @@
     },
     "precision": {
       "type": "object",
-      "required": ["source_dtype", "optical_effective_bits", "dac_bits", "adc_bits", "bit_slices", "digital_accumulation"],
+      "required": [
+        "source_dtype", "rhs_source_dtype", "compute_dtype", "output_dtype",
+        "accumulator_dtype", "minimum_accumulator_bits", "optical_effective_bits",
+        "dac_bits", "adc_bits", "bit_slices", "bit_slicing_mode",
+        "digital_accumulation", "lhs_quantization", "rhs_quantization",
+        "output_quantization", "analog_noise", "noise_seed"
+      ],
       "properties": {
         "source_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "rhs_source_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "compute_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "output_dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+        "accumulator_dtype": { "enum": ["f32", "f64", "i32", "i64", "optical"] },
+        "minimum_accumulator_bits": { "type": "integer", "minimum": 1, "maximum": 64 },
         "optical_effective_bits": { "type": "integer", "minimum": 1 },
         "dac_bits": { "type": "integer", "minimum": 1 },
         "adc_bits": { "type": "integer", "minimum": 1 },
         "bit_slices": { "type": "integer", "minimum": 1 },
-        "digital_accumulation": { "type": "boolean" }
+        "bit_slicing_mode": { "enum": ["none", "twos_complement", "signed_magnitude"] },
+        "digital_accumulation": { "type": "boolean" },
+        "lhs_quantization": { "$ref": "awen_precision.v1.json#/$defs/quantization" },
+        "rhs_quantization": { "$ref": "awen_precision.v1.json#/$defs/quantization" },
+        "output_quantization": { "$ref": "awen_precision.v1.json#/$defs/quantization" },
+        "analog_noise": { "$ref": "awen_device_capability.v1.json#/$defs/analog_noise" },
+        "noise_seed": { "type": "integer", "minimum": 0 },
+        "calibration_compensation": {
+          "type": ["object", "null"],
+          "required": [
+            "profile_id", "measured_gain", "measured_offset", "rescale", "rebias",
+            "residual_uncertainty"
+          ],
+          "properties": {
+            "profile_id": { "type": "string", "minLength": 1 },
+            "measured_gain": { "type": "number" },
+            "measured_offset": { "type": "number" },
+            "rescale": { "type": "number" },
+            "rebias": { "type": "number" },
+            "residual_uncertainty": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     },

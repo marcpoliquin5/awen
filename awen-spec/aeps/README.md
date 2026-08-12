@@ -20,3 +20,4 @@ Current proposals:
 - `AEP-0014`: crossing-aware whole-graph CPU/GPU/photonic partitioning, residency, fusion, memory pressure, and explainable traces.
 - `AEP-0015`: executable awenBLAS kernel registry, numerical semantics, structured operators, capability/cost dispatch, deterministic simulation, and measured conformance evidence.
 - `AEP-0016`: in-process framework runtime, PyTorch compiler backend, portable JAX/StableHLO import, NumPy surface, and compiled C/C++ ABI.
+- `AEP-0017`: explicit storage/compute/accumulator/output precision, scaling, signed bit slicing, calibration compensation, deterministic analog noise, and attributed error contracts.

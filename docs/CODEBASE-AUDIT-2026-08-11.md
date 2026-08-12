@@ -41,13 +41,13 @@ The V5 schema does not encode tensor shapes, dynamic dimensions, dtype, layout, 
 
 The Python wrapper mutates legacy `nodes`, while its description implies a bridge to broader framework IR. That confirms API drift rather than compatibility.
 
-The compiler adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, and `awen.device.v1`. The implemented `awen-mlir` path registers Tensor, Classical Photonic, Quantum Photonic, and Device dialects, normalizes supported StableHLO rank-two `dot_general`, lowers GEMM into Device IR, emits `AWENEXE`, and is consumed directly by the Rust runtime. AEP-0010 still requires production framework paths to use MLIR/StableHLO rather than growing the JSON bootstrap into a competing general-purpose infrastructure. Complete classical/quantum semantic separation remains #16.
+The compiler adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.precision.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, `awen.device.v1`, and `awen.error-report.v1`. The implemented `awen-mlir` path registers Tensor, Classical Photonic, Quantum Photonic, and Device dialects, normalizes supported StableHLO rank-two `dot_general`, lowers GEMM into Device IR, emits `AWENEXE`, and is consumed directly by the Rust runtime. AEP-0010 still requires production framework paths to use MLIR/StableHLO rather than growing the JSON bootstrap into a competing general-purpose infrastructure. Complete classical/quantum semantic separation remains #16.
 
 ## Simulator and numerical semantics
 
 `awen-runtime/src/plugins/reference_sim.rs` is a sequential complex-amplitude simulator for a small set of component strings. It does not execute tensors or tiled matrix operations. The graph engine initializes amplitude from string metadata and applies simplified component transforms/noise. It is valuable for runtime/state/observability testing but cannot validate a GEMM compiler path.
 
-The new `awen-compiler` reference simulator executes the emitted GEMM tiles, including M/N/K edge tiles, row-major/column-major input indexing, transposes, block quantization at advertised effective precision, digital accumulation, and an explicit measured-transfer/inverse-calibration step. It compares logical row-major outputs against `awenBLAS` reference GEMM using per-element absolute-plus-relative tolerance. It remains a conformance simulator: it does not model per-cell phase/loss, shot/thermal noise, disabled elements, nonlinear transfer curves, or measured hardware timing/energy. Those requirements are #13, #14, and #15.
+The `awen-compiler` reference simulator executes emitted GEMM tiles, including M/N/K edge tiles, row-major/column-major indexing, transposes, tensor/channel/block quantization, signed bit-slice passes, explicit accumulator formats, deterministically seeded shot/thermal/phase/detector noise, and measured-transfer/inverse-calibration rescaling. It compares logical row-major outputs against `awenBLAS` reference GEMM using per-element absolute-plus-relative tolerance and emits componentized static and empirical error attribution with provenance. It remains a conformance simulator: it does not model per-cell phase/loss, disabled-element remapping, nonlinear transfer curves, or measured hardware timing/energy. Per-cell health/drift work remains #14; comprehensive physical validation remains #15.
 
 ## Hardware abstraction and capabilities
 
@@ -63,12 +63,16 @@ The runtime has extensive scheduler types/tests for dependencies, resources, coh
 
 Before this branch, no scheduler/partitioner modeled CPU/GPU/photonics placement, tensor residency, DAC/ADC conversion edges, host transfer, or region fusion.
 
-The compiler now records CPU, GPU, and photonic latency, energy, throughput, and
-effective-bit estimates. Its full-system cost model includes provenance,
+The compiler now records CPU, GPU, and photonic latency, energy, throughput,
+effective-bit estimates, and separate quantization, analog, calibration,
+floating-point accumulation, integer-overflow, clipping, and input-propagation
+errors. Its full-system cost model includes provenance,
 uncertainty, observations, calibration fitting, batching, queueing, overlap,
 residency, and deterministic autotuning. It fails forced photonic compilation
 when precision, capability, health, calibration, or cost-model requirements
-cannot be met.
+cannot be met. Mixed compute and accumulator precision, bit slicing, format
+conversion, and deterministic noise seeds participate in tuning and decision
+fingerprints under AEP-0017.
 
 The crossing-aware partitioner optimizes complete acyclic tensor graphs rather
 than selecting isolated GEMMs. It accounts for deduplicated tensor transfers,
@@ -132,7 +136,7 @@ Full CI consolidation, release truth/evidence, and policy hardening remain #18.
 The branch was verified on a current Linux Rust toolchain through WSL, matching GitHub Actions more closely than an unconfigured Windows MSVC host.
 
 - `awen-compiler`: format check, strict Clippy, 52 unit/integration tests, and doc tests passed.
-- Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, precision rejection, conversion-aware auto placement, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, column-major storage, all 22 awenBLAS kinds, exact complex/Fourier conventions, randomized GEMM/FFT properties, calibration composition, structure preservation, deterministic simulation/planning, capacity/precision/complex rejection, and measured software-conformance execution.
+- Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, every declared dtype/precision encoding, tensor/channel/block quantization, signed bit-slice extremes, integer overflow and saturation, explicit mixed-precision lowering, seeded componentized analog noise, attributed static/empirical error reports, precision-aware autotuning and fallback, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, column-major storage, all 22 awenBLAS kinds, exact complex/Fourier conventions, randomized GEMM/FFT properties, calibration composition, structure preservation, deterministic simulation/planning, capacity/precision/complex rejection, and measured software-conformance execution.
 - `awen-runtime`: format and strict Clippy pass, the existing ordinary unit/integration/doc cases pass, and four new awenBLAS schema/CLI integration tests pass. One pre-existing phase-calibration test remains explicitly ignored. The pre-existing trybuild diagnostic snapshot is sensitive to the local WSL terminal width under Rust 1.97 and is left unchanged for the canonical GitHub Actions environment.
 - End-to-end CLI compile emitted eight photonic tiles, 42 device commands, two boundary crossings, and a calibration identity for the 256³ fixture.
 - End-to-end CLI benchmark emitted 16 output values and passed its numerical contract; observed maximum absolute error was approximately `0.110236` and maximum relative error approximately `0.007874` for the 8-effective-bit 4×4 fixture.
@@ -161,8 +165,8 @@ The main repository tracks `awen-runtime/libcontrol_v0.rlib`, a generated compil
 - #9: crossing-aware graph partitioner and tensor residency (completed).
 - #10: measured cost model, uncertainty, and autotuning (completed).
 - #11: `awenBLAS`, FFT, convolution/correlation, structured transforms, attention, RF, and reservoir kernels (completed).
-- #12: `torch.compile`, JAX, C++, NumPy, buffers/streams/async/autograd (implemented on this branch).
-- #13: analog/mixed precision, bit slicing, scaling, saturation, and error attribution.
+- #12: `torch.compile`, JAX, C++, NumPy, buffers/streams/async/autograd (completed).
+- #13: analog/mixed precision, bit slicing, scaling, saturation, and error attribution (completed).
 - #14: calibration-aware mapping, fault remapping, and drift-triggered recompilation.
 - #15: hardware-in-the-loop full-system benchmarking and claim generation.
 - #16: separate classical and quantum-photonic dialects.

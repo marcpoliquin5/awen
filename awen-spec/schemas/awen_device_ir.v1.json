@@ -10,33 +10,161 @@
     "commands": {
       "type": "array",
       "items": {
-        "type": "object",
-        "required": ["command"],
-        "properties": {
-          "command": {
-            "enum": [
-              "calibrate", "configure_matrix", "upload_tile", "execute_gemm",
-              "accumulate", "download", "host_gemm"
-            ]
-          },
-          "profile_id": { "type": "string" },
-          "op_id": { "type": "string" },
-          "tensor": { "type": "string" },
-          "target": { "enum": ["cpu", "gpu", "photonic"] },
-          "reason": { "type": "string" },
-          "tile": { "type": "object" },
-          "precision": { "type": "object" },
-          "row_offset": { "type": "integer", "minimum": 0 },
-          "column_offset": { "type": "integer", "minimum": 0 },
-          "rows": { "type": "integer", "minimum": 1 },
-          "columns": { "type": "integer", "minimum": 1 },
-          "dac_bits": { "type": "integer", "minimum": 1 },
-          "adc_bits": { "type": "integer", "minimum": 1 },
-          "wavelength_channels": { "type": "array", "items": { "type": "number" } },
-          "mode": { "enum": ["optical", "digital", "hybrid"] }
-        },
-        "additionalProperties": false
+        "oneOf": [
+          { "$ref": "#/$defs/calibrate" },
+          { "$ref": "#/$defs/configure_matrix" },
+          { "$ref": "#/$defs/convert_tensor" },
+          { "$ref": "#/$defs/bit_slice" },
+          { "$ref": "#/$defs/upload_tile" },
+          { "$ref": "#/$defs/execute_gemm" },
+          { "$ref": "#/$defs/accumulate" },
+          { "$ref": "#/$defs/download" },
+          { "$ref": "#/$defs/rescale" },
+          { "$ref": "#/$defs/host_gemm" }
+        ]
       }
+    }
+  },
+  "$defs": {
+    "dtype": { "enum": ["f32", "f16", "bf16", "int8", "int4", "complex_f32"] },
+    "accumulator_dtype": { "enum": ["f32", "f64", "i32", "i64", "optical"] },
+    "overflow": { "enum": ["saturate", "error"] },
+    "bit_slicing_mode": { "enum": ["none", "twos_complement", "signed_magnitude"] },
+    "accumulation_mode": { "enum": ["optical", "digital", "hybrid"] },
+    "calibrate": {
+      "type": "object",
+      "required": ["command", "profile_id"],
+      "properties": {
+        "command": { "const": "calibrate" },
+        "profile_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "configure_matrix": {
+      "type": "object",
+      "required": ["command", "op_id", "tile", "precision"],
+      "properties": {
+        "command": { "const": "configure_matrix" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "tile": { "$ref": "awen_photonic_ir.classical.v1.json#/$defs/tile" },
+        "precision": { "$ref": "awen_photonic_ir.classical.v1.json#/$defs/precision" }
+      },
+      "additionalProperties": false
+    },
+    "convert_tensor": {
+      "type": "object",
+      "required": [
+        "command", "tensor", "source_dtype", "target_dtype", "quantization",
+        "stochastic_seed"
+      ],
+      "properties": {
+        "command": { "const": "convert_tensor" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "source_dtype": { "$ref": "#/$defs/dtype" },
+        "target_dtype": { "$ref": "#/$defs/dtype" },
+        "quantization": { "$ref": "awen_precision.v1.json#/$defs/quantization" },
+        "stochastic_seed": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "bit_slice": {
+      "type": "object",
+      "required": [
+        "command", "tensor", "total_bits", "slice_bits", "passes", "mode", "overflow"
+      ],
+      "properties": {
+        "command": { "const": "bit_slice" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "total_bits": { "type": "integer", "minimum": 2, "maximum": 63 },
+        "slice_bits": { "type": "integer", "minimum": 1, "maximum": 63 },
+        "passes": { "type": "integer", "minimum": 2 },
+        "mode": { "$ref": "#/$defs/bit_slicing_mode" },
+        "overflow": { "$ref": "#/$defs/overflow" }
+      },
+      "additionalProperties": false
+    },
+    "upload_tile": {
+      "type": "object",
+      "required": [
+        "command", "tensor", "row_offset", "column_offset", "rows", "columns",
+        "dac_bits", "quantization"
+      ],
+      "properties": {
+        "command": { "const": "upload_tile" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "row_offset": { "type": "integer", "minimum": 0 },
+        "column_offset": { "type": "integer", "minimum": 0 },
+        "rows": { "type": "integer", "minimum": 1 },
+        "columns": { "type": "integer", "minimum": 1 },
+        "dac_bits": { "type": "integer", "minimum": 1 },
+        "quantization": { "$ref": "awen_precision.v1.json#/$defs/quantization" }
+      },
+      "additionalProperties": false
+    },
+    "execute_gemm": {
+      "type": "object",
+      "required": ["command", "op_id", "tile", "wavelength_channels"],
+      "properties": {
+        "command": { "const": "execute_gemm" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "tile": { "$ref": "awen_photonic_ir.classical.v1.json#/$defs/tile" },
+        "wavelength_channels": {
+          "type": "array", "minItems": 1,
+          "items": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "accumulate": {
+      "type": "object",
+      "required": [
+        "command", "tensor", "tile", "mode", "accumulator_dtype",
+        "minimum_accumulator_bits", "overflow"
+      ],
+      "properties": {
+        "command": { "const": "accumulate" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "tile": { "$ref": "awen_photonic_ir.classical.v1.json#/$defs/tile" },
+        "mode": { "$ref": "#/$defs/accumulation_mode" },
+        "accumulator_dtype": { "$ref": "#/$defs/accumulator_dtype" },
+        "minimum_accumulator_bits": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "overflow": { "$ref": "#/$defs/overflow" }
+      },
+      "additionalProperties": false
+    },
+    "download": {
+      "type": "object",
+      "required": ["command", "tensor", "adc_bits", "measured_dtype"],
+      "properties": {
+        "command": { "const": "download" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "adc_bits": { "type": "integer", "minimum": 1 },
+        "measured_dtype": { "$ref": "#/$defs/dtype" }
+      },
+      "additionalProperties": false
+    },
+    "rescale": {
+      "type": "object",
+      "required": ["command", "tensor", "scale", "offset", "calibration_handle"],
+      "properties": {
+        "command": { "const": "rescale" },
+        "tensor": { "type": "string", "minLength": 1 },
+        "scale": { "type": "number" },
+        "offset": { "type": "number" },
+        "calibration_handle": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "host_gemm": {
+      "type": "object",
+      "required": ["command", "op_id", "target", "reason"],
+      "properties": {
+        "command": { "const": "host_gemm" },
+        "op_id": { "type": "string", "minLength": 1 },
+        "target": { "enum": ["cpu", "gpu"] },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
