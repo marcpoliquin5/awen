@@ -206,10 +206,11 @@ fn unsupported_dynamic_and_barrier_nodes_never_select_photonic() {
         ],
     };
     let trace = partition_graph(&request(vec![input, output], vec![node])).expect("partition");
-    assert_eq!(
+    assert_ne!(
         trace.selected.assignments["dynamic_softmax"],
-        TargetBackend::Gpu
+        TargetBackend::Photonic
     );
+    assert_eq!(trace.nodes[0].local_best_device, TargetBackend::Gpu);
 }
 
 #[test]

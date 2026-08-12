@@ -235,12 +235,6 @@ pub fn compile_with_cost_model(
                 if decision.selected_backend == TargetBackend::Photonic {
                     decision.selected_backend = match options.target {
                         TargetBackend::Gpu => TargetBackend::Gpu,
-                        TargetBackend::Auto
-                            if estimate_score(options.optimize_for, &decision.gpu)
-                                < estimate_score(options.optimize_for, &decision.cpu) =>
-                        {
-                            TargetBackend::Gpu
-                        }
                         _ => TargetBackend::Cpu,
                     };
                 }
@@ -295,7 +289,10 @@ pub fn compile_with_cost_model(
         if trace.selected_device != TargetBackend::Photonic {
             decision.optical_electrical_boundary_crossings = 0;
         }
-        decision.rationale = trace.rationale.clone();
+        decision.rationale = format!(
+            "{}; graph partition: {}",
+            decision.rationale, trace.rationale
+        );
     }
 
     let (photonic_ir, device_ir) = lower(program, &validated, &placement, capabilities)?;
@@ -502,14 +499,5 @@ fn graph_internal_cost(
         error_fraction: estimate.estimated_error_fraction,
         operations,
         source,
-    }
-}
-
-fn estimate_score(objective: OptimizationObjective, estimate: &crate::cost::CostEstimate) -> f64 {
-    match objective {
-        OptimizationObjective::Latency => estimate.latency_ns,
-        OptimizationObjective::Energy => estimate.energy_uj,
-        OptimizationObjective::Accuracy => estimate.estimated_error_fraction,
-        OptimizationObjective::Throughput => -estimate.throughput_gops,
     }
 }
