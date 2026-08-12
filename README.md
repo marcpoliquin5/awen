@@ -26,13 +26,22 @@ normalized stablehlo.dot_general
   -> registered MLIR awen_device dialect
   -> versioned AWENEXE binary
   -> direct Rust runtime command preparation
+
+PyTorch / JAX / NumPy / C++
+  -> live framework tensors or portable JAX StableHLO
+  -> versioned in-process operation plan
+  -> framework-resident reference execution
+  -> versioned profiling and deterministic replay trace
 ```
 
 The MLIR path currently accepts only normalized rank-two StableHLO
-`dot_general`; it does not yet provide a real `torch.compile` backend or
-validated hardware speedups. The separate awenBLAS semantic library now covers
-22 executable kernel kinds, but framework-native lowering into it is tracked
-explicitly in the [compiler roadmap](https://github.com/marcpoliquin5/awen/issues/5).
+`dot_general`. The Python integration separately provides a real
+`torch.compile` backend for matrix/linear regions, JAX portable StableHLO
+export/import, an in-process NumPy runtime, and analytic framework gradients.
+The separate awenBLAS semantic library covers 22 executable kernel kinds.
+Framework execution is currently a semantic reference and dispatch boundary;
+it does not yet connect every captured framework region to generated photonic
+device commands or demonstrate validated hardware speedups.
 Do not interpret reference capability values or simulator cost estimates as
 measured product performance.
 
@@ -41,9 +50,9 @@ measured product performance.
 - `awen-compiler`: typed Tensor IR, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
-- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, and quantum experiments.
+- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
-- `awen-ecosystem`: Python experiments, example PDK data, kernels, marketplace, and plugin templates.
+- `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, example PDK data, kernels, marketplace, and plugin templates.
 - `awen-studio` and `awen-cloud`: early scaffolding, not shipping products.
 
 ## Build and verify
@@ -59,6 +68,9 @@ cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
 cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-features -- -D warnings
 cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
 
+python -m pip install -e "awen-ecosystem/python_awen[frameworks,test]"
+python -m pytest awen-ecosystem/python_awen/tests -q
+
 cmake -S awen-mlir -B awen-mlir/build -G Ninja \
   -DMLIR_DIR=/usr/lib/llvm-20/lib/cmake/mlir \
   -DLLVM_DIR=/usr/lib/llvm-20/lib/cmake/llvm \
@@ -67,6 +79,16 @@ cmake -S awen-mlir -B awen-mlir/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release
 cmake --build awen-mlir/build --target awen-opt awen-compile -j2
 ctest --test-dir awen-mlir/build --output-on-failure
+```
+
+PyTorch usage is direct:
+
+```python
+import torch
+from awen_py import awen
+
+model = torch.compile(model, backend=awen, dynamic=True)
+y = model(x)
 ```
 
 ## Compile a 256×256 GEMM

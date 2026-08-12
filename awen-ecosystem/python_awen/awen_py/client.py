@@ -1,10 +1,17 @@
+"""Explicit legacy CLI diagnostics.
+
+Normal tensor execution uses :mod:`awen_py.runtime` in process. The helpers in
+this module retain artifact-oriented CLI experiments, but their names make the
+subprocess boundary explicit and they are not imported by :mod:`awen_py`.
+"""
+
 import json
 import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 
-def compute_gradients(ir_path: str, params: List[str], strategy: str = "finite_difference", seed: Optional[int] = None, samples: int = 1) -> Dict[str, Any]:
+def compute_gradients_cli_debug(ir_path: str, params: List[str], strategy: str = "finite_difference", seed: Optional[int] = None, samples: int = 1) -> Dict[str, Any]:
     """Call awenctl gradient and return parsed gradients.json
 
     This helper assumes `awenctl` is on PATH (CI or runtime installation).
@@ -27,7 +34,7 @@ def compute_gradients(ir_path: str, params: List[str], strategy: str = "finite_d
     return json.loads(grad_file.read_text())
 
 
-def run_ir(ir_path: str, seed: Optional[int] = None) -> Dict[str, Any]:
+def run_ir_cli_debug(ir_path: str, seed: Optional[int] = None) -> Dict[str, Any]:
     """Run awenctl run and return a mapping of artifact files.
 
     Returns a dict with paths to ir.json, results.json, trace.json, metadata.json
@@ -46,3 +53,9 @@ def run_ir(ir_path: str, seed: Optional[int] = None) -> Dict[str, Any]:
         p = latest / name
         files[name] = str(p) if p.exists() else None
     return files
+
+
+# Compatibility aliases are intentionally available only from awen_py.client.
+# New code should use the explicit ``*_cli_debug`` names or the in-process API.
+compute_gradients = compute_gradients_cli_debug
+run_ir = run_ir_cli_debug

@@ -5,6 +5,7 @@ pub mod control;
 pub mod engine;
 pub mod engine_v2;
 pub mod executable;
+pub mod ffi;
 pub mod gradients;
 pub mod hal;
 pub mod hal_v0;
