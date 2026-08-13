@@ -24,6 +24,13 @@ awen.blas kernel request
   -> CPU reference or explicitly simulated GPU/photonic execution
   -> versioned result, plan, conformance timing, error, and fingerprint
 
+awen.hil benchmark suite
+  -> identical versioned fixture, warmup, repetitions, seed, and tolerances
+  -> CPU/simulator runner or timeout-bounded external CUDA/lab/hardware driver
+  -> raw full-system latency, energy, power, accuracy, calibration, and environment evidence
+  -> recomputed p50/p95/p99 distributions and regression findings
+  -> content-addressed artifact set and fail-closed verified claim generation
+
 normalized stablehlo.dot_general
   -> registered MLIR awen_tensor dialect
   -> registered MLIR awen_photonic dialect
@@ -54,7 +61,7 @@ measured product performance.
 - `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration-snapshot validation, measured channel/cell routing, fault remapping, drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
-- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
+- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
 - `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, example PDK data, kernels, marketplace, and plugin templates.
 - `awen-studio` and `awen-cloud`: early scaffolding, not shipping products.
@@ -166,6 +173,31 @@ must confirm both the snapshot ID and fingerprint. Photonic IR and Device IR
 record the selected channel IDs, wavelengths, cell remaps, effective transfer,
 inverse rescaling, capacity loss, and attributed calibration error.
 
+## Run the comparable full-system benchmark suite
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  benchmark-suite benchmarks/reference_hil_suite.json \
+  --output-dir awen_hil_artifacts \
+  --commit-sha "$(git rev-parse HEAD)" \
+  --runner-id local-reference
+```
+
+One command applies the same fixture, warmup, repetitions, seed, and accuracy
+contract to every backend configured in the suite. It writes `suite.json`, a
+content-addressed `benchmark-<sha256>.json`, and `SHA256SUMS`. Raw evidence
+includes full-system component accounting, latency/throughput/energy/power/error
+distributions, calibration duration, environment, versions, and output
+checksums. The included reference suite measures host wall-clock time but tags
+photonic execution as simulated and power/energy as estimated.
+
+CUDA, lab, and accelerator adapters implement the versioned JSON driver
+protocol. Physical runs use the manual self-hosted `Manual physical hardware
+benchmark` workflow and cannot become noisy required pull-request checks.
+`benchmark-claims` refuses mutable, simulated, estimated, vendor-specified,
+inaccurate, uncalibrated, or non-accelerating evidence. See AEP-0019 and
+`awen-spec/specs/hardware-benchmarking.md`.
+
 ## Status and evidence
 
-The canonical required check is `AWEN required quality gate`. Public performance claims must cite immutable end-to-end benchmark artifacts that include host transfer, reconfiguration, lasers, DAC/ADC, calibration, and digital post-processing. The repository currently makes no validated hardware-acceleration claim.
+The canonical required check is `AWEN required quality gate`. Public performance claims must be generated from verified immutable end-to-end artifacts that include host transfer, memory, scheduling, reconfiguration, lasers, DAC/ADC, calibration, digital post-processing, and support power. The repository currently ships no measured physical-accelerator artifact and makes no validated hardware-acceleration claim.

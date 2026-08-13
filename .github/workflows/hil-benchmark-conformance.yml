@@ -1,0 +1,85 @@
+name: HIL benchmark reference conformance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+      - "awen-runtime/src/benchmark.rs"
+      - "awen-runtime/src/bin/awenctl.rs"
+      - "awen-runtime/src/lib.rs"
+      - "awen-runtime/Cargo.toml"
+      - "awen-runtime/Cargo.lock"
+      - "awen-runtime/tests/hil_benchmark_conformance.rs"
+      - "awen-spec/schemas/awen_hil_*.json"
+      - "awen-spec/schemas/awen_benchmark_claims.v1.json"
+      - "awen-spec/aeps/AEP-0019-hardware-in-the-loop-benchmarking.md"
+      - "awen-spec/specs/hardware-benchmarking.md"
+      - ".github/workflows/hil-benchmark-conformance.yml"
+      - ".github/workflows/hardware-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+      - "awen-runtime/src/benchmark.rs"
+      - "awen-runtime/src/bin/awenctl.rs"
+      - "awen-runtime/src/lib.rs"
+      - "awen-runtime/Cargo.toml"
+      - "awen-runtime/Cargo.lock"
+      - "awen-runtime/tests/hil_benchmark_conformance.rs"
+      - "awen-spec/schemas/awen_hil_*.json"
+      - "awen-spec/schemas/awen_benchmark_claims.v1.json"
+      - "awen-spec/aeps/AEP-0019-hardware-in-the-loop-benchmarking.md"
+      - "awen-spec/specs/hardware-benchmarking.md"
+      - ".github/workflows/hil-benchmark-conformance.yml"
+      - ".github/workflows/hardware-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-conformance:
+    name: Reference benchmark protocol and artifact conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Format and lint benchmark surfaces
+        run: |
+          cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
+          cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Run HIL protocol, boundary, artifact, and CLI conformance
+        run: cargo test --manifest-path awen-runtime/Cargo.toml --test hil_benchmark_conformance
+      - name: Run benchmark integrity and claims tests
+        run: cargo test --manifest-path awen-runtime/Cargo.toml --lib benchmark::tests
+      - name: Meta-validate every repository schema
+        run: |
+          python -m pip install jsonschema
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          schemas = sorted(Path("awen-spec/schemas").glob("*.json"))
+          for path in schemas:
+              Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
+          print(f"validated {len(schemas)} schemas")
+          PY
+      - name: Produce the canonical comparable artifact set
+        run: |
+          cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+            benchmark-suite benchmarks/reference_hil_suite.json \
+            --output-dir awen_hil_reference_artifacts \
+            --commit-sha "$GITHUB_SHA" \
+            --runner-id "$RUNNER_NAME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: awen-hil-reference-${{ github.sha }}
+          path: awen_hil_reference_artifacts/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_hil_suite.v1.json",
+  "title": "AWEN Hardware-in-the-Loop Benchmark Suite v1",
+  "type": "object",
+  "required": ["version", "id", "description", "fixture", "warmup", "repetitions", "seed", "backends"],
+  "properties": {
+    "version": {"const": "awen.hil-suite.v1"},
+    "id": {"$ref": "#/$defs/id"},
+    "description": {"type": "string", "minLength": 1},
+    "fixture": {"$ref": "awen_blas.v1.json"},
+    "warmup": {"type": "integer", "minimum": 0},
+    "repetitions": {"type": "integer", "minimum": 1},
+    "seed": {"type": "integer", "minimum": 0},
+    "backends": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/backend"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$"},
+    "class": {"enum": ["cpu", "cuda_gpu", "simulator", "lab_rig", "hardware_accelerator"]},
+    "latencyShares": {
+      "type": "object",
+      "required": ["host_transfer", "memory", "scheduling", "reconfiguration", "calibration_amortization", "dac", "modulation", "optical_device", "detection", "adc", "digital_postprocessing", "cooling_support"],
+      "properties": {
+        "host_transfer": {"type": "number", "minimum": 0},
+        "memory": {"type": "number", "minimum": 0},
+        "scheduling": {"type": "number", "minimum": 0},
+        "reconfiguration": {"type": "number", "minimum": 0},
+        "calibration_amortization": {"type": "number", "minimum": 0},
+        "dac": {"type": "number", "minimum": 0},
+        "modulation": {"type": "number", "minimum": 0},
+        "optical_device": {"type": "number", "minimum": 0},
+        "detection": {"type": "number", "minimum": 0},
+        "adc": {"type": "number", "minimum": 0},
+        "digital_postprocessing": {"type": "number", "minimum": 0},
+        "cooling_support": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "energyShares": {
+      "type": "object",
+      "required": ["host_transfer", "memory", "scheduling", "reconfiguration", "calibration_amortization", "laser", "modulation", "dac", "optical_device", "detector", "adc", "digital_postprocessing", "cooling_support"],
+      "properties": {
+        "host_transfer": {"type": "number", "minimum": 0},
+        "memory": {"type": "number", "minimum": 0},
+        "scheduling": {"type": "number", "minimum": 0},
+        "reconfiguration": {"type": "number", "minimum": 0},
+        "calibration_amortization": {"type": "number", "minimum": 0},
+        "laser": {"type": "number", "minimum": 0},
+        "modulation": {"type": "number", "minimum": 0},
+        "dac": {"type": "number", "minimum": 0},
+        "optical_device": {"type": "number", "minimum": 0},
+        "detector": {"type": "number", "minimum": 0},
+        "adc": {"type": "number", "minimum": 0},
+        "digital_postprocessing": {"type": "number", "minimum": 0},
+        "cooling_support": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "accounting": {
+      "type": "object",
+      "required": ["steady_power_w", "peak_power_w", "latency_shares", "energy_shares"],
+      "properties": {
+        "steady_power_w": {"type": "number", "exclusiveMinimum": 0},
+        "peak_power_w": {"type": "number", "exclusiveMinimum": 0},
+        "latency_shares": {"$ref": "#/$defs/latencyShares"},
+        "energy_shares": {"$ref": "#/$defs/energyShares"}
+      },
+      "additionalProperties": false
+    },
+    "runner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["runner", "accounting"],
+          "properties": {
+            "runner": {"const": "cpu_reference"},
+            "accounting": {"$ref": "#/$defs/accounting"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["runner", "target", "effective_bits", "noise_fraction", "accounting"],
+          "properties": {
+            "runner": {"const": "simulator"},
+            "target": {"enum": ["gpu", "photonic"]},
+            "effective_bits": {"type": "integer", "minimum": 1, "maximum": 64},
+            "noise_fraction": {"type": "number", "minimum": 0},
+            "accounting": {"$ref": "#/$defs/accounting"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["runner", "executable", "args", "timeout_seconds"],
+          "properties": {
+            "runner": {"const": "external_command"},
+            "executable": {"type": "string", "minLength": 1},
+            "args": {"type": "array", "items": {"type": "string"}},
+            "timeout_seconds": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "regression": {
+      "type": "object",
+      "required": ["enforcement", "reference_artifact", "max_p95_latency_ns", "max_p95_energy_j", "min_throughput_gops", "max_p99_absolute_error", "max_p99_relative_error"],
+      "properties": {
+        "enforcement": {"enum": ["required_reference", "advisory_hardware"]},
+        "reference_artifact": {"type": "string", "minLength": 1},
+        "max_p95_latency_ns": {"type": ["number", "null"], "minimum": 0},
+        "max_p95_energy_j": {"type": ["number", "null"], "minimum": 0},
+        "min_throughput_gops": {"type": ["number", "null"], "minimum": 0},
+        "max_p99_absolute_error": {"type": ["number", "null"], "minimum": 0},
+        "max_p99_relative_error": {"type": ["number", "null"], "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "backend": {
+      "type": "object",
+      "required": ["id", "class", "runner", "regression"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "class": {"$ref": "#/$defs/class"},
+        "runner": {"$ref": "#/$defs/runner"},
+        "regression": {"oneOf": [{"$ref": "#/$defs/regression"}, {"type": "null"}]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

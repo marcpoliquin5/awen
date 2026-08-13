@@ -1,6 +1,6 @@
 # AWEN Runtime
 
-The Rust runtime provides the AWEN CLI, legacy graph engine, HAL, scheduler, calibration/control, observability, plugin registry, artifact storage, reference simulation, gradient experiments, and quantum-photonic experiments. It also exposes the first tensor compiler slice through `awenctl compile` and `awenctl benchmark`, plus the compiled `awen.framework-c.v1` C/C++ tensor ABI.
+The Rust runtime provides the AWEN CLI, legacy graph engine, HAL, scheduler, calibration/control, observability, plugin registry, artifact storage, reference simulation, reproducible HIL benchmark orchestration, verified claim generation, gradient experiments, and quantum-photonic experiments. It also exposes the first tensor compiler slice through `awenctl compile` and `awenctl benchmark`, plus the compiled `awen.framework-c.v1` C/C++ tensor ABI.
 
 ## Prerequisites
 
@@ -81,6 +81,43 @@ Unsigned manifests are restricted to the explicit development flag. Production
 discovery requires a valid Ed25519 signature. Health paths are sandboxed inside
 the plugin directory and re-read on every query.
 
+## Full-system and hardware-in-the-loop benchmarks
+
+Run every backend configured by the canonical portable suite:
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  benchmark-suite benchmarks/reference_hil_suite.json \
+  --output-dir awen_hil_artifacts \
+  --commit-sha "$(git rev-parse HEAD)" \
+  --runner-id local-reference
+```
+
+The command produces a content-addressed artifact containing raw repetitions,
+p50/p95/p99 latency, throughput, energy, power, and error distributions,
+full-system component accounting, environment and calibration provenance,
+regression findings, and output checksums. CPU and simulator runners are built
+in. CUDA devices, lab rigs, and accelerators use the timeout-bounded
+`awen.hil-driver.v1` standard-input/standard-output protocol.
+
+Use `.github/workflows/hardware-benchmark.yml` on a controlled self-hosted
+runner for physical measurements. Generate public claims only after publishing
+a verified artifact at an immutable HTTPS URL whose final path segment contains
+its SHA-256 digest and which has no query string or fragment:
+
+```bash
+awenctl benchmark-claims benchmark-<sha256>.json \
+  --artifact-url https://benchmarks.example/benchmark-<sha256>.json \
+  --baseline cpu-baseline \
+  --candidate hardware-accelerator \
+  --output claims.json \
+  --markdown-output claims.md
+```
+
+The generator refuses simulated, estimated, vendor-specified, mutable,
+inaccurate, uncalibrated, or non-accelerating evidence. See AEP-0019 and
+`awen-spec/specs/hardware-benchmarking.md`.
+
 ## Legacy graph commands
 
 Run the reference graph engine:
@@ -104,4 +141,4 @@ Gradient strategies are `auto`, `adjoint`, and `finite_difference`. The referenc
 
 Legacy run and gradient commands write directories named `awen_run_*` and `awen_grad_*`. Depending on the command, artifacts include input IR, results, quantum states, measurements, gradients, traces, timelines, metrics, calibration state, and provenance.
 
-The tensor compiler writes a single compilation or benchmark JSON file at the caller-provided path. Reference capability and cost values are simulator inputs, not measured product performance.
+The tensor compiler writes a single compilation or simulator benchmark JSON file at the caller-provided path. HIL suite execution writes an immutable multi-file artifact set. Reference capability, accounting, and cost values are simulator or estimated inputs, not measured product performance.

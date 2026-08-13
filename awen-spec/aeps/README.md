@@ -22,3 +22,4 @@ Current proposals:
 - `AEP-0016`: in-process framework runtime, PyTorch compiler backend, portable JAX/StableHLO import, NumPy surface, and compiled C/C++ ABI.
 - `AEP-0017`: explicit storage/compute/accumulator/output precision, scaling, signed bit slicing, calibration compensation, deterministic analog noise, and attributed error contracts.
 - `AEP-0018`: immutable calibration snapshots, topology/fingerprint binding, measured cell/channel routing, fault remapping, artifact lineage, and drift-triggered safe refresh.
+- `AEP-0019`: reproducible full-system and hardware-in-the-loop benchmark evidence, physical-driver protocol, immutable artifacts, and verified claim generation.

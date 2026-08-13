@@ -1,0 +1,73 @@
+name: Manual physical hardware benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        description: Repository-relative awen.hil-suite.v1 manifest whose external drivers are installed on the lab runner
+        required: true
+        type: string
+      runner_id:
+        description: Stable lab rig or accelerator identity recorded in the artifact
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: awen-physical-hardware-benchmark
+  cancel-in-progress: false
+
+jobs:
+  hardware-benchmark:
+    name: Full-system physical hardware evidence
+    runs-on: [self-hosted, awen-hardware]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify a clean immutable source revision
+        shell: bash
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main"
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Build the benchmark orchestrator
+        run: cargo build --release --manifest-path awen-runtime/Cargo.toml --bin awenctl
+      - name: Run every available backend in the selected manifest
+        env:
+          AWEN_COMMIT_SHA: ${{ github.sha }}
+          AWEN_RUNNER_ID: ${{ inputs.runner_id }}
+          AWEN_BENCHMARK_MANIFEST: ${{ inputs.manifest }}
+          AWEN_REPOSITORY_ROOT: ${{ github.workspace }}
+        shell: bash
+        run: |
+          case "$AWEN_BENCHMARK_MANIFEST" in
+            ""|/*|*..*)
+              echo "manifest must be a repository-relative tracked path" >&2
+              exit 2
+              ;;
+          esac
+          git ls-files --error-unmatch -- "$AWEN_BENCHMARK_MANIFEST" >/dev/null
+          manifest_path="$(realpath -- "$AWEN_BENCHMARK_MANIFEST")"
+          repository_root="$(realpath -- "$AWEN_REPOSITORY_ROOT")"
+          case "$manifest_path" in
+            "$repository_root"/*) ;;
+            *)
+              echo "manifest resolved outside the repository" >&2
+              exit 2
+              ;;
+          esac
+          awen-runtime/target/release/awenctl benchmark-suite \
+            "$manifest_path" \
+            --output-dir awen_hardware_artifacts \
+            --commit-sha "$AWEN_COMMIT_SHA" \
+            --runner-id "$AWEN_RUNNER_ID"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: awen-hardware-${{ github.run_id }}-${{ github.sha }}
+          path: awen_hardware_artifacts/
+          if-no-files-found: error
+          retention-days: 90
