@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_hil_driver.v1.json",
+  "title": "AWEN Hardware Benchmark Driver Protocol v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["version", "suite_id", "backend_id", "fixture", "warmup", "repetitions", "seed", "commit_sha", "runner_id"],
+      "properties": {
+        "version": {"const": "awen.hil-driver.v1"},
+        "suite_id": {"type": "string", "minLength": 1},
+        "backend_id": {"type": "string", "minLength": 1},
+        "fixture": {"$ref": "awen_blas.v1.json"},
+        "warmup": {"type": "integer", "minimum": 0},
+        "repetitions": {"type": "integer", "minimum": 1},
+        "seed": {"type": "integer", "minimum": 0},
+        "commit_sha": {"type": "string", "minLength": 1},
+        "runner_id": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["version", "backend_id", "sources", "environment", "calibration_duration_ns", "samples", "output_samples", "raw_data"],
+      "properties": {
+        "version": {"const": "awen.hil-driver.v1"},
+        "backend_id": {"type": "string", "minLength": 1},
+        "sources": {"$ref": "awen_hil_artifact.v1.json#/$defs/sources"},
+        "environment": {"$ref": "awen_hil_artifact.v1.json#/$defs/environment"},
+        "calibration_duration_ns": {"type": "number", "minimum": 0},
+        "samples": {"type": "array", "minItems": 1, "items": {"$ref": "awen_hil_artifact.v1.json#/$defs/rawSample"}},
+        "output_samples": {"type": "array", "minItems": 1, "items": {"$ref": "awen_hil_artifact.v1.json#/$defs/outputSample"}},
+        "raw_data": {"type": "object"}
+      },
+      "additionalProperties": false
+    }
+  ]
+}

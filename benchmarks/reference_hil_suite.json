@@ -1,0 +1,167 @@
+{
+  "version": "awen.hil-suite.v1",
+  "id": "awen-reference-gemm-2x2",
+  "description": "Portable reference suite exercising identical GEMM inputs on the CPU reference and calibrated photonic simulator with full-system accounting.",
+  "fixture": {
+    "version": "awen.blas.v1",
+    "id": "reference.hil.gemm.2x2",
+    "kind": "gemm",
+    "inputs": [
+      {
+        "id": "lhs",
+        "shape": [2, 2],
+        "dtype": "f32",
+        "layout": "row_major",
+        "data": {
+          "representation": "real",
+          "values": [1.0, 2.0, 3.0, 4.0]
+        }
+      },
+      {
+        "id": "rhs",
+        "shape": [2, 2],
+        "dtype": "f32",
+        "layout": "row_major",
+        "data": {
+          "representation": "real",
+          "values": [1.0, 0.0, 0.0, 1.0]
+        }
+      }
+    ],
+    "attributes": {
+      "transpose_lhs": false,
+      "transpose_rhs": false,
+      "stride": 1,
+      "dilation": 1,
+      "padding": 0,
+      "block_size": 1,
+      "rank": 0,
+      "output_size": 0,
+      "seed": 0,
+      "scale": 1.0,
+      "leakage": 1.0,
+      "inverse": false,
+      "phase_convention": "negative_exponent",
+      "accumulation_mode": "digital"
+    },
+    "accuracy": {
+      "max_abs_error": 0.05,
+      "max_rel_error": 0.05,
+      "minimum_effective_bits": 8
+    },
+    "calibration_inputs": [
+      {
+        "id": "reference-calibration",
+        "gain": 1.0,
+        "bias": 0.0,
+        "uncertainty_fraction": 0.001
+      }
+    ]
+  },
+  "warmup": 3,
+  "repetitions": 20,
+  "seed": 20260813,
+  "backends": [
+    {
+      "id": "cpu-reference",
+      "class": "cpu",
+      "runner": {
+        "runner": "cpu_reference",
+        "accounting": {
+          "steady_power_w": 35.0,
+          "peak_power_w": 65.0,
+          "latency_shares": {
+            "host_transfer": 0.0,
+            "memory": 0.25,
+            "scheduling": 0.10,
+            "reconfiguration": 0.0,
+            "calibration_amortization": 0.0,
+            "dac": 0.0,
+            "modulation": 0.0,
+            "optical_device": 0.0,
+            "detection": 0.0,
+            "adc": 0.0,
+            "digital_postprocessing": 0.55,
+            "cooling_support": 0.10
+          },
+          "energy_shares": {
+            "host_transfer": 0.0,
+            "memory": 0.25,
+            "scheduling": 0.05,
+            "reconfiguration": 0.0,
+            "calibration_amortization": 0.0,
+            "laser": 0.0,
+            "modulation": 0.0,
+            "dac": 0.0,
+            "optical_device": 0.0,
+            "detector": 0.0,
+            "adc": 0.0,
+            "digital_postprocessing": 0.55,
+            "cooling_support": 0.15
+          }
+        }
+      },
+      "regression": {
+        "enforcement": "required_reference",
+        "reference_artifact": "reference-contract:v1",
+        "max_p95_latency_ns": null,
+        "max_p95_energy_j": null,
+        "min_throughput_gops": null,
+        "max_p99_absolute_error": 0.0,
+        "max_p99_relative_error": 0.0
+      }
+    },
+    {
+      "id": "photonic-simulator",
+      "class": "simulator",
+      "runner": {
+        "runner": "simulator",
+        "target": "photonic",
+        "effective_bits": 12,
+        "noise_fraction": 0.0,
+        "accounting": {
+          "steady_power_w": 22.0,
+          "peak_power_w": 30.0,
+          "latency_shares": {
+            "host_transfer": 0.12,
+            "memory": 0.08,
+            "scheduling": 0.05,
+            "reconfiguration": 0.06,
+            "calibration_amortization": 0.03,
+            "dac": 0.10,
+            "modulation": 0.07,
+            "optical_device": 0.12,
+            "detection": 0.07,
+            "adc": 0.10,
+            "digital_postprocessing": 0.15,
+            "cooling_support": 0.05
+          },
+          "energy_shares": {
+            "host_transfer": 0.08,
+            "memory": 0.07,
+            "scheduling": 0.03,
+            "reconfiguration": 0.05,
+            "calibration_amortization": 0.03,
+            "laser": 0.17,
+            "modulation": 0.08,
+            "dac": 0.10,
+            "optical_device": 0.08,
+            "detector": 0.06,
+            "adc": 0.10,
+            "digital_postprocessing": 0.10,
+            "cooling_support": 0.05
+          }
+        }
+      },
+      "regression": {
+        "enforcement": "required_reference",
+        "reference_artifact": "reference-contract:v1",
+        "max_p95_latency_ns": null,
+        "max_p95_energy_j": null,
+        "min_throughput_gops": null,
+        "max_p99_absolute_error": 0.05,
+        "max_p99_relative_error": 0.05
+      }
+    }
+  ]
+}

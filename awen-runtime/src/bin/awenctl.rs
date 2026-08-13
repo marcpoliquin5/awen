@@ -6,6 +6,11 @@ use awen_compiler::{
     KernelBackendProfile, KernelRequest, KernelSimulatorOptions, ObservationSet,
     OptimizationObjective, TargetBackend, TensorProgram,
 };
+use awen_runtime::benchmark::{
+    claims_markdown, generate_public_claims, run_benchmark_suite, write_benchmark_artifact_set,
+    BenchmarkArtifact, BenchmarkRunContext, BenchmarkSuite as HilBenchmarkSuite,
+    VerificationStatus,
+};
 use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
 use awen_runtime::gradients::{GradientOptions, NoiseModel};
@@ -197,6 +202,40 @@ enum Command {
         /// Number of complete request executions measured per path.
         #[clap(long, default_value_t = 10)]
         repetitions: usize,
+    },
+    /// Run one reproducible full-system suite across every configured available backend.
+    BenchmarkSuite {
+        /// Path to an awen.hil-suite.v1 JSON manifest.
+        manifest: String,
+        /// New or empty directory receiving the immutable artifact set.
+        #[clap(long, default_value = "awen_hil_artifacts")]
+        output_dir: String,
+        /// Commit SHA recorded in every backend environment. Auto-detected when omitted.
+        #[clap(long)]
+        commit_sha: Option<String>,
+        /// Stable runner identity. Uses CI or host environment metadata when omitted.
+        #[clap(long)]
+        runner_id: Option<String>,
+    },
+    /// Generate publishable claims from one verified, immutable hardware benchmark artifact.
+    BenchmarkClaims {
+        /// Path to an awen.hil-artifact.v1 JSON artifact.
+        artifact: String,
+        /// Immutable HTTPS URL with the artifact digest in its final path segment.
+        #[clap(long)]
+        artifact_url: String,
+        /// Measured baseline backend id.
+        #[clap(long)]
+        baseline: String,
+        /// Measured lab-rig or hardware-accelerator backend id.
+        #[clap(long)]
+        candidate: String,
+        /// Versioned machine-readable claims output.
+        #[clap(long, default_value = "awen_benchmark_claims.json")]
+        output: String,
+        /// Markdown document generated only from the verified artifact.
+        #[clap(long, default_value = "awen_benchmark_claims.md")]
+        markdown_output: String,
     },
     /// Select an awenBLAS backend from explicit capability and cost profiles.
     KernelPlan {
@@ -405,6 +444,32 @@ fn main() -> Result<()> {
             seed,
             repetitions,
         )?,
+        Command::BenchmarkSuite {
+            manifest,
+            output_dir,
+            commit_sha,
+            runner_id,
+        } => benchmark_suite_command(
+            &manifest,
+            &output_dir,
+            commit_sha.as_deref(),
+            runner_id.as_deref(),
+        )?,
+        Command::BenchmarkClaims {
+            artifact,
+            artifact_url,
+            baseline,
+            candidate,
+            output,
+            markdown_output,
+        } => benchmark_claims_command(
+            &artifact,
+            &artifact_url,
+            &baseline,
+            &candidate,
+            &output,
+            &markdown_output,
+        )?,
         Command::KernelPlan {
             input,
             profiles,
@@ -493,6 +558,99 @@ fn kernel_benchmark_command(
         anyhow::bail!("kernel simulator output exceeded the request numerical contract");
     }
     Ok(())
+}
+
+fn benchmark_suite_command(
+    manifest_path: &str,
+    output_dir: &str,
+    commit_sha: Option<&str>,
+    runner_id: Option<&str>,
+) -> Result<()> {
+    let suite: HilBenchmarkSuite = serde_json::from_slice(&std::fs::read(manifest_path)?)?;
+    let context = BenchmarkRunContext {
+        commit_sha: commit_sha
+            .map(str::to_string)
+            .map(Ok)
+            .unwrap_or_else(detect_commit_sha)?,
+        runner_id: runner_id
+            .map(str::to_string)
+            .unwrap_or_else(detect_runner_id),
+    };
+    let artifact = run_benchmark_suite(&suite, &context)?;
+    let paths = write_benchmark_artifact_set(std::path::Path::new(output_dir), &suite, &artifact)?;
+    println!(
+        "Benchmark suite '{}' produced {} backend result(s), {} backend failure(s), and {} artifact file(s) in {}. Verification: {:?}",
+        artifact.suite_id,
+        artifact.results.len(),
+        artifact.backend_failures.len(),
+        paths.len(),
+        output_dir,
+        artifact.verification.status
+    );
+    if artifact.verification.status != VerificationStatus::Verified {
+        anyhow::bail!(
+            "benchmark artifact was preserved but verification rejected it: {}",
+            artifact.verification.failures.join("; ")
+        );
+    }
+    Ok(())
+}
+
+fn benchmark_claims_command(
+    artifact_path: &str,
+    artifact_url: &str,
+    baseline: &str,
+    candidate: &str,
+    output_path: &str,
+    markdown_output_path: &str,
+) -> Result<()> {
+    let artifact: BenchmarkArtifact = serde_json::from_slice(&std::fs::read(artifact_path)?)?;
+    let claims = generate_public_claims(&artifact, artifact_url, baseline, candidate)?;
+    std::fs::write(output_path, serde_json::to_vec_pretty(&claims)?)?;
+    std::fs::write(markdown_output_path, claims_markdown(&claims))?;
+    println!(
+        "Generated {} verified public claim(s) from immutable artifact {}. JSON: {}; Markdown: {}",
+        claims.claims.len(),
+        claims.artifact_fingerprint,
+        output_path,
+        markdown_output_path
+    );
+    Ok(())
+}
+
+fn detect_commit_sha() -> Result<String> {
+    for key in ["AWEN_COMMIT_SHA", "GITHUB_SHA"] {
+        if let Ok(value) = std::env::var(key) {
+            if !value.trim().is_empty() {
+                return Ok(value);
+            }
+        }
+    }
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "could not detect commit SHA; pass --commit-sha explicitly: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let value = String::from_utf8(output.stdout)?.trim().to_string();
+    if value.is_empty() {
+        anyhow::bail!("detected an empty commit SHA; pass --commit-sha explicitly");
+    }
+    Ok(value)
+}
+
+fn detect_runner_id() -> String {
+    for key in ["AWEN_RUNNER_ID", "RUNNER_NAME", "HOSTNAME", "COMPUTERNAME"] {
+        if let Ok(value) = std::env::var(key) {
+            if !value.trim().is_empty() {
+                return value;
+            }
+        }
+    }
+    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
 }
 
 fn kernel_plan_command(

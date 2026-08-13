@@ -1,4 +1,5 @@
 // AWEN Runtime crate root
+pub mod benchmark;
 pub mod calibration;
 pub mod chokepoint;
 pub mod control;

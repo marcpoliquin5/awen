@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_hil_artifact.v1.json",
+  "title": "AWEN Hardware-in-the-Loop Benchmark Artifact v1",
+  "type": "object",
+  "required": ["version", "suite_id", "suite_fingerprint", "fixture_fingerprint", "generated_at", "commit_sha", "warmup", "repetitions", "seed", "suite", "fixture", "results", "backend_failures", "verification", "artifact_fingerprint"],
+  "properties": {
+    "version": {"const": "awen.hil-artifact.v1"},
+    "suite_id": {"type": "string", "minLength": 1},
+    "suite_fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "fixture_fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "commit_sha": {"type": "string", "minLength": 1},
+    "warmup": {"type": "integer", "minimum": 0},
+    "repetitions": {"type": "integer", "minimum": 1},
+    "seed": {"type": "integer", "minimum": 0},
+    "suite": {"$ref": "awen_hil_suite.v1.json"},
+    "fixture": {"$ref": "awen_blas.v1.json"},
+    "results": {"type": "array", "items": {"$ref": "#/$defs/backendResult"}},
+    "backend_failures": {"type": "array", "items": {"$ref": "#/$defs/backendFailure"}},
+    "verification": {"$ref": "#/$defs/verification"},
+    "artifact_fingerprint": {"$ref": "#/$defs/fingerprint"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "source": {"enum": ["measured", "simulated", "vendor_specified", "estimated"]},
+    "class": {"enum": ["cpu", "cuda_gpu", "simulator", "lab_rig", "hardware_accelerator"]},
+    "sources": {
+      "type": "object",
+      "required": ["execution", "latency", "energy", "power", "accuracy", "calibration", "environment"],
+      "properties": {
+        "execution": {"$ref": "#/$defs/source"},
+        "latency": {"$ref": "#/$defs/source"},
+        "energy": {"$ref": "#/$defs/source"},
+        "power": {"$ref": "#/$defs/source"},
+        "accuracy": {"$ref": "#/$defs/source"},
+        "calibration": {"$ref": "#/$defs/source"},
+        "environment": {"$ref": "#/$defs/source"}
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": ["hardware_vendor", "hardware_model", "topology", "clock_summary", "temperature_c", "software_versions", "operating_system", "commit_sha", "runner_id", "calibration_snapshot_id", "calibration_fingerprint", "observed_at", "unavailable_fields"],
+      "properties": {
+        "hardware_vendor": {"type": "string", "minLength": 1},
+        "hardware_model": {"type": "string", "minLength": 1},
+        "topology": {"type": "string", "minLength": 1},
+        "clock_summary": {"type": "string", "minLength": 1},
+        "temperature_c": {"type": ["number", "null"]},
+        "software_versions": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "minLength": 1}},
+        "operating_system": {"type": "string", "minLength": 1},
+        "commit_sha": {"type": "string", "minLength": 1},
+        "runner_id": {"type": "string", "minLength": 1},
+        "calibration_snapshot_id": {"type": ["string", "null"], "minLength": 1},
+        "calibration_fingerprint": {"oneOf": [{"$ref": "#/$defs/fingerprint"}, {"type": "null"}]},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "unavailable_fields": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      },
+      "dependentRequired": {
+        "calibration_snapshot_id": ["calibration_fingerprint"],
+        "calibration_fingerprint": ["calibration_snapshot_id"]
+      },
+      "additionalProperties": false
+    },
+    "latencyBreakdown": {
+      "type": "object",
+      "required": ["host_transfer", "memory", "scheduling", "reconfiguration", "calibration_amortization", "dac", "modulation", "optical_device", "detection", "adc", "digital_postprocessing", "cooling_support"],
+      "properties": {
+        "host_transfer": {"type": "number", "minimum": 0}, "memory": {"type": "number", "minimum": 0}, "scheduling": {"type": "number", "minimum": 0}, "reconfiguration": {"type": "number", "minimum": 0}, "calibration_amortization": {"type": "number", "minimum": 0}, "dac": {"type": "number", "minimum": 0}, "modulation": {"type": "number", "minimum": 0}, "optical_device": {"type": "number", "minimum": 0}, "detection": {"type": "number", "minimum": 0}, "adc": {"type": "number", "minimum": 0}, "digital_postprocessing": {"type": "number", "minimum": 0}, "cooling_support": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "energyBreakdown": {
+      "type": "object",
+      "required": ["host_transfer", "memory", "scheduling", "reconfiguration", "calibration_amortization", "laser", "modulation", "dac", "optical_device", "detector", "adc", "digital_postprocessing", "cooling_support"],
+      "properties": {
+        "host_transfer": {"type": "number", "minimum": 0}, "memory": {"type": "number", "minimum": 0}, "scheduling": {"type": "number", "minimum": 0}, "reconfiguration": {"type": "number", "minimum": 0}, "calibration_amortization": {"type": "number", "minimum": 0}, "laser": {"type": "number", "minimum": 0}, "modulation": {"type": "number", "minimum": 0}, "dac": {"type": "number", "minimum": 0}, "optical_device": {"type": "number", "minimum": 0}, "detector": {"type": "number", "minimum": 0}, "adc": {"type": "number", "minimum": 0}, "digital_postprocessing": {"type": "number", "minimum": 0}, "cooling_support": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "rawSample": {
+      "type": "object",
+      "required": ["iteration", "latency_ns", "energy_j", "peak_power_w", "steady_power_w", "temperature_c", "latency_breakdown_ns", "energy_breakdown_j", "raw_counters"],
+      "properties": {
+        "iteration": {"type": "integer", "minimum": 0},
+        "latency_ns": {"type": "number", "exclusiveMinimum": 0},
+        "energy_j": {"type": "number", "minimum": 0},
+        "peak_power_w": {"type": "number", "exclusiveMinimum": 0},
+        "steady_power_w": {"type": "number", "exclusiveMinimum": 0},
+        "temperature_c": {"type": ["number", "null"]},
+        "latency_breakdown_ns": {"$ref": "#/$defs/latencyBreakdown"},
+        "energy_breakdown_j": {"$ref": "#/$defs/energyBreakdown"},
+        "raw_counters": {"type": "object", "additionalProperties": {"type": "number"}}
+      },
+      "additionalProperties": false
+    },
+    "distribution": {
+      "type": "object",
+      "required": ["minimum", "p50", "p95", "p99", "maximum", "mean"],
+      "properties": {
+        "minimum": {"type": "number", "minimum": 0}, "p50": {"type": "number", "minimum": 0}, "p95": {"type": "number", "minimum": 0}, "p99": {"type": "number", "minimum": 0}, "maximum": {"type": "number", "minimum": 0}, "mean": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["latency_ns", "throughput_gops", "energy_j", "peak_power_w", "steady_power_w", "absolute_error", "relative_error", "calibration_duration_ns", "conversion_latency_share", "conversion_energy_share"],
+      "properties": {
+        "latency_ns": {"$ref": "#/$defs/distribution"}, "throughput_gops": {"$ref": "#/$defs/distribution"}, "energy_j": {"$ref": "#/$defs/distribution"}, "peak_power_w": {"$ref": "#/$defs/distribution"}, "steady_power_w": {"$ref": "#/$defs/distribution"}, "absolute_error": {"$ref": "#/$defs/distribution"}, "relative_error": {"$ref": "#/$defs/distribution"},
+        "calibration_duration_ns": {"type": "number", "minimum": 0},
+        "conversion_latency_share": {"type": "number", "minimum": 0, "maximum": 1},
+        "conversion_energy_share": {"type": "number", "minimum": 0, "maximum": 1}
+      },
+      "additionalProperties": false
+    },
+    "regressionFinding": {
+      "type": "object",
+      "required": ["metric", "observed", "threshold", "passed", "enforcement", "reference_artifact"],
+      "properties": {
+        "metric": {"type": "string", "minLength": 1}, "observed": {"type": "number", "minimum": 0}, "threshold": {"type": "number", "minimum": 0}, "passed": {"type": "boolean"}, "enforcement": {"enum": ["required_reference", "advisory_hardware"]}, "reference_artifact": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "backendResult": {
+      "type": "object",
+      "required": ["backend_id", "class", "sources", "environment", "metrics", "accuracy_within_contract", "regression_findings", "raw_samples", "raw_absolute_errors", "raw_relative_errors", "output_checksums", "raw_data"],
+      "properties": {
+        "backend_id": {"type": "string", "minLength": 1}, "class": {"$ref": "#/$defs/class"}, "sources": {"$ref": "#/$defs/sources"}, "environment": {"$ref": "#/$defs/environment"}, "metrics": {"$ref": "#/$defs/metrics"}, "accuracy_within_contract": {"type": "boolean"}, "regression_findings": {"type": "array", "items": {"$ref": "#/$defs/regressionFinding"}}, "raw_samples": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/rawSample"}}, "raw_absolute_errors": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0}}, "raw_relative_errors": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0}}, "output_checksums": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/fingerprint"}}, "raw_data": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "backendFailure": {
+      "type": "object",
+      "required": ["backend_id", "class", "error"],
+      "properties": {"backend_id": {"type": "string", "minLength": 1}, "class": {"$ref": "#/$defs/class"}, "error": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["status", "checks", "failures"],
+      "properties": {"status": {"enum": ["verified", "rejected"]}, "checks": {"type": "array", "items": {"type": "string", "minLength": 1}}, "failures": {"type": "array", "items": {"type": "string", "minLength": 1}}},
+      "additionalProperties": false
+    },
+    "outputSample": {
+      "type": "object",
+      "required": ["iteration", "outputs"],
+      "properties": {"iteration": {"type": "integer", "minimum": 0}, "outputs": {"type": "array", "minItems": 1, "items": {"$ref": "awen_blas.v1.json#/$defs/tensor"}}},
+      "additionalProperties": false
+    }
+  }
+}
