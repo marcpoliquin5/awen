@@ -3,11 +3,13 @@
 ## Existing Sections
 
 
-## AWEN Photonics — PHOTONICS-V5
+## AWEN Photonics — typed dialects and legacy PHOTONICS-V5 migration
 
-  - Canonical IR schema: [awen-spec/schemas/photonic_ir.v5.json](awen-spec/schemas/photonic_ir.v5.json)
-  - Runtime chokepoint interface (to be added under `awen-runtime`)
-  - Conformance tests (to be added under `awen-runtime/tests/photonic_conformance`)
+  - Current architecture: `awen-spec/aeps/AEP-0020-classical-quantum-photonic-separation.md`
+  - Current schemas: `awen_photonic_program.v1.json`, `awen_qphotonic_program.v1.json`, `awen_qphotonic_result.v1.json`, and `awen_photonic_interop.v1.json`
+  - Legacy migration input: [awen-spec/schemas/photonic_ir.v5.json](awen-spec/schemas/photonic_ir.v5.json)
+  - Runtime chokepoint: `awen-runtime/src/chokepoint.rs`
+  - Conformance tests: `awen-runtime/tests/photonic_conformance.rs`
 
 Notes:
 

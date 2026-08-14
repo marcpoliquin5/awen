@@ -1,7 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "AWEN Photonic IR v5",
-  "description": "Canonical photonic IR for AWEN Photonics V5 — supports classical and quantum ops, timing, calibration, and provenance.",
+  "title": "Legacy AWEN mixed Photonic IR v5 migration input",
+  "description": "Deprecated mixed classical/quantum document accepted only by the fail-closed V5 migration tool; new execution uses independent awen.photonic.program.v1 and awen.qphotonic.program.v1 contracts.",
+  "deprecated": true,
   "type": "object",
   "required": ["ir_version", "ops", "metadata"],
   "properties": {

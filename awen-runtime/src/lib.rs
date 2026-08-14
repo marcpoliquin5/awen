@@ -12,6 +12,7 @@ pub mod hal;
 pub mod hal_v0;
 pub mod ir;
 pub mod observability;
+pub mod photonic;
 pub mod plugins;
 pub mod quantum;
 pub mod scheduler;

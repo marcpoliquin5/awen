@@ -38,6 +38,13 @@ normalized stablehlo.dot_general
   -> versioned AWENEXE binary
   -> direct Rust runtime command preparation
 
+typed photonic runtime program
+  -> awen.photonic calibrated classical signal/precision/noise contract
+     | awen.qphotonic Fock/Gaussian gate/measurement/sampling contract
+  -> explicit measurement-readout or classical-control interop only
+  -> independent verifier and capability requirements
+  -> dialect-specific signed plugin capability and typed artifact bundle
+
 PyTorch / JAX / NumPy / C++
   -> live framework tensors or portable JAX StableHLO
   -> versioned in-process operation plan
@@ -61,7 +68,7 @@ measured product performance.
 - `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration-snapshot validation, measured channel/cell routing, fault remapping, drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
-- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
+- `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
 - `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, example PDK data, kernels, marketplace, and plugin templates.
 - `awen-studio` and `awen-cloud`: early scaffolding, not shipping products.
@@ -197,6 +204,24 @@ benchmark` workflow and cannot become noisy required pull-request checks.
 `benchmark-claims` refuses mutable, simulated, estimated, vendor-specified,
 inaccurate, uncalibrated, or non-accelerating evidence. See AEP-0019 and
 `awen-spec/specs/hardware-benchmarking.md`.
+
+## Migrate legacy mixed Photonic IR V5
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  migrate-photonic-v5 legacy-v5.json \
+  --output migration-report.json
+```
+
+New execution does not accept the mixed V5 string operation space. Classical
+programs use calibrated precision/noise/transfer contracts. Quantum programs
+use explicit Fock or Gaussian CV state, gates, measurement, shots, seed,
+feed-forward, coherence, statistical correctness, and replay identity. Only
+typed measurement-readout and classical-control operations cross the boundary.
+The migrator classifies allowlisted prefixed legacy operations, preserves a
+machine-readable report, and rejects ambiguous or unknown strings without
+inventing semantics. See AEP-0020 and
+`awen-spec/specs/photonic-dialect-separation.md`.
 
 ## Status and evidence
 

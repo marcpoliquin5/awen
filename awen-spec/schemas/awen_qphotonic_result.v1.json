@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_qphotonic_result.v1.json",
+  "title": "AWEN Quantum-Photonic Statistical Result v1",
+  "type": "object",
+  "required": ["version", "program_id", "program_fingerprint", "seed", "shots", "outcome_counts", "measured_means", "fidelity_estimate", "confidence_level", "coherence_elapsed_ns", "replay_fingerprint"],
+  "properties": {
+    "version": {"const": "awen.qphotonic.result.v1"},
+    "program_id": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "program_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "seed": {"type": "integer", "minimum": 0},
+    "shots": {"type": "integer", "minimum": 1},
+    "outcome_counts": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 0}},
+    "measured_means": {"type": "object", "additionalProperties": {"type": "number"}},
+    "fidelity_estimate": {"type": "number", "minimum": 0, "maximum": 1},
+    "confidence_level": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "coherence_elapsed_ns": {"type": "integer", "minimum": 0},
+    "replay_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

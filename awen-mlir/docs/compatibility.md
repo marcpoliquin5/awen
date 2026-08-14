@@ -22,3 +22,7 @@ two-component dialect version. Current dialect bytecode is `1.0`.
   not depend on a particular MLIR library build.
 - StableHLO compatibility remains owned by upstream StableHLO. AWEN does not
   copy or redefine its general compatibility guarantee.
+- Classical `awen_photonic` signal/tensor values and `awen_qphotonic` Fock,
+  Gaussian, and sample-stream values are not ABI-compatible. Crossing the
+  dialect boundary requires a versioned explicit interop operation outside the
+  classical StableHLO GEMM lowering.

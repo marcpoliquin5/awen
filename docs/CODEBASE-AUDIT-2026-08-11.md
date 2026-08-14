@@ -27,7 +27,7 @@ The accurate product description is therefore an experimental runtime/specificat
 
 `awen-runtime/src/engine_v2.rs` contains a second engine path with more structured planning and validation. The simultaneous presence of `engine`, `engine_v2`, `hal`, `hal_v0`, `scheduler`, `scheduler_v0`, `control`, and `control_v0` creates version/ownership ambiguity. A migration/deprecation plan is not enforced by the crate API.
 
-The non-bypassable gateway in `awen-runtime/src/chokepoint.rs` embeds the V5 JSON Schema, injects or loads basic calibration, writes telemetry/artifacts, and optionally invokes a signed plugin. It then converts the generic operation back into a one-node legacy graph by retaining only numeric parameters. This destroys typed tensor, layout, precision, and rich operation semantics that a compiler backend would require.
+The non-bypassable gateway in `awen-runtime/src/chokepoint.rs` now accepts a closed Rust enum over independent classical, quantum, and narrow interop programs. It runs the dialect-specific Rust verifier and JSON Schema, records the entire typed contract and fingerprint in the artifact bundle, emits telemetry, and requests a dialect-specific signed-plugin capability. Classical calibration state is retained only for the classical program. The shared legacy graph envelope records dialect identity for artifact compatibility but no longer replaces the typed program or controls semantic dispatch.
 
 ## IR and schema drift
 
@@ -35,13 +35,13 @@ There were three incompatible representations on `main`:
 
 1. The executable Rust `Graph` uses `nodes` and string types such as `MZI`, `RING`, and `DETECTOR`.
 2. `awen-spec/schemas/awen_ir.proto` sketches nodes, ports, numeric parameters, and edges but is not generated or consumed by the runtime.
-3. `awen-spec/schemas/photonic_ir.v5.json` requires top-level `ops` with string types such as `classical:splitter` or `quantum:beam_splitter`.
+3. `awen-spec/schemas/photonic_ir.v5.json` requires top-level `ops` with string types such as `classical:splitter` or `quantum:beam_splitter`; it is now explicitly deprecated and accepted only by the V5 migration command.
 
-The V5 schema does not encode tensor shapes, dynamic dimensions, dtype, layout, optical effective precision, bit slicing, accumulation precision, wavelength allocation, matrix-core dimensions, SNR, ADC/DAC resolution, detector dynamic range, reconfiguration cost, insertion-loss budget, topology, or a typed distinction between classical and quantum semantics.
+The V5 schema does not encode tensor shapes, dynamic dimensions, dtype, layout, optical effective precision, bit slicing, accumulation precision, wavelength allocation, matrix-core dimensions, SNR, ADC/DAC resolution, detector dynamic range, reconfiguration cost, insertion-loss budget, topology, or a typed distinction between classical and quantum semantics. AEP-0020 replaces it for execution with independent versioned classical/quantum schemas and explicit interop. Migration classifies only allowlisted prefixed names and rejects ambiguous or unknown operations without inventing missing contracts.
 
 The Python wrapper mutates legacy `nodes`, while its description implies a bridge to broader framework IR. That confirms API drift rather than compatibility.
 
-The compiler adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.precision.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, `awen.device.v1`, and `awen.error-report.v1`. The implemented `awen-mlir` path registers Tensor, Classical Photonic, Quantum Photonic, and Device dialects, normalizes supported StableHLO rank-two `dot_general`, lowers GEMM into Device IR, emits `AWENEXE`, and is consumed directly by the Rust runtime. AEP-0010 still requires production framework paths to use MLIR/StableHLO rather than growing the JSON bootstrap into a competing general-purpose infrastructure. Complete classical/quantum semantic separation remains #16.
+The compiler adds independently versioned bootstrap schemas for `awen.tensor.v1`, `awen.precision.v1`, `awen.device-capability.v1`, `awen.photonic.classical.v1`, `awen.device.v1`, and `awen.error-report.v1`. The implemented `awen-mlir` path registers Tensor, Classical Photonic, Quantum Photonic, and Device dialects, normalizes supported StableHLO rank-two `dot_general`, lowers GEMM into Device IR, emits `AWENEXE`, and is consumed directly by the Rust runtime. AEP-0010 still requires production framework paths to use MLIR/StableHLO rather than growing the JSON bootstrap into a competing general-purpose infrastructure. AEP-0020 completes the runtime/schema/MLIR semantic split: classical calibrated transform/modulation/detection types remain distinct from Fock state, Gaussian state, seeded samples, state-space-specific gates/measurements, and feed-forward.
 
 ## Simulator and numerical semantics
 
@@ -119,9 +119,9 @@ The gdsfactory/circulax integration boundary, immutable PDK/model provenance, pr
 
 ## Quantum scope
 
-The runtime and specs contain substantial quantum/coherence types and tests, including Gaussian/CV/DV state experiments, measurement, fidelity/drift, artifacts, and feedback scheduling. The correctness model is still intermixed with classical generic graph/string operations and simplified reference simulation.
+The runtime and specs contain substantial legacy quantum/coherence experiments, including Gaussian/CV/DV state, measurement, fidelity/drift, artifacts, and feedback scheduling. New executable photonic programs now use an independent `awen.qphotonic.program.v1` correctness model with Fock/Gaussian state, compatible gates/measurements, shots, seed, deterministic replay, coherence budget, outcome distribution/mean limits, fidelity, confidence, and explicit feed-forward.
 
-Classical analog GEMM and quantum photonic programs require distinct dialect verifiers, state/measurement semantics, precision/error models, schedulers, and conformance. Shared runtime/artifact/device infrastructure can remain common. This separation is #16. Strawberry Fields is useful historical prior art but was archived and must not become a new critical dependency.
+Classical analog GEMM and quantum photonic programs now have distinct schema, Rust, and MLIR verifiers, state/measurement semantics, precision/statistical-error models, capability contracts, and conformance fixtures. Shared runtime/artifact/device infrastructure remains common without erasing the typed program. Only versioned measurement-readout and classical-control interop is admitted. Strawberry Fields is recorded as historical prior art but is not a dependency.
 
 ## CI, release, and branch protection
 
@@ -139,7 +139,7 @@ The branch was verified on a current Linux Rust toolchain through WSL, matching 
 
 - `awen-compiler`: format check, strict Clippy, 73 unit/integration tests, and doc tests passed.
 - Compiler cases cover 256³-to-eight-tile lowering, calibrated execution, immutable snapshot/topology/fingerprint validation, measured wavelength selection, disabled-cell remapping, exhausted-spare fallback, exact artifact reuse, child-calibration lineage recompilation, drift-triggered safe fallback, every declared dtype/precision encoding, tensor/channel/block quantization, signed bit-slice extremes, integer overflow and saturation, explicit mixed-precision lowering, seeded componentized analog noise, attributed static/empirical error reports, precision-aware autotuning and fallback, invalid output shape, rectangular/partial M/N/K tiles, transposed operands, column-major storage, all 22 awenBLAS kinds, exact complex/Fourier conventions, randomized GEMM/FFT properties, calibration composition, structure preservation, deterministic simulation/planning, capacity/precision/complex rejection, and measured software-conformance execution.
-- `awen-runtime`: format and strict Clippy pass, the existing ordinary unit/integration/doc cases pass, including four awenBLAS schema/CLI integration tests, and seven HIL benchmark integrity/claims unit tests plus four HIL schema/boundary/artifact/CLI integration tests pass. One pre-existing phase-calibration test remains explicitly ignored. The pre-existing trybuild diagnostic snapshot is sensitive to the local WSL terminal width under Rust 1.97 and is left unchanged for the canonical GitHub Actions environment.
+- `awen-runtime`: format and strict Clippy pass, the existing ordinary unit/integration/doc cases pass, including four awenBLAS schema/CLI integration tests, seven typed classical/quantum/interop/migration integration tests, and seven HIL benchmark integrity/claims unit tests plus four HIL schema/boundary/artifact/CLI integration tests pass. One pre-existing phase-calibration test remains explicitly ignored. The pre-existing trybuild diagnostic snapshot is sensitive to the local WSL terminal width under Rust 1.97 and is left unchanged for the canonical GitHub Actions environment.
 - End-to-end CLI compile emitted eight photonic tiles, explicit calibration/channel/remap/precision/device commands, two boundary crossings, and immutable calibration identity plus decision impacts for the 256³ fixture.
 - End-to-end CLI benchmark emitted 16 output values and passed its numerical contract; observed maximum absolute error was approximately `0.110236` and maximum relative error approximately `0.007874` for the 8-effective-bit 4×4 fixture.
 - All five awenBLAS schemas compile, the request and two backend fixtures validate, and generated CPU result, simulated result, selection plan, and benchmark records validate against their published schemas.
@@ -147,7 +147,7 @@ The branch was verified on a current Linux Rust toolchain through WSL, matching 
 - The Python framework suite passes against exact PyTorch 2.13.0 and JAX/JAXlib 0.11.0, including installed backend discovery, mixed FX regions, analytic input/weight gradients, dynamic TorchDynamo batches, non-contiguous and batched tensors, portable StableHLO serialization, symbolic JAX batches, and analytic exported gradients.
 - NumPy/runtime tests cover strided/batched/complex operations, FFT, caller-owned output buffers, asynchronous futures, buffer ownership, CPU transfer, typed failures, effective-bit rejection, profiler events, deterministic serialization/replay, tamper detection, and the prohibition on subprocess use in the public path.
 - The canonical HIL command emits `suite.json`, content-addressed `benchmark-<sha256>.json`, and `SHA256SUMS` for every configured reference backend; artifact validation recomputes metrics and rejects mutable/simulated claim inputs.
-- All 27 repository JSON schemas pass Draft 2020-12 meta-validation. Generated calibration snapshots, backend health/capability documents, precision/error reports, Photonic IR, Device IR, full compilation artifacts, artifact-refresh decisions, HIL suites/driver messages/artifacts, and verified claims validate through cross-schema references. Both framework schemas and generated plans/traces validate. The Rust C ABI unit test passes, and the C++20 example compiles against the generated shared library and returns the expected `19 22 43 50` GEMM result.
+- All 32 repository JSON schemas pass meta-validation. Generated calibration snapshots, backend health/capability documents, precision/error reports, classical/quantum/interop photonic programs, quantum results, V5 migration reports, Device IR, full compilation artifacts, artifact-refresh decisions, HIL suites/driver messages/artifacts, and verified claims validate through cross-schema references. Both framework schemas and generated plans/traces validate. The Rust C ABI unit test passes, and the C++20 example compiles against the generated shared library and returns the expected `19 22 43 50` GEMM result.
 
 These are software conformance results, not hardware performance evidence.
 
@@ -172,7 +172,7 @@ The main repository tracks `awen-runtime/libcontrol_v0.rlib`, a generated compil
 - #13: analog/mixed precision, bit slicing, scaling, saturation, and error attribution (completed).
 - #14: calibration-aware mapping, fault remapping, and drift-triggered recompilation (completed).
 - #15: hardware-in-the-loop full-system benchmarking and verified claim generation (completed).
-- #16: separate classical and quantum-photonic dialects.
+- #16: separate classical and quantum-photonic dialects, typed interop, and V5 migration (completed).
 - #17: gdsfactory/circulax and physical-design/PDK boundary.
 - #18: repository/product hygiene, licensing, CI consolidation, governance, security, and release truth.
 - `awen-labs#1`: tracked environment and Supabase/security cleanup.

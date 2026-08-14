@@ -1,0 +1,13 @@
+{
+  "version": "awen.qphotonic.result.v1",
+  "program_id": "bell-sampling",
+  "program_fingerprint": "sha256:045c201f3c5b22947d83d3f0528d0e1f388405275ab0ff5ae113599a207481eb",
+  "seed": 17,
+  "shots": 100,
+  "outcome_counts": {"00": 50, "11": 50},
+  "measured_means": {},
+  "fidelity_estimate": 0.99,
+  "confidence_level": 0.95,
+  "coherence_elapsed_ns": 30,
+  "replay_fingerprint": "sha256:90f4666a7e9389c8bb23826cb990a9d9bc4a1c83a91e56abcb1eeb27f474b8a3"
+}

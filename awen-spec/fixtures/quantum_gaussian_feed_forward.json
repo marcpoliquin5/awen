@@ -1,0 +1,58 @@
+{
+  "version": "awen.qphotonic.program.v1",
+  "program_id": "gaussian-feed-forward",
+  "modes": [{"id": "g0", "state_space": "gaussian_cv"}],
+  "initial_state": {
+    "representation": "gaussian",
+    "displacement": [0.0, 0.0],
+    "covariance": [[1.0, 0.0], [0.0, 1.0]]
+  },
+  "operations": [
+    {
+      "op_id": "measure-q",
+      "modes": ["g0"],
+      "coherence_cost_ns": 10,
+      "operation": "measure",
+      "measurement_id": "homodyne-q",
+      "basis": "homodyne_q",
+      "destructive": false
+    },
+    {
+      "op_id": "feed-forward",
+      "modes": ["g0"],
+      "coherence_cost_ns": 10,
+      "operation": "feed_forward",
+      "source_measurement_id": "homodyne-q",
+      "target_operation_id": "phase-correction",
+      "parameter": "phase_radians",
+      "scale": -1.0,
+      "offset": 0.0,
+      "maximum_latency_ns": 50
+    },
+    {
+      "op_id": "phase-correction",
+      "modes": ["g0"],
+      "coherence_cost_ns": 10,
+      "operation": "gate",
+      "gate_spec": {"gate": "phase_shift", "radians": 0.0}
+    }
+  ],
+  "execution": {"shots": 1000, "seed": 29, "deterministic_replay": true, "coherence_budget_ns": 100},
+  "correctness": {
+    "expected_distribution": {"accepted": 1.0},
+    "expected_means": {"homodyne-q": 0.0},
+    "maximum_total_variation_distance": 0.05,
+    "maximum_mean_error": 0.1,
+    "minimum_fidelity": 0.9,
+    "confidence_level": 0.95
+  },
+  "capabilities": {
+    "state_spaces": ["gaussian_cv"],
+    "gates": ["phase_shift"],
+    "measurements": ["homodyne_q"],
+    "feed_forward": true,
+    "minimum_modes": 1,
+    "maximum_fock_cutoff": null,
+    "minimum_coherence_ns": 100
+  }
+}

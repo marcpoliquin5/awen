@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_photonic_v5_migration.v1.json",
+  "title": "AWEN Photonic V5 Migration Report v1",
+  "type": "object",
+  "required": ["version", "source_version", "status", "operations", "diagnostics"],
+  "properties": {
+    "version": {"const": "awen.photonic-v5-migration.v1"},
+    "source_version": {"type": "string", "pattern": "^v5(\\.[0-9]+)?$"},
+    "status": {"enum": ["migrated", "rejected"]},
+    "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "migrated"}}},
+      "then": {"properties": {"diagnostics": {"not": {"contains": {"properties": {"severity": {"const": "error"}}, "required": ["severity"]}}}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "rejected"}}},
+      "then": {"properties": {"diagnostics": {"contains": {"properties": {"severity": {"const": "error"}}, "required": ["severity"]}}}}
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "operation": {
+      "type": "object",
+      "required": ["op_id", "targets", "dialect", "legacy_operation"],
+      "properties": {
+        "op_id": {"$ref": "#/$defs/id"},
+        "targets": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "dialect": {"enum": ["classical", "quantum_gate", "quantum_measurement"]},
+        "operation": {"enum": ["gemm", "analog_transform", "modulate", "detect"]},
+        "gate": {"enum": ["beam_splitter", "phase_shift", "squeeze", "displace", "controlled_x", "fourier"]},
+        "basis": {"enum": ["photon_counting", "homodyne_q", "homodyne_p", "heterodyne"]},
+        "legacy_operation": {"type": "object"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"dialect": {"const": "classical"}}},
+          "then": {"required": ["operation"], "not": {"anyOf": [{"required": ["gate"]}, {"required": ["basis"]}]}}
+        },
+        {
+          "if": {"properties": {"dialect": {"const": "quantum_gate"}}},
+          "then": {"required": ["gate"], "not": {"anyOf": [{"required": ["operation"]}, {"required": ["basis"]}]}}
+        },
+        {
+          "if": {"properties": {"dialect": {"const": "quantum_measurement"}}},
+          "then": {"required": ["basis"], "not": {"anyOf": [{"required": ["operation"]}, {"required": ["gate"]}]}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["op_id", "severity", "code", "message"],
+      "properties": {
+        "op_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "severity": {"enum": ["warning", "error"]},
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}
