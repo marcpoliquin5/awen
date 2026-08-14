@@ -202,16 +202,6 @@ pub fn build_basic_observability(
 
     (spans, events, metrics)
 }
-// Observability primitives (v0.1)
-
-pub fn emit_trace(_trace: &str) {
-    // TODO: emit structured trace/span JSON
-}
-
-pub fn emit_metric(_name: &str, _value: f64) {
-    // TODO: integrate with metrics exporter
-}
-
 // Compatibility layer: a higher-level ObservabilityContext used by older tests
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]

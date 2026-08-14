@@ -1,7 +1,6 @@
-Security Policy
+# AWEN specification security
 
-Report security issues to security@awen-photonics.example (replace before public release).
-
-We will respond to reports within 3 business days.
-
-TODO: Add PGP key and disclosure timeline.
+The canonical security policy, private reporting link, response targets, scope,
+and supported-version statement are in `../SECURITY.md`. Do not disclose parser,
+schema, signature, provenance, or interoperability vulnerabilities in a public
+issue.

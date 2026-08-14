@@ -1,0 +1,39 @@
+name: Feature proposal
+description: Propose a scoped implementation or normative change
+title: "Feature: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and users
+      description: State the problem without presupposing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Proposed contract
+      description: Identify affected IR, schemas, APIs, ABIs, or AEPs.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Give measurable implementation and conformance criteria.
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: Proposed owner
+      placeholder: "@github-handle"
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility, security, and evidence impact
+    validations:
+      required: true

@@ -16,4 +16,4 @@ plan contracts; the `awen.blas-benchmark.v1` evidence contract; exact semantics
 for the initial 22-kernel registry; CPU references; deterministic simulator;
 capability and cost selection; fallback behavior; compatibility policy; CLI;
 and conformance requirements. Implementations must use AEP-0015 rather than
-this historical placeholder.
+this superseded proposal.

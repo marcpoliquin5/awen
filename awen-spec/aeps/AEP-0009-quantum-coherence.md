@@ -1,6 +1,6 @@
 # AEP-0009: Quantum Coherence & State Memory Model v0.1
 
-Status: draft
+Status: Implemented experimental contract
 
 Purpose
 -------
@@ -27,11 +27,13 @@ Conformance
 - All quantum state snapshots must include provenance (seed, parameters, decoherence model)
 - Deterministic replay of quantum circuits must be possible via seeded RNG
 
-Next steps / TODOs
-------------------
-- Create `awen-spec/specs/quantum-coherence.md` formalizing state space schemas, coherence models, and measurement semantics
-- Implement `awen-runtime/src/state/*` with `QuantumState`, `CoherenceWindow`, `MeasurementOutcome`, `StateEvolver` traits
-- Add integration into Engine for coherence window tracking and state snapshots
-- Add conformance tests for state evolution and measurement outcome distributions
-- Define API for measurement-conditioned feedback (branching on quantum outcomes)
+Implementation evidence
+-----------------------
+- `awen-spec/specs/quantum-coherence.md` defines state, coherence, measurement, and replay semantics.
+- `awen-runtime/src/state`, `awen-runtime/src/quantum.rs`, and the typed quantum-photonic gateway implement reference state, evolution, measurement, and coherence checks.
+- Engine and scheduler tests enforce coherence windows and measurement-conditioned feedback.
+- Quantum and photonic conformance tests verify seeded replay, distributions, means, fidelity, feed-forward, and artifact lineage.
+
+This experimental reference does not establish physical quantum hardware
+fidelity or general-purpose quantum compilation.
 

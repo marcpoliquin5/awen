@@ -252,25 +252,6 @@ struct MetadataExport<'a> {
     conformance_level: &'a str,
 }
 
-/// OTLP Exporter interface (TODO: implement in v0.2)
-pub struct OTLPExporter {
-    endpoint: String,
-}
-
-impl OTLPExporter {
-    pub fn new(endpoint: String) -> Self {
-        Self { endpoint }
-    }
-}
-
-impl Exporter for OTLPExporter {
-    fn export(&self, _ctx: &ObservabilityContext) -> io::Result<ObservabilityArtifacts> {
-        // TODO: Implement OTLP export in v0.2
-        // This will send data to an OpenTelemetry collector endpoint
-        todo!("OTLP exporter not yet implemented - planned for v0.2")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

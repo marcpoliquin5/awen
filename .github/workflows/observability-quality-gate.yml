@@ -13,27 +13,39 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   quality-gate:
     name: AWEN required quality gate
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
-      - name: Checkout
+      - name: Checkout complete history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: moderate
+          deny-licenses: AGPL-3.0, GPL-3.0, SSPL-1.0
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Cache Rust build data
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            awen-compiler
-            awen-runtime
+      - name: Check repository policy
+        run: python scripts/validate_repository.py
 
       - name: Check compiler formatting
         run: cargo fmt --manifest-path awen-compiler/Cargo.toml --all -- --check
@@ -52,6 +64,62 @@ jobs:
 
       - name: Test runtime
         run: cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
+
+      - name: Compile and execute C++20 ABI consumer
+        working-directory: awen-runtime
+        run: |
+          cargo build --lib
+          g++ -std=c++20 -Wall -Wextra -Werror -Iinclude \
+            examples/framework_cpp.cpp -Ltarget/debug -lawen_runtime \
+            -Wl,-rpath,"$PWD/target/debug" -o /tmp/awen-framework-cpp
+          LD_LIBRARY_PATH="$PWD/target/debug" \
+            /tmp/awen-framework-cpp | grep "19 22 43 50"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: awen-ecosystem/python_awen/pyproject.toml
+
+      - name: Install minimum supported Python frameworks
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "pip-audit==2.10.1" \
+            "torch==2.10.0" \
+            "jax==0.9.0" \
+            "flatbuffers>=24" \
+            "numpy>=1.26,<3" \
+            "pytest>=8,<10" \
+            "jsonschema>=4,<5" \
+            -e ./awen-ecosystem/python_awen
+
+      - name: Validate JSON schemas and checked instances
+        run: python scripts/validate_json.py
+
+      - name: Test minimum supported Python frameworks
+        run: python -m pytest awen-ecosystem/python_awen/tests -q
+
+      - name: Install current supported Python frameworks
+        run: |
+          python -m pip install --disable-pip-version-check --upgrade \
+            "torch==2.13.0" \
+            "jax==0.11.0"
+
+      - name: Test current supported Python frameworks
+        run: python -m pytest awen-ecosystem/python_awen/tests -q
+
+      - name: Audit Python dependencies
+        run: python -m pip_audit --local --skip-editable
+
+      - name: Audit Rust dependencies
+        run: |
+          cargo install cargo-audit --locked --version 0.22.2
+          cargo audit --file awen-compiler/Cargo.lock
+          cargo audit --file awen-runtime/Cargo.lock
+
+      - name: Scan dependency licenses
+        run: python scripts/check_dependency_licenses.py
 
       - name: Install MLIR compiler dependencies
         run: |
@@ -94,33 +162,3 @@ jobs:
             -o /tmp/stablehlo_gemm.awenx
           cargo run --manifest-path awen-runtime/Cargo.toml \
             --bin awenctl -- execute /tmp/stablehlo_gemm.awenx
-
-      - name: Validate JSON fixtures and schemas parse
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          paths = [
-              *Path("awen-compiler/examples").glob("*.json"),
-              *Path("awen-compiler/capabilities").glob("*.json"),
-              *Path("awen-compiler/cost_models").glob("*.json"),
-              *Path("awen-compiler/kernels").glob("*.json"),
-              *Path("awen-runtime/plugins").glob("**/*.json"),
-              *Path("awen-ecosystem/pdks").glob("*.json"),
-              *Path("awen-spec/fixtures").glob("*.json"),
-              *Path("awen-spec/schemas").glob("*.json"),
-          ]
-          for path in paths:
-              with path.open(encoding="utf-8") as handle:
-                  json.load(handle)
-          print(f"parsed {len(paths)} JSON documents")
-          PY
-
-      - name: Check Python package syntax
-        run: python -m compileall -q awen-ecosystem/python_awen
-
-      - name: Test Python capability contract
-        env:
-          PYTHONPATH: awen-ecosystem/python_awen
-        run: python -m unittest discover -s awen-ecosystem/python_awen/tests -p 'test_capabilities.py'

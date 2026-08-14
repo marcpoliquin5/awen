@@ -1,5 +1,4 @@
-AWEN Code of Conduct
+# AWEN specification code of conduct
 
-Be kind. Be constructive. This project follows the Contributor Covenant v2.1.
-
-TODO: Add links and contact points.
+All specification discussions and AEP reviews follow `../CODE_OF_CONDUCT.md`,
+including its private reporting path and enforcement process.

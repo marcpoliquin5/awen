@@ -1,9 +1,12 @@
-AWEN Spec
+# AWEN specification
 
-This repository contains the AWEN specification, AEPs (AWEN Enhancement Proposals), IR definitions, and core computation model documents.
+This directory contains AWEN schemas, normative specifications, fixtures, and
+AWEN Enhancement Proposals. See `aeps/README.md` for the proposal process and
+`specs/` for active contracts.
 
-See /aeps for the proposal process and /specs for the core documents.
+Repository-wide contribution, governance, maintainer, conduct, security, and
+release policies are in `../CONTRIBUTING.md`, `../GOVERNANCE.md`,
+`../MAINTAINERS.md`, `../CODE_OF_CONDUCT.md`, `../SECURITY.md`, and
+`../docs/RELEASING.md`.
 
-License: MIT (see LICENSE)
-
-TODO: Fill out contribution & governance details.
+License: MIT; see `LICENSE`.

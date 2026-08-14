@@ -1,28 +1,19 @@
-AEP-0005: Observability (v0.1)
+# AEP-0005: Observability
 
-Status: Draft
+Status: Implemented file-artifact contract
 
-Summary:
-Define tracing, metrics, structured logs, time-resolved traces, phase evolution viewers, and artifact formats for observability.
+## Decision
 
-TODO: Define trace/span schema and recommended exporters.
+The runtime provides spans with explicit IDs and optional parents, attributes,
+events and status; counters, gauges and histograms with units; structured
+events; and lane-based timelines. The file exporter writes `traces.jsonl`,
+`metrics.json`, `events.jsonl`, `timeline.json`, and metadata into run artifacts.
 
-This AEP defines the Observability & Profiling Model v0.1 for AWEN. It mandates:
+The normative model and conformance requirements are in
+`../specs/observability.md`. Runtime implementation and integration tests are in
+`../../awen-runtime/src/observability` and
+`../../awen-runtime/tests/observability_integration.rs`.
 
-- A `Tracer` API with `Span` creation, attributes, events, and duration measurement.
-- A `MetricsSink` API supporting counters, gauges, and histograms with units.
-- A `TimelineBuilder` that aggregates spans into a `timeline.json` compatible with a Nsight-like viewer.
-- Export formats: `traces.jsonl` (newline-delimited spans), `metrics.json` (serialised metrics), `timeline.json` (lane-based timeline).
-- Correlation IDs: every IR node, kernel, parameter, and artifact must surface a stable `correlation_id` field for deterministic linking.
-
-Conformance requirements:
-
-- Runtimes must provide a file exporter writing the above artifacts into the run artifact bundle.
-- Integration tests must validate the presence and basic schema of these artifacts for example runs.
-
-Next actionable items:
-
-1. Create `awen-spec/specs/observability.md` defining JSON schemas for spans, metrics, and timeline.
-2. Implement runtime interfaces under `awen-runtime/src/observability`.
-3. Add CI integration to validate observability artifacts after `awenctl run` and `awenctl gradient`.
-
+AWEN does not expose a network OTLP exporter in this version. Export over an
+external telemetry protocol requires a separate reviewed contract and tests;
+the former panic-only public surface was removed.

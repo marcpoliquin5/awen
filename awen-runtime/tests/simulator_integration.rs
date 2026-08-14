@@ -243,7 +243,7 @@ mod simulator_integration_tests {
     fn test_simulator_backend_trait_implementation() {
         // Test: SimulatorBackend implements PhotonicBackend trait
         // This would require actual hal_v0.rs integration
-        // Placeholder: verify trait method signatures
+        // Compile-time use verifies the trait method signatures.
         let config = SimulatorConfig::default();
 
         // Expected methods: capabilities(), measure(), calibrate(), health_check()

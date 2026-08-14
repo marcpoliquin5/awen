@@ -77,9 +77,11 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   backends awen-runtime/plugins/reference_sim --allow-unverified
 ```
 
-Unsigned manifests are restricted to the explicit development flag. Production
-discovery requires a valid Ed25519 signature. Health paths are sandboxed inside
-the plugin directory and re-read on every query.
+Unsigned manifests are restricted to the explicit development flag. Normal
+discovery requires a valid Ed25519 signature. The runtime verifies integrity
+relative to the embedded public key; deployment policy remains responsible for
+pinning which signer keys are authorized. Health paths are sandboxed inside the
+plugin directory and re-read on every query.
 
 Physical-design plugins use the manifest's typed
 `physical_design_adapters` array. The only kinds are `gdsfactory`,

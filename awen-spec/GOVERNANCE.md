@@ -1,5 +1,6 @@
-AWEN Governance
+# AWEN specification governance
 
-This document describes the maintainer roles, decision process, and release cadence.
-
-TODO: Flesh out governance model and voting rules.
+The repository-wide roles, decision process, and release authority are defined
+in `../GOVERNANCE.md`. Normative specification changes additionally require an
+AEP with compatibility analysis, implementation evidence, and conformance tests.
+`aeps/README.md` defines the proposal lifecycle.

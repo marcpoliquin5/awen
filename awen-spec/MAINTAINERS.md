@@ -1,7 +1,5 @@
-Maintainers
+# AWEN specification maintainers
 
-Initial maintainers and responsibilities.
-
-- TBD
-
-TODO: Add GitHub handles and areas of ownership.
+The canonical maintainer roster and ownership areas are in `../MAINTAINERS.md`
+and `../.github/CODEOWNERS`. Normative AEP and schema changes require maintainer
+review.

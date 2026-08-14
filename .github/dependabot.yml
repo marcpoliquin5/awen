@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: cargo
+    directory: /awen-compiler
+    schedule:
+      interval: monthly
+  - package-ecosystem: cargo
+    directory: /awen-runtime
+    schedule:
+      interval: monthly
+  - package-ecosystem: pip
+    directory: /awen-ecosystem/python_awen
+    schedule:
+      interval: monthly

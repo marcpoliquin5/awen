@@ -1,7 +1,7 @@
 use anyhow::Result;
 use awen_compiler::{BackendHealth, BackendSnapshot, DeviceCapabilities, PhysicalDesignAdapter};
 use base64::{engine::general_purpose, Engine as _};
-use ed25519_dalek::{PublicKey, Signature, Verifier};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -117,8 +117,11 @@ impl PluginRegistry {
         Ok(())
     }
 
-    /// Verify manifest signing and policy. Real implementation should verify
-    /// signature against an organizational trust root and check manifest contents.
+    /// Verify that the manifest matches the Ed25519 signature and embedded key.
+    ///
+    /// This proves byte integrity relative to the supplied key; it does not
+    /// authorize that key. Deployments must pin accepted signer keys outside
+    /// this parsing layer before treating a verified plugin as trusted.
     pub fn verify_manifest(&self, manifest: &PluginManifest) -> Result<bool> {
         match (&manifest.signature, &manifest.public_key) {
             (Some(sig_b64), Some(pk_b64)) => {
@@ -129,10 +132,16 @@ impl PluginRegistry {
                     .decode(pk_b64)
                     .map_err(|e| anyhow::anyhow!("invalid public_key base64: {}", e))?;
 
-                let pk = PublicKey::from_bytes(&pk_bytes)
+                let pk_bytes: [u8; 32] = pk_bytes
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("public key must contain exactly 32 bytes"))?;
+                let sig_bytes: [u8; 64] = sig_bytes
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("signature must contain exactly 64 bytes"))?;
+
+                let pk = VerifyingKey::from_bytes(&pk_bytes)
                     .map_err(|e| anyhow::anyhow!("invalid public key: {}", e))?;
-                let sig = Signature::from_bytes(&sig_bytes)
-                    .map_err(|e| anyhow::anyhow!("invalid signature bytes: {}", e))?;
+                let sig = Signature::from_bytes(&sig_bytes);
 
                 // Serialize manifest to canonical JSON excluding signature and public_key fields
                 let mut clone = manifest.clone();
@@ -307,11 +316,10 @@ fn resolve_inside(root: &Path, relative: &Path) -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn register_and_find_manifest_without_signature() {
-        let mut reg = PluginRegistry::new();
+    use ed25519_dalek::{Signer, SigningKey};
 
-        let manifest = PluginManifest {
+    fn unsigned_manifest() -> PluginManifest {
+        PluginManifest {
             manifest_version: PLUGIN_MANIFEST_VERSION.into(),
             id: "test-plugin".into(),
             version: "0.1".into(),
@@ -321,13 +329,46 @@ mod tests {
             path: None,
             backend: None,
             physical_design_adapters: Vec::new(),
-        };
+        }
+    }
 
-        // No signature/public_key present — verify_manifest should return false
+    #[test]
+    fn register_and_find_manifest_without_signature() {
+        let mut reg = PluginRegistry::new();
+
+        let manifest = unsigned_manifest();
+
+        // No signature/public key is present, so verification must return false.
         assert!(!reg.verify_manifest(&manifest).unwrap());
 
         reg.register(manifest.clone());
         let found = reg.find_by_capability("execute").unwrap();
         assert_eq!(found.id, "test-plugin");
+    }
+
+    #[test]
+    fn verifies_exact_ed25519_manifest_and_rejects_tampering() {
+        let reg = PluginRegistry::new();
+        let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
+        let mut manifest = unsigned_manifest();
+        let signature = signing_key.sign(&serde_json::to_vec(&manifest).unwrap());
+        manifest.public_key =
+            Some(general_purpose::STANDARD.encode(signing_key.verifying_key().as_bytes()));
+        manifest.signature = Some(general_purpose::STANDARD.encode(signature.to_bytes()));
+
+        assert!(reg.verify_manifest(&manifest).unwrap());
+
+        manifest.version = "0.2".into();
+        assert!(reg.verify_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn rejects_noncanonical_ed25519_lengths() {
+        let reg = PluginRegistry::new();
+        let mut manifest = unsigned_manifest();
+        manifest.public_key = Some(general_purpose::STANDARD.encode([0_u8; 31]));
+        manifest.signature = Some(general_purpose::STANDARD.encode([0_u8; 63]));
+
+        assert!(reg.verify_manifest(&manifest).is_err());
     }
 }
