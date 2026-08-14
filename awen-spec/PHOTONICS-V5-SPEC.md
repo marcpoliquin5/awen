@@ -1,10 +1,19 @@
 # AWEN Photonics — Version 5 (PHOTONICS-V5)
 
-Status: Draft
+Status: Superseded as an execution contract by AEP-0020
+
+Migration notice
+----------------
+The mixed `photonic_ir.v5.json` operation space is now legacy input only. New
+programs use `awen.photonic.program.v1`, `awen.qphotonic.program.v1`, and the
+narrow `awen.photonic-interop.v1` boundary. Run `awenctl
+migrate-photonic-v5`; ambiguous strings are diagnosed and never assigned
+semantics automatically. This historical skeleton remains readable so old
+documents and decisions are not erased.
 
 Purpose
 -------
-This document is the authoritative, top-level specification for AWEN Photonics (Version 5).
+This document is the historical top-level specification for AWEN Photonics (Version 5).
 It defines the required interfaces, schemas, runtime chokepoints, observability contracts,
 and conformance requirements for a production-grade, OS-level photonics runtime that
 supports both classical photonic computing and quantum photonics.
@@ -50,16 +59,20 @@ Spec sections (skeleton)
    - Backend abstraction boundaries (simulator, lab, foundry, cloud, hybrid)
 
 3) IR & Schemas
-   - Photonic IR (PHOTONIC-IR) design goals
-   - Canonical JSON Schema filenames and locations (TODO: add concrete files under `awen-spec/schemas`)
-   - Versioning and migration rules
-   - Example payloads (classical waveguide ops, quantum gates, measurement primitives)
-   - TODO: `schemas/photonic_ir.v5.json` — schema must include kernel metadata, timing, constraints,
-     calibration handles, provenance fields.
+   - Historical mixed Photonic IR (PHOTONIC-IR) design goals
+   - The current canonical schemas are `awen_photonic_program.v1.json`,
+     `awen_qphotonic_program.v1.json`, `awen_qphotonic_result.v1.json`, and
+     `awen_photonic_interop.v1.json`.
+   - Versioning and migration rules are specified by AEP-0020.
+   - Executable reference payloads cover calibrated classical operations,
+     Fock and Gaussian gates, measurements, feed-forward, and interop.
+   - `schemas/photonic_ir.v5.json` is frozen as legacy migration input; missing
+     typed fields are supplied only after operator review, never inferred.
 
 4) Runtime Chokepoint: Execution API (MANDATORY)
-   - All runtime-executed operations MUST call `execute(op: PhotonicOp, ctx: ExecContext)`
-     (conceptual signature — exact bindings to be specified per language).
+   - All runtime-executed programs MUST call `execute(program:
+     PhotonicProgram, ctx: ExecContext)`, where `PhotonicProgram` is a closed
+     union of the classical, quantum, and explicit-interop roots.
    - Responsibilities of chokepoint:
      - Authorize and validate IR against schema
      - Inject calibration and drift compensation
@@ -132,16 +145,16 @@ Appendices
 
 Immediate TODOs (progress)
 -------------------------------------------
-- `awen-spec/schemas/photonic_ir.v5.json` — present (canonical IR schema).
+- `awen-spec/schemas/photonic_ir.v5.json` — present as deprecated migration input.
+- AEP-0020 and `specs/photonic-dialect-separation.md` — current typed contracts.
 - `awen-spec/SECTIONS.md` — entry added mapping PHOTONICS-V5 to spec artifacts.
-- Runtime chokepoint interface — stub implemented at `awen-runtime/src/chokepoint.rs` (NonBypassableGateway reference impl).
-- Conformance test harness — initial integration test added at `awen-runtime/tests/photonic_conformance.rs`.
+- Runtime chokepoint interface — typed fail-closed implementation at `awen-runtime/src/chokepoint.rs`.
+- Conformance test harness — separate dialect, interop, replay, and migration coverage at `awen-runtime/tests/photonic_conformance.rs`.
 
-Next immediate steps (prioritized):
-- Expand `chokepoint` to perform schema validation, calibration injection, artifact emission, and plugin routing.
-- Implement plugin capability registry and signer/manifest enforcement for non-bypassability.
-- Add observability sinks and trace/span schema under `awen-spec/schemas`.
-- Add CI job to run `cargo test` and conformance suite for PR gating.
+The current implementation validates independent schemas and Rust contracts,
+records typed programs in artifact bundles, emits observability, requests
+dialect-specific signed-plugin capabilities, and runs conformance in the
+required quality gate.
 
 Authors and Contacts
 --------------------

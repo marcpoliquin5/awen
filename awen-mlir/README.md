@@ -16,9 +16,16 @@ normalized stablehlo.dot_general
   -> awen_runtime::executable
 ```
 
-`awen_qphotonic` is registered separately from classical photonics. It defines
-the quantum circuit and state boundary but is intentionally not part of the
-classical GEMM pipeline.
+`awen_qphotonic` is registered separately from classical photonics and is
+intentionally absent from the classical GEMM pipeline. It defines distinct
+Fock-state, Gaussian-state, and seeded sample-stream types; state-space-specific
+gates; photon-counting and Gaussian measurements; and narrow measurement-to-
+phase, displacement, or squeezing feed-forward. Passing a Fock state to a
+Gaussian operation or a classical tensor to a quantum gate fails MLIR
+verification. Numeric verifiers also reject invalid seed, shot, confidence,
+coherence, calibration, precision, and latency contracts. `awen_photonic`
+separately defines calibrated classical transforms, modulation, detection, and
+GEMM.
 
 ## Build on Ubuntu 24.04
 

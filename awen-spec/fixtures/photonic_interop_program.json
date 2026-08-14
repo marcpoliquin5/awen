@@ -1,0 +1,24 @@
+{
+  "version": "awen.photonic-interop.v1",
+  "program_id": "measurement-boundary",
+  "operations": [
+    {
+      "operation": "measurement_readout",
+      "op_id": "read-bell",
+      "quantum_program_id": "bell-sampling",
+      "measurement_id": "bell-outcome",
+      "classical_output": "bell-register"
+    },
+    {
+      "operation": "classical_control",
+      "op_id": "control-phase",
+      "classical_input": "homodyne-register",
+      "quantum_program_id": "gaussian-feed-forward",
+      "target_operation_id": "phase-correction",
+      "parameter": "phase_radians",
+      "scale": 1.0,
+      "offset": 0.0,
+      "maximum_latency_ns": 50
+    }
+  ]
+}

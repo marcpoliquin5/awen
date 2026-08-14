@@ -118,6 +118,33 @@ The generator refuses simulated, estimated, vendor-specified, mutable,
 inaccurate, uncalibrated, or non-accelerating evidence. See AEP-0019 and
 `awen-spec/specs/hardware-benchmarking.md`.
 
+## Typed classical and quantum-photonic programs
+
+The runtime chokepoint accepts the closed `PhotonicProgram` enum, not an
+arbitrary operation type string. Its independent contracts are:
+
+- `awen.photonic.program.v1` for calibrated classical analog transforms,
+  explicit precision/conversion widths, seeded noise, numerical tolerances,
+  and deterministic timing;
+- `awen.qphotonic.program.v1` plus `awen.qphotonic.result.v1` for Fock or
+  Gaussian CV modes, typed gates/measurements, shots, seed, feed-forward,
+  coherence, distribution/mean/fidelity correctness, and replay identity; and
+- `awen.photonic-interop.v1` for named measurement readout or named classical
+  control of a compatible quantum gate parameter.
+
+Migrate the deprecated mixed V5 document before constructing a typed program:
+
+```bash
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  migrate-photonic-v5 legacy-v5.json \
+  --output migration-report.json
+```
+
+The command writes its report even when rejected. Ambiguous unprefixed and
+unknown operations are errors; mixed recognized dialects receive an explicit
+interop warning. See AEP-0020 and
+`awen-spec/specs/photonic-dialect-separation.md`.
+
 ## Legacy graph commands
 
 Run the reference graph engine:

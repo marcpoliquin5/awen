@@ -1,0 +1,9 @@
+{
+  "ir_version": "v5",
+  "metadata": {"author": "migration-conformance"},
+  "ops": [
+    {"op_id": "classical-split", "type": "classical:splitter", "targets": ["in", "out-a", "out-b"], "params": {"ratio": 0.5}},
+    {"op_id": "quantum-mix", "type": "quantum:beam_splitter", "targets": ["q0", "q1"], "params": {"theta_radians": 0.7853981633974483}},
+    {"op_id": "unknown-measurement", "type": "measurement", "targets": ["q0"], "params": {}}
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "version": "awen.photonic.program.v1",
+  "program_id": "classical-splitter",
+  "signals": [
+    {"id": "input", "shape": [16], "encoding": "complex_field"},
+    {"id": "output-a", "shape": [16], "encoding": "complex_field"},
+    {"id": "output-b", "shape": [16], "encoding": "complex_field"}
+  ],
+  "operations": [
+    {
+      "op_id": "split",
+      "inputs": ["input"],
+      "outputs": ["output-a", "output-b"],
+      "operation": "analog_transform",
+      "transform": "splitter",
+      "phase_radians": null,
+      "power_ratio": 0.5,
+      "precision": {
+        "input_bits": 16,
+        "optical_effective_bits": 10,
+        "dac_bits": 12,
+        "adc_bits": 12,
+        "accumulator_bits": 24,
+        "maximum_absolute_error": 0.01,
+        "maximum_relative_error": 0.01
+      },
+      "noise": {"kind": "composite", "rms_fraction": 0.001, "seed": 17},
+      "transfer": {
+        "model": "matrix",
+        "coefficients": [0.7071067811865476, 0.7071067811865476],
+        "calibration_snapshot_id": "calibration-splitter-17",
+        "calibration_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "maximum_residual_error": 0.002
+      },
+      "timing": {"start_ns": 0, "duration_ns": 25, "dependencies": []}
+    }
+  ],
+  "outputs": ["output-a", "output-b"],
+  "capabilities": {
+    "operations": ["analog_transform"],
+    "minimum_optical_bits": 10,
+    "minimum_dac_bits": 12,
+    "minimum_adc_bits": 12,
+    "calibrated_transfer_required": true
+  }
+}

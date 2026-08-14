@@ -1,150 +1,76 @@
-//! Runtime chokepoint interface for AWEN Photonics
-//!
-//! This module defines the non-bypassable execution chokepoint: the single
-//! gateway through which all runtime-executed photonic operations must pass.
+//! Non-bypassable typed classical/quantum photonic execution boundary.
 
-use crate::calibration;
 use crate::ir::{Graph, Node};
 use crate::observability;
+use crate::photonic::PhotonicProgram;
 use crate::plugins::registry::PluginRegistry;
 use crate::plugins::PluginLoader;
 use crate::storage::{save_artifact, ArtifactType, BundleBuilder};
 use jsonschema::JSONSchema;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 
-/// A representation of a photonic operation in the runtime IR. This is
-/// intentionally serializable so we can validate against the canonical
-/// `awen-spec/schemas/photonic_ir.v5.json` schema before execution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PhotonicOp {
-    pub op_id: String,
-    pub op_type: String,
-    pub targets: Vec<String>,
-    #[serde(default)]
-    pub params: Option<JsonValue>,
-    #[serde(default)]
-    pub calibration_handle: Option<String>,
-}
-
-/// Execution context passed with each operation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExecContext {
     pub run_id: String,
     pub timestamp_ns: u64,
 }
 
-/// Result of an execution attempt.
 pub struct ExecutionResult {
     pub ok: bool,
     pub details: Option<String>,
 }
 
-/// The execution chokepoint trait. All backends and plugins must route
-/// operations through an implementation of this trait to satisfy the
-/// non-bypassable runtime requirement.
 pub trait ExecutionChokepoint: Send + Sync {
-    fn execute(&self, op: &PhotonicOp, ctx: &ExecContext) -> ExecutionResult;
+    fn execute(&self, program: &PhotonicProgram, ctx: &ExecContext) -> ExecutionResult;
 }
 
-/// A simple in-memory gateway used as a reference implementation. It performs:
-/// - JSON Schema validation against the canonical IR schema
-/// - Calibration injection stub
-/// - Telemetry hooks (logs)
 pub struct NonBypassableGateway {
-    // Precompiled JSONSchema instance (None on compilation failure)
-    compiled_schema: Option<JSONSchema>,
+    classical_schema: Option<JSONSchema>,
+    quantum_schema: Option<JSONSchema>,
+    interop_schema: Option<JSONSchema>,
 }
 
 impl NonBypassableGateway {
-    /// Construct a new gateway instance and compile the embedded schema.
     pub fn new() -> Self {
-        // Embed the canonical IR schema at compile time.
-        // Path is relative to this file: ../../awen-spec/schemas/photonic_ir.v5.json
-        let schema_str = include_str!("../../awen-spec/schemas/photonic_ir.v5.json");
-        let compiled = serde_json::from_str::<JsonValue>(schema_str)
-            .ok()
-            .and_then(|schema_v| JSONSchema::compile(&schema_v).ok());
-
-        if compiled.is_none() {
-            warn!("failed to compile embedded photonic IR schema; validation disabled");
+        let classical_schema = compile_schema(include_str!(
+            "../../awen-spec/schemas/awen_photonic_program.v1.json"
+        ));
+        let quantum_schema = compile_schema(include_str!(
+            "../../awen-spec/schemas/awen_qphotonic_program.v1.json"
+        ));
+        let interop_schema = compile_schema(include_str!(
+            "../../awen-spec/schemas/awen_photonic_interop.v1.json"
+        ));
+        if classical_schema.is_none() || quantum_schema.is_none() || interop_schema.is_none() {
+            warn!("failed to compile a typed photonic schema; that dialect will fail closed");
         }
-
-        NonBypassableGateway {
-            compiled_schema: compiled,
-        }
-    }
-
-    fn validate_op_against_schema(&self, op: &PhotonicOp) -> Result<(), String> {
-        let schema = match &self.compiled_schema {
-            Some(s) => s,
-            None => return Ok(()), // Schema unavailable — allow through but warn
-        };
-
-        // Build a minimal IR instance that conforms to / can be validated by the
-        // top-level schema. The schema expects an object with `ir_version`, `ops`, and `metadata`.
-        let instance = json!({
-            "ir_version": "v5",
-            "metadata": {"timestamp": chrono::Utc::now().to_rfc3339()},
-            "ops": [
-                {
-                    "op_id": op.op_id,
-                    "type": op.op_type,
-                    "targets": op.targets,
-                    "params": op.params.clone().unwrap_or(JsonValue::Null),
-                    "calibration_handle": op.calibration_handle.clone().unwrap_or_default()
-                }
-            ]
-        });
-
-        let result = schema.validate(&instance);
-        match result {
-            Ok(_) => Ok(()),
-            Err(errors) => {
-                let msgs: Vec<String> = errors.map(|e| e.to_string()).collect();
-                Err(msgs.join("; "))
-            }
+        Self {
+            classical_schema,
+            quantum_schema,
+            interop_schema,
         }
     }
 
-    fn inject_calibration(&self, op: &mut PhotonicOp, artifacts_dir: &std::path::Path) {
-        // If a calibration handle is present, attempt to load state and apply it.
-        if let Some(ref handle) = op.calibration_handle {
-            match calibration::basic_load_state(handle, artifacts_dir) {
-                Ok(Some(st)) => {
-                    op.params = calibration::basic_apply_to_params(&st, op.params.clone());
-                    info!("applied calibration {} to op {}", handle, op.op_id);
-                }
-                Ok(None) => {
-                    info!(
-                        "calibration handle {} not found on disk; proceeding",
-                        handle
-                    );
-                }
-                Err(e) => {
-                    warn!("error loading calibration {}: {}", handle, e);
-                }
+    fn validate_program(&self, program: &PhotonicProgram) -> Result<(), String> {
+        program.validate().map_err(|error| error.to_string())?;
+        match program {
+            PhotonicProgram::Classical(program) => {
+                validate_schema(self.classical_schema.as_ref(), program, "awen.photonic")
             }
-        } else {
-            // Generate and persist default calibration state
-            let st = calibration::basic_generate_default_state();
-            if let Err(e) = calibration::basic_save_state(&st, artifacts_dir) {
-                warn!(
-                    "failed to persist generated calibration {}: {}",
-                    st.handle, e
-                );
-            } else {
-                op.calibration_handle = Some(st.handle.clone());
-                op.params = calibration::basic_apply_to_params(&st, op.params.clone());
-                info!(
-                    "generated and applied calibration {} to op {}",
-                    st.handle, op.op_id
-                );
+            PhotonicProgram::Quantum(program) => {
+                validate_schema(self.quantum_schema.as_ref(), program, "awen.qphotonic")
             }
+            PhotonicProgram::Interop(program) => validate_schema(
+                self.interop_schema.as_ref(),
+                program,
+                "awen.photonic-interop",
+            ),
         }
     }
 }
@@ -156,188 +82,222 @@ impl Default for NonBypassableGateway {
 }
 
 impl ExecutionChokepoint for NonBypassableGateway {
-    fn execute(&self, op: &PhotonicOp, ctx: &ExecContext) -> ExecutionResult {
-        if op.op_id.is_empty() {
-            return ExecutionResult {
-                ok: false,
-                details: Some("missing op_id".into()),
-            };
+    fn execute(&self, program: &PhotonicProgram, ctx: &ExecContext) -> ExecutionResult {
+        if !portable_path_component(&ctx.run_id) {
+            return failed("execution context requires a portable run id");
+        }
+        if let Err(error) = self.validate_program(program) {
+            return failed(&format!("typed dialect validation failed: {error}"));
         }
 
-        // Validate against canonical IR schema
-        match self.validate_op_against_schema(op) {
-            Ok(_) => info!("schema validation passed for op {}", op.op_id),
-            Err(e) => {
-                return ExecutionResult {
-                    ok: false,
-                    details: Some(format!("schema validation failed: {}", e)),
-                }
-            }
+        let mut output_dir = std::env::temp_dir();
+        output_dir.push("awen_runtime_artifacts");
+        output_dir.push(&ctx.run_id);
+        output_dir.push(ctx.timestamp_ns.to_string());
+        if let Err(error) = fs::create_dir_all(&output_dir) {
+            return failed(&format!("failed to create artifact directory: {error}"));
         }
 
-        // Artifact directory must exist before calibration state is persisted or loaded.
-        let mut out_dir = std::env::temp_dir();
-        out_dir.push("awen_runtime_artifacts");
-        out_dir.push(&ctx.run_id);
-        out_dir.push(ctx.timestamp_ns.to_string());
-
-        if let Err(e) = fs::create_dir_all(&out_dir) {
-            return ExecutionResult {
-                ok: false,
-                details: Some(format!("failed to create artifact dir: {}", e)),
-            };
-        }
-
-        // Calibration injection — operate on a mutable clone to avoid surprising callers
-        let mut op_clone = op.clone();
-        self.inject_calibration(&mut op_clone, &out_dir);
-
-        // Write operation JSON
-        match serde_json::to_string_pretty(&op_clone) {
-            Ok(s) => {
-                if let Err(e) = fs::write(out_dir.join("op.json"), s) {
-                    return ExecutionResult {
-                        ok: false,
-                        details: Some(format!("failed to write op.json: {}", e)),
-                    };
-                }
-            }
-            Err(e) => {
-                return ExecutionResult {
-                    ok: false,
-                    details: Some(format!("failed to serialize op: {}", e)),
-                }
-            }
-        }
-
-        // Build basic observability artifacts and write them into the artifact directory
-        let (spans, events, metrics) =
-            observability::build_basic_observability(&ctx.run_id, &op_clone.targets, None);
-        if let Err(e) = observability::write_traces(&out_dir, &spans) {
-            return ExecutionResult {
-                ok: false,
-                details: Some(format!("failed to write traces: {}", e)),
-            };
-        }
-        if let Err(e) = observability::write_timeline(&out_dir, &events) {
-            return ExecutionResult {
-                ok: false,
-                details: Some(format!("failed to write timeline: {}", e)),
-            };
-        }
-        if let Err(e) = observability::write_metrics(&out_dir, &metrics) {
-            return ExecutionResult {
-                ok: false,
-                details: Some(format!("failed to write metrics: {}", e)),
-            };
-        }
-
-        info!("wrote artifacts to {}", out_dir.display());
-
-        // Build a minimal IR Graph for the artifact bundle (one node per op)
-        let node = Node {
-            id: op_clone.op_id.clone(),
-            node_type: op_clone.op_type.clone(),
-            params: {
-                let mut m = HashMap::new();
-                // Attempt to extract numeric params from params JSON if present
-                if let Some(JsonValue::Object(map)) = op_clone.params.as_ref() {
-                    for (k, v) in map {
-                        if let Some(n) = v.as_f64() {
-                            m.insert(k.clone(), n);
-                        }
-                    }
-                }
-                m
-            },
-            measure_mode: None,
-            conditional_branches: None,
+        let program_bytes = match serde_json::to_vec_pretty(program) {
+            Ok(bytes) => bytes,
+            Err(error) => return failed(&format!("failed to serialize typed program: {error}")),
         };
+        let fingerprint = format!("sha256:{}", hex::encode(Sha256::digest(&program_bytes)));
+        if let Err(error) = fs::write(output_dir.join("typed_program.json"), &program_bytes) {
+            return failed(&format!("failed to write typed program: {error}"));
+        }
+
+        let targets = program_targets(program);
+        let (spans, events, metrics) =
+            observability::build_basic_observability(&ctx.run_id, &targets, None);
+        if let Err(error) = observability::write_traces(&output_dir, &spans) {
+            return failed(&format!("failed to write traces: {error}"));
+        }
+        if let Err(error) = observability::write_timeline(&output_dir, &events) {
+            return failed(&format!("failed to write timeline: {error}"));
+        }
+        if let Err(error) = observability::write_metrics(&output_dir, &metrics) {
+            return failed(&format!("failed to write metrics: {error}"));
+        }
 
         let graph = Graph {
-            nodes: vec![node],
-            edges: vec![],
-            metadata: HashMap::new(),
+            nodes: vec![Node {
+                id: program.program_id().to_string(),
+                node_type: program.dialect_name().to_string(),
+                params: HashMap::new(),
+                measure_mode: None,
+                conditional_branches: None,
+            }],
+            edges: Vec::new(),
+            metadata: HashMap::from([
+                ("dialect".to_string(), program.dialect_name().to_string()),
+                ("typed_program_fingerprint".to_string(), fingerprint.clone()),
+            ]),
         };
-
-        // Build artifact bundle
         let mut builder = BundleBuilder::new(graph, ArtifactType::Run)
             .with_initial_parameters(HashMap::new())
-            .with_results(serde_json::json!({"status": "accepted", "op_id": op_clone.op_id}))
-            .with_seed(0);
-
-        if let Some(cal) = op_clone.calibration_handle.clone() {
-            builder = builder.with_calibration_state(serde_json::json!({"handle": cal}), None);
+            .with_results(serde_json::json!({
+                "status": "accepted",
+                "dialect": program.dialect_name(),
+                "program_id": program.program_id(),
+                "typed_program_fingerprint": fingerprint,
+                "dialect_contract": program
+            }))
+            .with_seed(program_seed(program))
+            .with_observability_dir(output_dir.clone());
+        if let Some(calibration) = classical_calibration_record(program) {
+            builder = builder.with_calibration_state(calibration, None);
         }
-
-        builder = builder.with_observability_dir(out_dir.clone());
-
         match builder.build() {
             Ok(bundle) => {
-                // Save bundle into artifacts root (parent of out_dir)
-                let artifacts_root = out_dir.parent().unwrap_or(&out_dir).to_path_buf();
-                if let Err(e) = save_artifact(&bundle, &artifacts_root) {
-                    warn!("failed to save artifact bundle: {}", e);
-                } else {
-                    info!("artifact bundle saved under {}", artifacts_root.display());
+                let root = output_dir.parent().unwrap_or(&output_dir);
+                if let Err(error) = save_artifact(&bundle, root) {
+                    return failed(&format!("failed to save typed artifact bundle: {error}"));
                 }
             }
-            Err(e) => warn!("failed to build artifact bundle: {}", e),
+            Err(error) => {
+                return failed(&format!("failed to build typed artifact bundle: {error}"))
+            }
         }
 
-        // Plugin registry enforcement: discover manifests from configured plugin dir
         let plugin_dir = std::env::var("AWEN_PLUGIN_DIR").unwrap_or_else(|_| "plugins".to_string());
         let registry = match PluginRegistry::discover_from_dir(std::path::Path::new(&plugin_dir)) {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("plugin discovery failed: {}", e);
+            Ok(registry) => registry,
+            Err(error) => {
+                warn!("plugin discovery failed: {error}");
                 PluginRegistry::new()
             }
         };
-
-        if let Some(p) = registry.find_by_capability("execute") {
-            // Enforce manifest signature before routing
-            match registry.verify_manifest(&p) {
+        let capability = format!("execute:{}", program.dialect_name());
+        if let Some(plugin) = registry.find_by_capability(&capability) {
+            match registry.verify_manifest(&plugin) {
                 Ok(true) => {
-                    if let Some(path) = p.path.clone() {
-                        // Prepare JSON payload for plugin: {"op": <op>, "ctx": <ctx>}
-                        let payload = serde_json::json!({"op": op_clone, "ctx": ctx});
-                        if let Ok(Some(stdout)) = PluginLoader::invoke(
-                            path,
-                            &serde_json::to_string(&payload).unwrap_or_default(),
-                        ) {
-                            info!("routed op {} to plugin and received output", op_clone.op_id);
-                            return ExecutionResult {
-                                ok: true,
-                                details: Some(format!("plugin response: {}", stdout)),
-                            };
-                        } else {
-                            warn!("plugin at {:?} failed or produced no output; falling back to in-process simulation", p.path);
+                    let Some(path) = plugin.path.clone() else {
+                        return failed("typed dialect plugin manifest has no executable path");
+                    };
+                    let payload = serde_json::json!({"program": program, "context": ctx});
+                    let payload = match serde_json::to_string(&payload) {
+                        Ok(payload) => payload,
+                        Err(error) => {
+                            return failed(&format!("failed to serialize plugin payload: {error}"))
                         }
-                    } else {
-                        warn!("plugin manifest for {} has no path; skipping routing", p.id);
-                    }
+                    };
+                    return match PluginLoader::invoke(path, &payload) {
+                        Ok(Some(stdout)) => ExecutionResult {
+                            ok: true,
+                            details: Some(format!("typed plugin response: {stdout}")),
+                        },
+                        Ok(None) => failed("typed dialect plugin produced no response"),
+                        Err(error) => {
+                            failed(&format!("typed dialect plugin invocation failed: {error}"))
+                        }
+                    };
                 }
-                Ok(false) => {
-                    warn!("manifest verification failed for plugin {}; skipping", p.id);
-                }
-                Err(e) => {
-                    warn!(
-                        "error verifying manifest for plugin {}: {}; skipping",
-                        p.id, e
-                    );
+                Ok(false) => return failed("typed dialect plugin signature verification failed"),
+                Err(error) => {
+                    return failed(&format!(
+                        "typed dialect plugin verification failed: {error}"
+                    ))
                 }
             }
-        } else {
-            info!("no plugin registered for capability 'execute'; proceeding with in-process simulation");
         }
 
+        info!(
+            "accepted typed {} program '{}'",
+            program.dialect_name(),
+            program.program_id()
+        );
         ExecutionResult {
             ok: true,
             details: Some(format!(
-                "op {} accepted at {}",
-                op_clone.op_id, ctx.timestamp_ns
+                "typed {} program '{}' accepted at {}",
+                program.dialect_name(),
+                program.program_id(),
+                ctx.timestamp_ns
             )),
         }
     }
+}
+
+fn compile_schema(source: &str) -> Option<JSONSchema> {
+    serde_json::from_str::<Value>(source)
+        .ok()
+        .and_then(|schema| JSONSchema::options().compile(&schema).ok())
+}
+
+fn validate_schema<T: Serialize>(
+    schema: Option<&JSONSchema>,
+    value: &T,
+    dialect: &str,
+) -> Result<(), String> {
+    let schema = schema.ok_or_else(|| format!("{dialect} schema is unavailable"))?;
+    let instance = serde_json::to_value(value).map_err(|error| error.to_string())?;
+    schema.validate(&instance).map_err(|errors| {
+        errors
+            .map(|error| error.to_string())
+            .collect::<Vec<_>>()
+            .join("; ")
+    })
+}
+
+fn failed(message: &str) -> ExecutionResult {
+    ExecutionResult {
+        ok: false,
+        details: Some(message.to_string()),
+    }
+}
+
+fn portable_path_component(value: &str) -> bool {
+    !value.is_empty()
+        && value != "."
+        && value != ".."
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+}
+
+fn program_targets(program: &PhotonicProgram) -> Vec<String> {
+    match program {
+        PhotonicProgram::Classical(program) => program
+            .signals
+            .iter()
+            .map(|signal| signal.id.clone())
+            .collect(),
+        PhotonicProgram::Quantum(program) => {
+            program.modes.iter().map(|mode| mode.id.clone()).collect()
+        }
+        PhotonicProgram::Interop(program) => program
+            .operations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("interop-{index}"))
+            .collect(),
+    }
+}
+
+fn program_seed(program: &PhotonicProgram) -> u64 {
+    match program {
+        PhotonicProgram::Classical(program) => program
+            .operations
+            .first()
+            .map(|operation| operation.noise.seed)
+            .unwrap_or(0),
+        PhotonicProgram::Quantum(program) => program.execution.seed,
+        PhotonicProgram::Interop(_) => 0,
+    }
+}
+
+fn classical_calibration_record(program: &PhotonicProgram) -> Option<Value> {
+    let PhotonicProgram::Classical(program) = program else {
+        return None;
+    };
+    Some(serde_json::json!({
+        "dialect": "awen.photonic",
+        "calibrated_transfers": program.operations.iter().map(|operation| serde_json::json!({
+            "operation_id": operation.op_id,
+            "snapshot_id": operation.transfer.calibration_snapshot_id,
+            "snapshot_fingerprint": operation.transfer.calibration_fingerprint,
+            "model": operation.transfer.model
+        })).collect::<Vec<_>>()
+    }))
 }

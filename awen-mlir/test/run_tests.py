@@ -100,6 +100,20 @@ def main():
             "--verify-roundtrip",
         ]
     )
+    run(
+        [
+            args.awen_opt,
+            str(args.source_dir / "invalid_qphotonic_state.mlir"),
+            "--verify-diagnostics",
+        ]
+    )
+    run(
+        [
+            args.awen_opt,
+            str(args.source_dir / "invalid_qphotonic_contract.mlir"),
+            "--verify-diagnostics",
+        ]
+    )
 
     all_dialects_bytecode = args.output_dir / "all_dialects.mlirbc"
     run(
@@ -115,7 +129,16 @@ def main():
     for expected in (
         b"!awen_tensor.handle",
         b"!awen_photonic.optical_tile",
+        b"awen_photonic.modulate",
         b"!awen_qphotonic.state",
+        b"!awen_qphotonic.fock_state",
+        b"!awen_qphotonic.gaussian_state",
+        b"awen_qphotonic.photon_count",
+        b"awen_qphotonic.homodyne_p",
+        b"awen_qphotonic.feed_forward_phase",
+        b"awen_qphotonic.feed_forward_displacement_q",
+        b"awen_qphotonic.feed_forward_displacement_p",
+        b"awen_qphotonic.feed_forward_squeezing",
         b"!awen_device.command_buffer",
         b"awen_tensor.gemm",
     ):

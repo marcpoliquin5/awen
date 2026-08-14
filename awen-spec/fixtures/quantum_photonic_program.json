@@ -1,0 +1,52 @@
+{
+  "version": "awen.qphotonic.program.v1",
+  "program_id": "bell-sampling",
+  "modes": [
+    {"id": "q0", "state_space": "fock", "cutoff": 2},
+    {"id": "q1", "state_space": "fock", "cutoff": 2}
+  ],
+  "initial_state": {"representation": "fock", "occupations": [0, 0]},
+  "operations": [
+    {
+      "op_id": "fourier",
+      "modes": ["q0"],
+      "coherence_cost_ns": 10,
+      "operation": "gate",
+      "gate_spec": {"gate": "fourier"}
+    },
+    {
+      "op_id": "controlled-x",
+      "modes": ["q0", "q1"],
+      "coherence_cost_ns": 10,
+      "operation": "gate",
+      "gate_spec": {"gate": "controlled_x", "dimension": 2}
+    },
+    {
+      "op_id": "measure",
+      "modes": ["q0", "q1"],
+      "coherence_cost_ns": 10,
+      "operation": "measure",
+      "measurement_id": "bell-outcome",
+      "basis": "photon_counting",
+      "destructive": true
+    }
+  ],
+  "execution": {"shots": 100, "seed": 17, "deterministic_replay": true, "coherence_budget_ns": 100},
+  "correctness": {
+    "expected_distribution": {"00": 0.5, "11": 0.5},
+    "expected_means": {},
+    "maximum_total_variation_distance": 0.1,
+    "maximum_mean_error": 0.01,
+    "minimum_fidelity": 0.9,
+    "confidence_level": 0.95
+  },
+  "capabilities": {
+    "state_spaces": ["fock"],
+    "gates": ["controlled_x", "fourier"],
+    "measurements": ["photon_counting"],
+    "feed_forward": false,
+    "minimum_modes": 2,
+    "maximum_fock_cutoff": 2,
+    "minimum_coherence_ns": 100
+  }
+}

@@ -15,6 +15,7 @@ use awen_runtime::engine::Engine;
 use awen_runtime::gradients;
 use awen_runtime::gradients::{GradientOptions, NoiseModel};
 use awen_runtime::ir;
+use awen_runtime::photonic::{migrate_v5_document, MigrationStatus};
 use clap::Parser;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -236,6 +237,14 @@ enum Command {
         /// Markdown document generated only from the verified artifact.
         #[clap(long, default_value = "awen_benchmark_claims.md")]
         markdown_output: String,
+    },
+    /// Classify legacy mixed Photonic IR V5 operations without inventing ambiguous semantics.
+    MigratePhotonicV5 {
+        /// Legacy photonic_ir.v5.json document.
+        input: String,
+        /// Machine-readable migration report, including rejection diagnostics.
+        #[clap(long, default_value = "awen_photonic_v5_migration.json")]
+        output: String,
     },
     /// Select an awenBLAS backend from explicit capability and cost profiles.
     KernelPlan {
@@ -470,6 +479,9 @@ fn main() -> Result<()> {
             &output,
             &markdown_output,
         )?,
+        Command::MigratePhotonicV5 { input, output } => {
+            migrate_photonic_v5_command(&input, &output)?
+        }
         Command::KernelPlan {
             input,
             profiles,
@@ -651,6 +663,27 @@ fn detect_runner_id() -> String {
         }
     }
     format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
+}
+
+fn migrate_photonic_v5_command(input_path: &str, output_path: &str) -> Result<()> {
+    let document: serde_json::Value = serde_json::from_slice(&std::fs::read(input_path)?)?;
+    let report = migrate_v5_document(&document)?;
+    std::fs::write(output_path, serde_json::to_vec_pretty(&report)?)?;
+    println!(
+        "Photonic IR {} migration classified {} operation(s), emitted {} diagnostic(s), and wrote {}. Status: {:?}",
+        report.source_version,
+        report.operations.len(),
+        report.diagnostics.len(),
+        output_path,
+        report.status
+    );
+    if report.status == MigrationStatus::Rejected {
+        anyhow::bail!(
+            "legacy migration was rejected; resolve the diagnostics in {}",
+            output_path
+        );
+    }
+    Ok(())
 }
 
 fn kernel_plan_command(

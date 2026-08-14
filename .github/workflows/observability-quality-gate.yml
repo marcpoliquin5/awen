@@ -107,6 +107,7 @@ jobs:
               *Path("awen-compiler/cost_models").glob("*.json"),
               *Path("awen-compiler/kernels").glob("*.json"),
               *Path("awen-runtime/plugins").glob("**/*.json"),
+              *Path("awen-spec/fixtures").glob("*.json"),
               *Path("awen-spec/schemas").glob("*.json"),
           ]
           for path in paths:
