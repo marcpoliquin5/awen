@@ -44,13 +44,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Cache Rust build data
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            awen-compiler
-            awen-runtime
-
       - name: Check repository policy
         run: python scripts/validate_repository.py
 
