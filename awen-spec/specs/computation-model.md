@@ -197,4 +197,7 @@ Runtimes must document:
 Appendix: provenance fields (minimal)
 - run_id, ir_version, spec_version, runtime_version, hardware_id, calibration_id, timestamp, seed
 
-TODO: expand proofs, add formal quantum operator notation, provide full IR->ExecutionPlan mapping and deterministic replay semantics.
+Formal quantum operator notation and general IR-to-execution proofs are outside
+this experimental contract. Any extension requires a normative AEP with exact
+operator semantics, a versioned mapping, deterministic replay rules, and
+conformance tests before it becomes part of the computation model.

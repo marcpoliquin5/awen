@@ -1,8 +1,19 @@
-AEP-0006: Reproducibility & Artifacts (v0.1)
+# AEP-0006: Reproducibility and artifacts
 
-Status: Draft
+Status: Implemented experimental contract
 
-Summary:
-Define artifact bundles, provenance metadata, IR snapshots, calibration state, environmental assumptions, hardware revision, and random seeds.
+## Decision
 
-TODO: Define artifact bundle schema and example export/import workflows.
+Artifact bundles carry a deterministic content identity, manifest and content
+index, original and lowered IR, inputs and results, seeds, calibration state,
+environment, observability paths, provenance, parent artifacts, and checksums.
+Import verifies integrity before use.
+
+The normative export/import and replay rules are in
+`../specs/reproducibility.md`. The implementation is in
+`../../awen-runtime/src/storage`, with integration coverage in
+`../../awen-runtime/tests/artifacts_integration.rs` and
+`../../awen-runtime/tests/reproducibility_integration.rs`.
+
+Run directories are mutable local artifacts. Only content-addressed bundles and
+verified HIL artifacts may be cited as immutable public evidence.

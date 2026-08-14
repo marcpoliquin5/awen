@@ -186,7 +186,7 @@ fingerprint. Existing serialized compilation artifacts without
 `physical_design_provenance` are not valid under the updated schema and must be
 recompiled.
 
-No legacy GDS, YAML PDK scaffold, simulator-specific netlist, or unversioned
+No legacy GDS, YAML PDK prototype, simulator-specific netlist, or unversioned
 plugin payload is implicitly migrated.
 
 ## Acceptance evidence

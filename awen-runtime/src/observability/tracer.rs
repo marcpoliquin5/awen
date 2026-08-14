@@ -22,14 +22,21 @@ impl Tracer {
 
     /// Start a new span with the given name
     pub fn start_span(&self, name: &str) -> SpanGuard {
+        self.start_span_with_parent(name, None)
+    }
+
+    /// Start a span with an explicit parent ID.
+    ///
+    /// Parentage is explicit so traces remain correct when spans overlap across
+    /// threads or asynchronous tasks.
+    pub fn start_span_with_parent(&self, name: &str, parent: Option<&str>) -> SpanGuard {
         let id = Self::generate_span_id();
-        let parent = None; // TODO: Track active span for parent relationship
         let start = Self::now_iso8601();
         
         SpanGuard {
             id: id.clone(),
             name: name.to_string(),
-            parent,
+            parent: parent.map(str::to_owned),
             start,
             attributes: HashMap::new(),
             events: Vec::new(),

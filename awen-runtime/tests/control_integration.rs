@@ -3,7 +3,7 @@
 /// Comprehensive test suite for measurement-driven feedback and adaptive calibration
 #[cfg(test)]
 mod control_integration_tests {
-    use std::f64::consts::PI;
+    use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
     // Mock measurement result structure
     #[allow(dead_code)]
@@ -85,22 +85,21 @@ mod control_integration_tests {
     // ==================== CATEGORY 2: ADAPTIVE CALIBRATION ====================
 
     #[test]
-    #[ignore] // TODO: numerics need adjustment
     fn test_phase_calibration_procedure() {
         // Verify: Phase calibration extracts correction factor
 
         // Baseline: I₀ = 1, Q₀ = 0, φ₀ = 0
         let phi_0 = 0.0f64;
 
-        // Test +π/4:  I+ = 0.85, Q+ = 0.35
-        let phi_plus = 0.35f64.atan2(0.85);
+        // Test +pi/4 with a unit-magnitude I/Q pair.
+        let phi_plus = FRAC_1_SQRT_2.atan2(FRAC_1_SQRT_2);
         let delta_phi_plus = phi_plus - phi_0;
 
-        // Test -π/4:  I- = 0.85, Q- = -0.35
-        let phi_minus = (-0.35f64).atan2(0.85);
+        // Test -pi/4 with a unit-magnitude I/Q pair.
+        let phi_minus = (-FRAC_1_SQRT_2).atan2(FRAC_1_SQRT_2);
         let delta_phi_minus = phi_minus - phi_0;
 
-        // Response should be approximately π/4
+        // Response should be pi/4.
         let test_phase_shift = PI / 4.0;
         assert!(
             (delta_phi_plus - test_phase_shift).abs() < 0.5,

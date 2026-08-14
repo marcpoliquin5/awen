@@ -239,7 +239,7 @@ pub struct HeterodyneResult {
 
 ```rust
 pub struct DirectDetectionConfig {
-    pub wavelength_nm: f64,         // Detection wavelength (TBD if tunable)
+    pub wavelength_nm: f64,         // Fixed detection wavelength for this capability record
     pub integration_time_us: u32,   // Short integration window
     pub dark_count_threshold: u32,  // Dark counts per second threshold
 }

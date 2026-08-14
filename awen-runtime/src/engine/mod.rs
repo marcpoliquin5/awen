@@ -282,8 +282,8 @@ impl Engine {
         observability::write_timeline(&out_dir, &all_events)?;
         observability::write_metrics(&out_dir, &metrics)?;
 
-        // TODO: Phase 2.6.2 - Build and persist ArtifactBundle with full provenance
-        // save_artifact(&bundle, &artifacts_dir)?;
+        // This compatibility engine writes its explicit run files above. Immutable,
+        // content-addressed bundles are produced by the storage and HIL APIs instead.
 
         Ok(out_dir)
     }

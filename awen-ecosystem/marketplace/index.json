@@ -4,7 +4,10 @@
     "version": "0.1.0",
     "compatibility": "awen-ir-v0.1",
     "license": "MIT",
-    "author": "awen-team",
-    "checksum": "TODO"
+    "author": "AWEN contributors",
+    "manifest": "../../awen-runtime/plugins/reference_sim/backend-manifest.json",
+    "checksum_algorithm": "sha256",
+    "checksum": "7826ea8b4661b419f3d3e33450b361ffcd3122aca5f130619d0ac53b7003f358",
+    "status": "reference-only"
   }
 ]

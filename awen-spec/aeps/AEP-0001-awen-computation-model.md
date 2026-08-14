@@ -1,23 +1,21 @@
-AEP-0001: AWEN Computation Model (v0.1)
+# AEP-0001: AWEN computation model
 
-Status: Draft
-Authors: TBD
+Status: Implemented experimental contract
 
-Summary:
-Define the AWEN computation model: photonic state, time/coherence semantics, measurement and feedback, deterministic vs probabilistic execution.
+Author: [@marcpoliquin5](https://github.com/marcpoliquin5)
 
-Motivation:
-Provide the foundational model for kernels, IR, runtime scheduling, and reproducibility.
+## Decision
 
-Specification:
-- Photonic state: modes, phase, amplitude, entanglement semantics.
-- Lifetime semantics: coherence windows, state persistence.
-- Time semantics: scheduling, synchronization, delays.
-- Measurement: classical vs quantum measurement primitives, conditional branching.
-- Determinism: execution modes and reproducibility guarantees.
+AWEN programs use versioned typed graphs with explicit classical, classical
+photonic, and quantum-photonic semantics. Timing, coherence, measurement,
+conditional control, calibration identity, randomness, precision, and
+provenance are data in the contract rather than implicit backend behavior.
 
-Test plan:
-- Reference simulator validation
-- Reproducible artifact checks
+The normative definitions are in `../specs/computation-model.md`,
+`../specs/timing-scheduling.md`, `../specs/calibration.md`, and
+`../specs/photonic-dialect-separation.md`. Executable examples are under
+`../fixtures`, while compiler/runtime conformance tests enforce separation,
+determinism, statistical correctness, and fail-closed compatibility.
 
-TODO: Expand formal definitions and examples.
+This decision does not claim a general quantum compiler, arbitrary StableHLO
+coverage, physical hardware correctness, or hardware acceleration.

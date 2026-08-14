@@ -1,28 +1,24 @@
-AEP-0007: Calibration as Computation (v0.1)
+# AEP-0007: Calibration as computation
 
-Status: Draft
+Status: Implemented experimental contract; refined by AEP-0018
 
-Summary:
-This AEP formalizes calibration as a first-class computation in AWEN: calibration kernels, artifacts, versioning, scheduling, and integration with the runtime and observability.
+## Decision
 
-Motivation:
-Calibration is critical for photonic systems (drift, thermal coupling, device aging). Treating calibration as code ensures reproducibility and enables automation.
+Calibration is a versioned compiler/runtime input with backend, topology,
+environment, timestamp, lineage, per-cell/per-spare/per-channel transfer data,
+and uncertainty. Backend health binds the active calibration identity and exact
+fingerprint. Compilation selects measured channels, remaps disabled cells,
+attributes error, and invalidates artifacts when the calibration contract
+changes.
 
-Specification:
-- Calibration Kernel: a special Kernel subtype with fields: target_nodes, parameters_to_tune, cost_function_spec (classical or differentiable), measurement_sequence, safety_constraints.
-- Calibration Artifact: a versioned bundle containing calibration parameters, measurement traces, optimizer state, timestamp, hardware_revision, and provenance.
-- Scheduling: calibration kernels can be scheduled pre-run, in-run (blocking) with latency budgets, or asynchronously.
-- Recalibration triggers: define thresholds (e.g., extinction_ratio < X, phase_drift > Y) that cause auto-recalibration.
-- Interfaces: runtime exposes `calibrate_node(node_id, options)` and `query_calibration_artifact(artifact_id)`.
+The normative documents are `../specs/calibration.md`,
+`../specs/control_calibration.md`, and
+`../specs/calibration-aware-compilation.md`. Schemas include
+`../schemas/awen_calibration_snapshot.v1.json` and
+`../schemas/awen_artifact_refresh.v1.json`. Runtime/compiler tests cover drift,
+freshness, remapping, fingerprint tampering, environment mismatch, and safe
+digital fallback.
 
-Backwards compatibility:
-- Calibration kernels are optional; runtimes that don't implement calibration must return a clear error code and suggest offline tools.
-
-Test plan:
-- Reference simulator supports drift injection and a mock calibration loop.
-- Conformance tests verify artifact schema, versioning, and scheduled calibration runs.
-
-TODO:
-- Define `cost_function_spec` schema.
-- Define optimizer primitives and differentiable hooks.
-- Define safety constraint schema for lab hardware.
+The reference implementation does not perform autonomous control of physical
+lab hardware. Such control remains behind a reviewed HAL/plugin implementation
+with explicit safety constraints.

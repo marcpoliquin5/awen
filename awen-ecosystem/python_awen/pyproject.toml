@@ -2,8 +2,15 @@
 name = "awen_py"
 version = "0.2.0"
 description = "In-process NumPy, PyTorch, and JAX integrations for AWEN."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
 requires-python = ">=3.10"
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+Issues = "https://github.com/marcpoliquin5/awen/issues"
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.26,<3"]

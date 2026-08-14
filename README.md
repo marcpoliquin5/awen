@@ -1,6 +1,6 @@
 # AWEN
 
-AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python experiments, and early Studio/Cloud/Ecosystem scaffolding.
+AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python integrations, MLIR lowering, and reference ecosystem metadata.
 
 The implemented compiler paths are deliberately narrow:
 
@@ -78,14 +78,18 @@ measured product performance.
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
-- `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, kernels, marketplace, and plugin templates.
-- `awen-studio` and `awen-cloud`: early scaffolding, not shipping products.
+- `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, reference-only marketplace metadata, and plugin implementation guidance.
 
 ## Build and verify
 
 Install the current stable Rust toolchain with `rustfmt` and `clippy`, then run:
 
 ```bash
+python -m pip install -e "awen-ecosystem/python_awen[frameworks,test]"
+python scripts/validate_repository.py
+python scripts/validate_json.py
+python scripts/check_dependency_licenses.py
+
 cargo fmt --manifest-path awen-compiler/Cargo.toml --all -- --check
 cargo clippy --manifest-path awen-compiler/Cargo.toml --all-targets --all-features -- -D warnings
 cargo test --manifest-path awen-compiler/Cargo.toml --all-features --no-fail-fast
@@ -94,7 +98,6 @@ cargo fmt --manifest-path awen-runtime/Cargo.toml --all -- --check
 cargo clippy --manifest-path awen-runtime/Cargo.toml --all-targets --all-features -- -D warnings
 cargo test --manifest-path awen-runtime/Cargo.toml --all-features --no-fail-fast
 
-python -m pip install -e "awen-ecosystem/python_awen[frameworks,test]"
 python -m pytest awen-ecosystem/python_awen/tests -q
 
 cmake -S awen-mlir -B awen-mlir/build -G Ninja \
@@ -117,7 +120,7 @@ model = torch.compile(model, backend=awen, dynamic=True)
 y = model(x)
 ```
 
-## Compile a 256×256 GEMM
+## Compile a 256 by 256 GEMM
 
 ```bash
 cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
@@ -128,7 +131,7 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
   --output awen_compilation.json
 ```
 
-The example lowers to eight 128×128×128 optical GEMM tiles. The output contains
+The example lowers to eight 128 by 128 by 128 optical GEMM tiles. The output contains
 operation cost decisions, the complete graph partition trace, transfers,
 crossings, regions, profiler events, typed classical Photonic IR, immutable
 calibration identity/fingerprint/environment/lineage, measured channel choices,
@@ -246,3 +249,8 @@ inventing semantics. See AEP-0020 and
 ## Status and evidence
 
 The canonical required check is `AWEN required quality gate`. Public performance claims must be generated from verified immutable end-to-end artifacts that include host transfer, memory, scheduling, reconfiguration, lasers, DAC/ADC, calibration, digital post-processing, and support power. The repository currently ships no measured physical-accelerator artifact and makes no validated hardware-acceleration claim.
+
+There is no supported AWEN product release. Exact capability classifications
+are in `docs/IMPLEMENTATION-STATUS.md`; verified release criteria are in
+`docs/RELEASING.md`. Project decisions and reporting paths are defined by
+`GOVERNANCE.md`, `CONTRIBUTING.md`, `MAINTAINERS.md`, and `SECURITY.md`.

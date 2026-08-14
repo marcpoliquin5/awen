@@ -1,7 +1,7 @@
 # AWEN Ecosystem
 
-Community framework integrations, kernels, physical-design references,
-marketplace metadata, and plugin templates live here. Implementations must keep
+Community framework integrations, physical-design references, reference-only
+marketplace metadata, and plugin implementation guidance live here. Implementations must keep
 the compiler boundary versioned and must not turn AWEN into a layout, PDK,
 foundry, circuit-solver, or electromagnetic-solver project.
 

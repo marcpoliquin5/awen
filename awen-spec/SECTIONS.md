@@ -1,23 +1,25 @@
-# AWEN Spec Sections
+# AWEN Specification Sections
 
-## Existing Sections
+## Photonics
 
+- Architecture: `aeps/AEP-0020-classical-quantum-photonic-separation.md`
+- Typed schemas: `schemas/awen_photonic_program.v1.json`,
+  `schemas/awen_qphotonic_program.v1.json`,
+  `schemas/awen_qphotonic_result.v1.json`, and
+  `schemas/awen_photonic_interop.v1.json`
+- Legacy migration input: `schemas/photonic_ir.v5.json`
+- Runtime boundary: `awen-runtime/src/chokepoint.rs`
+- Direct evidence: `awen-runtime/tests/photonic_conformance.rs`
 
-## AWEN Photonics — typed dialects and legacy PHOTONICS-V5 migration
+## Runtime subsystems
 
-  - Current architecture: `awen-spec/aeps/AEP-0020-classical-quantum-photonic-separation.md`
-  - Current schemas: `awen_photonic_program.v1.json`, `awen_qphotonic_program.v1.json`, `awen_qphotonic_result.v1.json`, and `awen_photonic_interop.v1.json`
-  - Legacy migration input: [awen-spec/schemas/photonic_ir.v5.json](awen-spec/schemas/photonic_ir.v5.json)
-  - Runtime chokepoint: `awen-runtime/src/chokepoint.rs`
-  - Conformance tests: `awen-runtime/tests/photonic_conformance.rs`
+The normative subsystem specifications are in `specs/`. Their conformance claims
+are limited to exported implementation and direct automated evidence.
 
-Notes:
+## Verification
 
-## Milestones
-
-- **Enforce Rust Quality Gate & Add Copilot Super-Prompt**
-
-  - **PR:** [#1](https://github.com/marcpoliquin5/awen/pull/1) — added `awen/docs/COPILOT_SUPER_PROMPT.md` and CI fixes.
-  - **Commit SHA:** f0edeeefb473d75cf69d8fa39c958657566aa372 (merged into `main` on 2026-01-05).
-  - **Verification:** CI green for the merged PR; `awen-runtime` artifacts uploaded (artifact id reported in CI run: 5030575133).
-  - **Notes:** Work included adding `working-directory: ./awen-runtime` to relevant GitHub Actions steps so crate-level checks (rustfmt --check, clippy -D, cargo test including trybuild) run correctly.
+The single required repository quality gate validates schemas and examples, runs
+the complete compiler and runtime test suites, builds the C++ and MLIR consumers,
+tests the supported Python dependency floors and current versions, audits secrets
+and dependencies, and enforces repository policy. See
+`docs/IMPLEMENTATION-STATUS.md` for the current evidence boundary.

@@ -1,0 +1,78 @@
+name: Verified draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated vMAJOR.MINOR.PATCH tag
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  draft-release:
+    name: Verify evidence and create draft
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag and exact green quality-gate evidence
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag must use vMAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+          git merge-base --is-ancestor "$sha" origin/main
+          run_json="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/observability-quality-gate.yml/runs?head_sha=$sha&status=success&per_page=100" \
+            --jq '.workflow_runs | map(select(.conclusion == "success" and .head_branch == "main")) | first')"
+          test "$run_json" != "null"
+          run_id="$(jq -r .id <<<"$run_json")"
+          run_url="$(jq -r .html_url <<<"$run_json")"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+
+      - name: Build immutable source and release evidence
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ steps.evidence.outputs.sha }}
+          QUALITY_RUN_ID: ${{ steps.evidence.outputs.run_id }}
+          QUALITY_RUN_URL: ${{ steps.evidence.outputs.run_url }}
+        run: |
+          git archive --format=tar.gz \
+            --prefix="awen-${RELEASE_TAG#v}/" \
+            --output="awen-${RELEASE_TAG#v}.tar.gz" "$RELEASE_SHA"
+          sha256sum "awen-${RELEASE_TAG#v}.tar.gz" > SHA256SUMS
+          python scripts/build_release_evidence.py \
+            --tag "$RELEASE_TAG" \
+            --commit "$RELEASE_SHA" \
+            --run-id "$QUALITY_RUN_ID" \
+            --run-url "$QUALITY_RUN_URL" \
+            --checksums SHA256SUMS \
+            --output release-notes.md
+
+      - name: Create evidence-bound draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "awen-${RELEASE_TAG#v}.tar.gz" \
+            SHA256SUMS \
+            --draft \
+            --verify-tag \
+            --title "AWEN $RELEASE_TAG" \
+            --notes-file release-notes.md
