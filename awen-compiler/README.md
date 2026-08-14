@@ -6,6 +6,7 @@
 
 - `awen.tensor.v1`: tensors carry rank-2 shape, dtype, layout, optional literal data, per-operation accuracy requirements, and optional sparsity/structure/input-error cost hints.
 - `awen.device-capability.v1`: backends advertise operation/tiling legality, matrix-core shape, wavelengths, rates, coherence, ADC/DAC/effective precision, bit slicing, saturation, dynamic range, loss/power parameters, complex support, accumulation, host/link boundaries, ABI compatibility, and calibration requirements/profile.
+- `awen.physical-design.v1`: backends bind immutable PDK, process-corner, component-library, logical-topology, circuit-model, adapter, simulation-settings, and verification identities; mapping requests preserve ports, units, constraints, and candidate topologies without representing layout geometry.
 - `awen.backend-health.v1`: a timestamped query result carries availability, temperature, drift, usable channels, disabled components, unavailable resources, and the active calibration identity.
 - `awen.photonic.classical.v1`: every selected GEMM is tiled with offsets, edge sizes, precision, wavelength allocation, timing, accumulation, and calibration identity.
 - `awen.device.v1`: explicit calibration, configure, upload, execute, accumulate, download, and host-fallback commands.
@@ -60,6 +61,32 @@ new model with `CostModelInputs::calibrated_from_reports`.
 snapshot at the embedded calibration timestamp. Runtime execution should query
 health and call `compile_with_backend`. Calibration freshness is evaluated
 against the supplied health observation, never the compiler wall clock.
+
+## Physical-design boundary
+
+`PhysicalDesignBinding` is a required part of `DeviceCapabilities`. It validates
+immutable SHA-256 identities, logical port/topology consistency, exact topology
+content identity, explicit units, passed connectivity evidence, closed adapter
+kinds, and Circulax/circuit-adapter compatibility. It deliberately has no GDS,
+polygon, route, rule-deck, foundry-source, solver-state, or raw-result fields.
+
+`MappingRequest` exports logical photonic operations, required ports, scalar
+layout constraints, and candidate logical topologies. `MappingResponse` imports
+a gdsfactory-selected binding only after checking the request identity,
+candidate name, cross-unit port compatibility, constraint compliance, topology
+digest, adapter set, and verification evidence. Use
+`import_mapping_response` as the fail-closed import chokepoint.
+
+Compilation artifacts contain identity-only `PhysicalDesignProvenance`. The
+complete binding affects both the backend snapshot and calibrated topology
+fingerprints. `refresh_for_backend` reports PDK, process-corner, or general
+physical-binding changes and recompiles instead of reusing a stale artifact.
+
+The open fixture is
+`awen-ecosystem/pdks/example_silicon_pdk.json`; the matching exported request is
+`awen-spec/fixtures/physical_design_mapping_request.v1.json`. Neither
+gdsfactory nor Circulax is linked into this crate. See AEP-0021 and the physical-
+design boundary specification.
 
 ## awenBLAS kernel API
 

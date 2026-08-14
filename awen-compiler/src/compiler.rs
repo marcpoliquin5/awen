@@ -13,6 +13,7 @@ use crate::partition::{
     partition_graph, GraphNode, GraphOpKind, GraphTensor, NodeCandidate, PartitionCost,
     PartitionGraph, PartitionOptions, PartitionRequest, PartitionTrace, PARTITION_GRAPH_VERSION,
 };
+use crate::physical_design::PhysicalDesignProvenance;
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -91,6 +92,7 @@ pub struct CompilationArtifact {
     pub source_ir_version: String,
     pub capability_version: String,
     pub backend_id: String,
+    pub physical_design_provenance: PhysicalDesignProvenance,
     pub health_snapshot: BackendHealth,
     pub options: CompileOptions,
     pub capability_negotiations: Vec<CapabilityNegotiation>,
@@ -380,6 +382,7 @@ pub fn compile_with_cost_model(
         source_ir_version: program.ir_version.clone(),
         capability_version: capabilities.capability_version.clone(),
         backend_id: capabilities.backend_id.clone(),
+        physical_design_provenance: capabilities.physical_design.provenance()?,
         health_snapshot: snapshot.health.clone(),
         options,
         capability_negotiations,
@@ -421,6 +424,30 @@ pub fn refresh_for_backend(
             "backend identity changed from '{}' to '{}'",
             artifact.backend_id, current_snapshot.capabilities.backend_id
         ));
+    }
+    let current_physical_design = current_snapshot.capabilities.physical_design.provenance()?;
+    if artifact.physical_design_provenance.pdk_manifest.digest
+        != current_physical_design.pdk_manifest.digest
+        || artifact.physical_design_provenance.pdk_version != current_physical_design.pdk_version
+    {
+        reasons.push("PDK identity or version changed".to_string());
+    }
+    if artifact
+        .physical_design_provenance
+        .process_corner_fingerprint
+        != current_physical_design.process_corner_fingerprint
+        || artifact.physical_design_provenance.process_corner_id
+            != current_physical_design.process_corner_id
+    {
+        reasons.push("physical-design process corner changed".to_string());
+    }
+    if artifact.physical_design_provenance.binding_fingerprint
+        != current_physical_design.binding_fingerprint
+        && !reasons
+            .iter()
+            .any(|reason| reason.contains("PDK") || reason.contains("process corner"))
+    {
+        reasons.push("physical-design binding changed".to_string());
     }
     match (
         artifact.calibration_record.as_ref(),

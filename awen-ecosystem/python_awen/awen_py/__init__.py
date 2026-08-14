@@ -12,6 +12,7 @@ from .capabilities import (
     CapabilityError,
     CapabilityNegotiation,
     DeviceCapabilities,
+    PhysicalDesignBinding,
 )
 from .errors import (
     AWENError,
@@ -90,6 +91,7 @@ __all__ = [
     "JaxImportReport",
     "NumericalContract",
     "OperationPlan",
+    "PhysicalDesignBinding",
     "ProfileEvent",
     "SerializationError",
     "Stream",

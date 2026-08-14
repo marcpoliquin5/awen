@@ -24,6 +24,10 @@
     "signature": { "type": ["string", "null"] },
     "public_key": { "type": ["string", "null"] },
     "path": { "type": ["string", "null"] },
+    "physical_design_adapters": {
+      "type": "array",
+      "items": { "$ref": "awen_physical_design.v1.json#/$defs/adapter" }
+    },
     "backend": {
       "type": "object",
       "required": ["capabilities", "health_query"],

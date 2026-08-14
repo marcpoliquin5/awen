@@ -37,6 +37,10 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
         "../../awen-spec/schemas/awen_calibration_snapshot.v1.json"
     ))
     .expect("calibration schema JSON");
+    let physical_design_schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../../awen-spec/schemas/awen_physical_design.v1.json"
+    ))
+    .expect("physical-design schema JSON");
     let capability_value: serde_json::Value = serde_json::from_str(include_str!(
         "../../awen-compiler/capabilities/pace_like_128.json"
     ))
@@ -50,6 +54,10 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
         .with_document(
             "https://awen.dev/schemas/awen_calibration_snapshot.v1.json".to_string(),
             calibration_schema,
+        )
+        .with_document(
+            "https://awen.dev/schemas/awen_physical_design.v1.json".to_string(),
+            physical_design_schema,
         )
         .compile(&capability_schema)
         .expect("compile capability schema");
@@ -67,6 +75,7 @@ fn missing_precision_noise_timing_power_and_calibration_fields_are_not_accepted(
         "boundary_latency_ns",
         "total_power_budget_mw",
         "calibration_requirements",
+        "physical_design",
     ] {
         let mut value: serde_json::Value = serde_json::from_str(include_str!(
             "../../awen-compiler/capabilities/pace_like_128.json"

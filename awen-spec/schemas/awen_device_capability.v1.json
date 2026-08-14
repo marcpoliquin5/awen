@@ -29,6 +29,7 @@
     "simultaneous_channels",
     "accumulation_modes",
     "calibration_requirements",
+    "physical_design",
     "host_bandwidth_gbps",
     "link_bandwidth_gbps",
     "boundary_latency_ns",
@@ -135,6 +136,9 @@
     },
     "calibration_profile": {
       "$ref": "awen_calibration_snapshot.v1.json"
+    },
+    "physical_design": {
+      "$ref": "awen_physical_design.v1.json#/$defs/binding"
     },
     "host_bandwidth_gbps": { "type": "number", "exclusiveMinimum": 0 },
     "link_bandwidth_gbps": { "type": "number", "exclusiveMinimum": 0 },

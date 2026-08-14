@@ -81,6 +81,20 @@ Unsigned manifests are restricted to the explicit development flag. Production
 discovery requires a valid Ed25519 signature. Health paths are sandboxed inside
 the plugin directory and re-read on every query.
 
+Physical-design plugins use the manifest's typed
+`physical_design_adapters` array. The only kinds are `gdsfactory`,
+`circuit_simulator`, and `electromagnetic_simulator`; each fixes the tool/version,
+request/response schema version, and supported verification evidence. Duplicate
+kinds and version skew fail discovery validation. The runtime/plugin owns
+external process or service isolation, while the compiler validates the closed
+mapping response and immutable identities. No solver-specific payload or
+proprietary PDK data belongs in the manifest.
+
+Every typed backend capability also carries a verified physical-design binding.
+Compilation records only identity provenance; PDK and process-corner changes
+invalidate reuse and trigger safe recompilation. See AEP-0021 and
+`awen-spec/specs/physical-design-boundary.md`.
+
 ## Full-system and hardware-in-the-loop benchmarks
 
 Run every backend configured by the canonical portable suite:

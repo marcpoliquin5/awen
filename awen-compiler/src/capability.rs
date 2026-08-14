@@ -1,4 +1,5 @@
 use crate::ir::{DType, GemmShape};
+use crate::physical_design::PhysicalDesignBinding;
 use crate::precision::AnalogNoiseModel;
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
@@ -180,6 +181,7 @@ pub struct DeviceCapabilities {
     pub calibration_requirements: CalibrationRequirements,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calibration_profile: Option<CalibrationProfile>,
+    pub physical_design: PhysicalDesignBinding,
     pub host_bandwidth_gbps: f64,
     pub link_bandwidth_gbps: f64,
     pub boundary_latency_ns: f64,
@@ -288,6 +290,7 @@ impl DeviceCapabilities {
                 drift_tolerance: 0.01,
             },
             calibration_profile: None,
+            physical_design: PhysicalDesignBinding::reference_open_pdk(),
             host_bandwidth_gbps: 256.0,
             link_bandwidth_gbps: 256.0,
             boundary_latency_ns: 500.0,
@@ -366,6 +369,7 @@ impl DeviceCapabilities {
         for wavelength in &self.supported_wavelengths_nm {
             bytes.extend_from_slice(&wavelength.to_bits().to_le_bytes());
         }
+        bytes.extend_from_slice(self.physical_design.content_fingerprint().as_bytes());
         format!("fnv1a64:{:016x}", fnv1a64(&bytes))
     }
 
@@ -487,6 +491,7 @@ impl DeviceCapabilities {
         {
             bail!("required calibration must have a non-zero maximum age");
         }
+        self.physical_design.validate()?;
         if let Some(profile) = &self.calibration_profile {
             profile.validate(self)?;
         }

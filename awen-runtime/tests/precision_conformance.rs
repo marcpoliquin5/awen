@@ -9,6 +9,7 @@ const TENSOR_ID: &str = "https://awen.dev/schemas/awen_tensor_ir.v1.json";
 const PRECISION_ID: &str = "https://awen.dev/schemas/awen_precision.v1.json";
 const CAPABILITY_ID: &str = "https://awen.dev/schemas/awen_device_capability.v1.json";
 const CALIBRATION_ID: &str = "https://awen.dev/schemas/awen_calibration_snapshot.v1.json";
+const PHYSICAL_DESIGN_ID: &str = "https://awen.dev/schemas/awen_physical_design.v1.json";
 const HEALTH_ID: &str = "https://awen.dev/schemas/awen_backend_health.v1.json";
 const PHOTONIC_ID: &str = "https://awen.dev/schemas/awen_photonic_ir.classical.v1.json";
 const DEVICE_ID: &str = "https://awen.dev/schemas/awen_device_ir.v1.json";
@@ -44,6 +45,12 @@ fn schemas() -> Vec<(&'static str, Value)> {
             HEALTH_ID,
             schema(include_str!(
                 "../../awen-spec/schemas/awen_backend_health.v1.json"
+            )),
+        ),
+        (
+            PHYSICAL_DESIGN_ID,
+            schema(include_str!(
+                "../../awen-spec/schemas/awen_physical_design.v1.json"
             )),
         ),
         (

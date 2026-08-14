@@ -78,6 +78,42 @@ class CapabilityContractTests(unittest.TestCase):
             [diagnostic.code for diagnostic in negotiation.diagnostics],
         )
 
+    def test_physical_design_identity_and_proprietary_boundary_are_enforced(self):
+        capability = DeviceCapabilities.from_dict(load("pace_like_128.json"))
+        physical = capability.physical_design
+        self.assertEqual(physical.pdk_name, "awen-example-silicon")
+        self.assertEqual(physical.process_corner_id, "nominal-22c")
+        self.assertEqual(physical.circuit_models, ("mzi",))
+        self.assertEqual(
+            physical.fingerprint,
+            "sha256:b1f098f300a791775420c138f4cc51f8a5201e7e73576d078c016f9b3bdf0c62",
+        )
+
+        tampered = load("pace_like_128.json")
+        tampered["physical_design"]["topology"]["nodes"][0]["settings"][
+            "coupling"
+        ] = 0.4
+        with self.assertRaisesRegex(CapabilityError, "topology artifact digest"):
+            DeviceCapabilities.from_dict(tampered)
+
+        mutable_identity = load("pace_like_128.json")
+        mutable_identity["physical_design"]["pdk"]["manifest"][
+            "artifact_id"
+        ] = "pdk-latest"
+        with self.assertRaisesRegex(CapabilityError, "immutable urn or sha256"):
+            DeviceCapabilities.from_dict(mutable_identity)
+
+        leaked = load("pace_like_128.json")
+        leaked["physical_design"]["classification"] = "proprietary_reference"
+        with self.assertRaisesRegex(CapabilityError, "must not expose URIs"):
+            DeviceCapabilities.from_dict(leaked)
+
+    def test_physical_design_is_required(self):
+        missing = load("pace_like_128.json")
+        del missing["physical_design"]
+        with self.assertRaisesRegex(CapabilityError, "physical_design"):
+            DeviceCapabilities.from_dict(missing)
+
     def test_expired_calibration_causes_fallback(self):
         health = load("pace_like_128.health.json")
         health["observed_at"] = "2026-08-12T00:00:01Z"

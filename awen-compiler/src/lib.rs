@@ -16,6 +16,7 @@ pub mod executable;
 pub mod ir;
 pub mod lowering;
 pub mod partition;
+pub mod physical_design;
 pub mod precision;
 pub mod simulator;
 
@@ -59,6 +60,14 @@ pub use partition::{
     PartitionProfilerEvent, PartitionRegion, PartitionRequest, PartitionTotals, PartitionTrace,
     ProfilerEventKind, TransferRecord, VisualizationEdge, PARTITION_GRAPH_VERSION,
     PARTITION_TRACE_VERSION,
+};
+pub use physical_design::{
+    import_mapping_response, AdapterKind, ArtifactReference, CircuitFramework,
+    CircuitModelReference, DataClassification, EvidenceKind, EvidenceStatus, LayoutConstraints,
+    LengthUnit, LogicalOperation, LogicalOperationKind, MappingRequest, MappingResponse,
+    PdkReference, PhysicalDesignAdapter, PhysicalDesignBinding, PhysicalDesignProvenance,
+    PortContract, PortKind, ProcessCorner, ToolIdentity, TopologyConnection, TopologyContract,
+    TopologyEndpoint, TopologyNode, VerificationEvidence, WavelengthBand, PHYSICAL_DESIGN_VERSION,
 };
 pub use precision::{
     accumulate_integer_products, apply_noise, bit_slice_signed, default_quantization, quantize,

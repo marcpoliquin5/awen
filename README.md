@@ -38,6 +38,14 @@ normalized stablehlo.dot_general
   -> versioned AWENEXE binary
   -> direct Rust runtime command preparation
 
+logical photonic mapping
+  -> versioned operations, required ports, units, constraints, and candidate topology
+  -> external gdsfactory PDK/component/layout/DRC/LVS workflow
+  -> optional Circulax/JAX or EM simulation adapter
+  -> immutable PDK, process-corner, topology, model, settings, and verification identities
+  -> verified backend capability and compilation provenance
+  -> PDK/process-corner-sensitive cache invalidation and safe recompilation
+
 typed photonic runtime program
   -> awen.photonic calibrated classical signal/precision/noise contract
      | awen.qphotonic Fock/Gaussian gate/measurement/sampling contract
@@ -65,12 +73,12 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration-snapshot validation, measured channel/cell routing, fault remapping, drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
+- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration and physical-design validation, measured channel/cell routing, fault remapping, PDK/process-corner/drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
-- `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, example PDK data, kernels, marketplace, and plugin templates.
+- `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, kernels, marketplace, and plugin templates.
 - `awen-studio` and `awen-cloud`: early scaffolding, not shipping products.
 
 ## Build and verify
@@ -124,8 +132,8 @@ The example lowers to eight 128×128×128 optical GEMM tiles. The output contain
 operation cost decisions, the complete graph partition trace, transfers,
 crossings, regions, profiler events, typed classical Photonic IR, immutable
 calibration identity/fingerprint/environment/lineage, measured channel choices,
-cell remaps, capacity/error impacts, and the executable Device IR command
-stream.
+cell remaps, capacity/error impacts, immutable PDK/process-corner/topology/model/
+verification provenance, and the executable Device IR command stream.
 
 ## Compile and load StableHLO through MLIR
 
@@ -167,10 +175,22 @@ contract cannot be met; automatic placement records a digital fallback.
 `refresh_for_backend` compares an existing compilation artifact with a current
 backend snapshot before reuse. Exact source and backend-snapshot fingerprints
 return the original artifact. Calibration, health, drift, temperature,
-disabled-component, resource, backend, or topology changes produce named
+disabled-component, resource, backend, topology, PDK, process-corner, component,
+model, adapter, constraint, simulation, or verification changes produce named
 invalidation reasons and deterministic recompilation. If current photonic
 hardware cannot satisfy the complete contract, refresh changes the old forced
 target to automatic placement and emits a diagnosed digital fallback.
+
+Physical design uses the `awen.physical-design.v1` boundary. AWEN exports
+logical operations, explicit-unit ports, scalar layout constraints, and
+candidate topologies to a gdsfactory adapter. It imports only verified logical
+metadata and immutable artifact identities. gdsfactory remains responsible for
+PDKs, components, geometry, routing, GDS, DRC/LVS, and foundry workflows;
+Circulax or another signed adapter remains responsible for circuit equations,
+JAX differentiation, calibration fitting, optimization, and raw simulation
+results. Proprietary bindings contain only abstract external ports and opaque
+digest references. See AEP-0021 and
+`awen-spec/specs/physical-design-boundary.md`.
 
 The calibration contract is specified by AEP-0018 and
 `awen.calibration-snapshot.v1`. A snapshot carries its ID, exact fingerprint,
