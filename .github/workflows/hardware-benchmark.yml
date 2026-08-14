@@ -64,7 +64,7 @@ jobs:
             --output-dir awen_hardware_artifacts \
             --commit-sha "$AWEN_COMMIT_SHA" \
             --runner-id "$AWEN_RUNNER_ID"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: awen-hardware-${{ github.run_id }}-${{ github.sha }}
