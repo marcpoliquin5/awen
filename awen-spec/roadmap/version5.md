@@ -6,10 +6,11 @@ Status: experimental development; no supported v5 release is scheduled.
 
 ## Completed development gates
 
-The compiler/runtime vertical slice, MLIR GEMM path, typed dialects, capabilities,
-partitioning, cost/precision/calibration contracts, framework boundaries, HIL
-protocol, and physical-design evidence boundary are implemented and tested on
-`main`. Completion means their declared conformance tests pass; it does not mean
+The compiler/runtime vertical slice, MLIR rank-two and equal-batch rank-three
+GEMM path, typed dialects, capabilities, partitioning,
+cost/precision/calibration contracts, framework boundaries, HIL protocol, and
+physical-design evidence boundary are implemented and tested on `main`.
+Completion means their declared conformance tests pass; it does not mean
 hardware performance, product availability, or general operator coverage.
 
 ## Next release gate

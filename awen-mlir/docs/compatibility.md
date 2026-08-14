@@ -20,6 +20,11 @@ two-component dialect version. Current dialect bytecode is `1.0`.
 - Textual IR is a debugging/interchange representation, not the runtime ABI.
 - `AWENEXE` has an independent ABI version because runtime compatibility must
   not depend on a particular MLIR library build.
+- AWENEXE 1.0 `ExecuteGemm` result shapes are rank-aware. Rank two represents
+  `[M,N]`; equal-batch rank three represents `[B,M,N]`. Both use the existing
+  versioned command encoding, so no field or command-kind reinterpretation is
+  required. Each dynamic dimension is encoded as signed i64 `-1`; zero and
+  values below `-1` are invalid.
 - StableHLO compatibility remains owned by upstream StableHLO. AWEN does not
   copy or redefine its general compatibility guarantee.
 - Classical `awen_photonic` signal/tensor values and `awen_qphotonic` Fock,

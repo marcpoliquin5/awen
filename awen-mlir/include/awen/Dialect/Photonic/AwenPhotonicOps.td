@@ -29,7 +29,7 @@ class AwenPhotonicOp<string mnemonic, list<Trait> traits = []>
     : Op<AwenPhotonicDialect, mnemonic, traits>;
 
 def AwenPhotonicGemmTileOp : AwenPhotonicOp<"gemm_tile", [Pure]> {
-  let summary = "A classically encoded optical GEMM tile";
+  let summary = "A classically encoded rank-two or batched optical GEMM tile";
   let arguments = (ins AnyRankedTensor:$lhs,
                        AnyRankedTensor:$rhs,
                        I64Attr:$tile_m,

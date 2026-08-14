@@ -162,3 +162,8 @@ jobs:
             -o /tmp/stablehlo_gemm.awenx
           cargo run --manifest-path awen-runtime/Cargo.toml \
             --bin awenctl -- execute /tmp/stablehlo_gemm.awenx
+          awen-mlir/build/tools/awen-compile/awen-compile \
+            awen-mlir/test/batched_gemm.mlir \
+            -o /tmp/batched_gemm.awenx
+          cargo run --manifest-path awen-runtime/Cargo.toml \
+            --bin awenctl -- execute /tmp/batched_gemm.awenx

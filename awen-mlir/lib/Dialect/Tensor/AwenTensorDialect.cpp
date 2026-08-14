@@ -32,9 +32,12 @@ LogicalResult AwenTensorGemmOp::verify() {
   auto lhsType = dyn_cast<RankedTensorType>(getLhs().getType());
   auto rhsType = dyn_cast<RankedTensorType>(getRhs().getType());
   auto resultType = dyn_cast<RankedTensorType>(getResult().getType());
-  if (!lhsType || !rhsType || !resultType || lhsType.getRank() != 2 ||
-      rhsType.getRank() != 2 || resultType.getRank() != 2)
-    return emitOpError("requires rank-two lhs, rhs, and result tensors");
+  if (!lhsType || !rhsType || !resultType ||
+      (lhsType.getRank() != 2 && lhsType.getRank() != 3) ||
+      rhsType.getRank() != lhsType.getRank() ||
+      resultType.getRank() != lhsType.getRank())
+    return emitOpError("requires matching rank-two or rank-three lhs, rhs, and "
+                       "result tensors");
   if (lhsType.getElementType() != rhsType.getElementType() ||
       lhsType.getElementType() != resultType.getElementType())
     return emitOpError("requires identical lhs, rhs, and result element types");

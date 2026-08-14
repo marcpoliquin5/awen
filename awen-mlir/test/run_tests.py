@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import pathlib
+import struct
 import subprocess
 import sys
 
@@ -24,6 +25,40 @@ def run(command, *, input_bytes=None):
 
 def filecheck(tool, check_file, input_bytes):
     run([tool, str(check_file)], input_bytes=input_bytes)
+
+
+def executable_result_shapes(artifact):
+    if not artifact.startswith(b"AWENEXE\0\x01\x00\x00\x00"):
+        raise SystemExit("awen-compile emitted an invalid executable header")
+    offset = 12
+
+    def read(fmt):
+        nonlocal offset
+        size = struct.calcsize(fmt)
+        value = struct.unpack_from(fmt, artifact, offset)[0]
+        offset += size
+        return value
+
+    def skip_string():
+        nonlocal offset
+        length = read("<H")
+        offset += length
+
+    skip_string()  # backend
+    command_count = read("<I")
+    shapes = []
+    for _ in range(command_count):
+        if read("<B") != 1:
+            raise SystemExit("awen-compile emitted an unknown command kind")
+        read("<I")  # tile_m
+        read("<I")  # tile_n
+        read("<I")  # tile_k
+        read("<H")  # minimum_effective_bits
+        skip_string()  # calibration
+        skip_string()  # layout
+        rank = read("<B")
+        shapes.append(tuple(read("<q") for _ in range(rank)))
+    return shapes
 
 
 def main():
@@ -70,14 +105,30 @@ def main():
     ).stdout
     filecheck(args.filecheck, source_location, located)
 
-    run(
-        [
-            args.awen_opt,
-            str(args.source_dir / "unsupported_batch.mlir"),
-            "--awen-import-stablehlo",
-            "--verify-diagnostics",
-        ]
-    )
+    batched = args.source_dir / "batched_gemm.mlir"
+    batched_lowered = run(
+        [args.awen_opt, str(batched), "--awen-lower-stablehlo-to-device"]
+    ).stdout
+    batched_lowered_again = run(
+        [args.awen_opt, str(batched), "--awen-lower-stablehlo-to-device"]
+    ).stdout
+    if batched_lowered != batched_lowered_again:
+        raise SystemExit("batched StableHLO-to-Device lowering is not deterministic")
+    filecheck(args.filecheck, batched, batched_lowered)
+
+    for invalid_batch in (
+        "invalid_batch_dimensions.mlir",
+        "invalid_batch_contracting.mlir",
+        "invalid_batch_shape.mlir",
+    ):
+        run(
+            [
+                args.awen_opt,
+                str(args.source_dir / invalid_batch),
+                "--awen-import-stablehlo",
+                "--verify-diagnostics",
+            ]
+        )
     run(
         [
             args.awen_opt,
@@ -163,12 +214,25 @@ def main():
     executable = args.output_dir / "stablehlo_gemm.awenx"
     run([args.awen_compile, str(stablehlo), "-o", str(executable)])
     artifact = executable.read_bytes()
-    if not artifact.startswith(b"AWENEXE\0\x01\x00\x00\x00"):
-        raise SystemExit("awen-compile emitted an invalid executable header")
+    if executable_result_shapes(artifact) != [(256, 64)]:
+        raise SystemExit("rank-two executable lost its result shape")
     second_executable = args.output_dir / "stablehlo_gemm_second.awenx"
     run([args.awen_compile, str(stablehlo), "-o", str(second_executable)])
     if artifact != second_executable.read_bytes():
         raise SystemExit("awen-compile output is not deterministic")
+
+    batched_executable = args.output_dir / "batched_gemm.awenx"
+    run([args.awen_compile, str(batched), "-o", str(batched_executable)])
+    batched_artifact = batched_executable.read_bytes()
+    if executable_result_shapes(batched_artifact) != [
+        (2, 16, 8),
+        (-1, -1, -1),
+    ]:
+        raise SystemExit("batched executable lost its rank-three result shapes")
+    batched_executable_again = args.output_dir / "batched_gemm_second.awenx"
+    run([args.awen_compile, str(batched), "-o", str(batched_executable_again)])
+    if batched_artifact != batched_executable_again.read_bytes():
+        raise SystemExit("batched awen-compile output is not deterministic")
 
 
 if __name__ == "__main__":

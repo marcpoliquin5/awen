@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added strict normalized equal-batch rank-three StableHLO `dot_general`
+  lowering through typed MLIR dialects, deterministic AWENEXE emission, and
+  direct Rust runtime preparation.
 - Consolidated repository policy, security, CI, licensing, and release evidence.
 - Removed obsolete phase sign-offs and nonfunctional product directories.
 

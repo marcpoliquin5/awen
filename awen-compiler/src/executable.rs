@@ -168,7 +168,7 @@ impl<'a> Reader<'a> {
 mod tests {
     use super::*;
 
-    fn valid_package() -> Vec<u8> {
+    fn valid_package_with_result_shape(result_shape: &[i64]) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(EXECUTABLE_MAGIC);
         bytes.extend_from_slice(&EXECUTABLE_ABI_MAJOR.to_le_bytes());
@@ -188,13 +188,18 @@ mod tests {
         let layout = b"row_major";
         bytes.extend_from_slice(&(layout.len() as u16).to_le_bytes());
         bytes.extend_from_slice(layout);
-        bytes.push(2);
-        bytes.extend_from_slice(&256_i64.to_le_bytes());
-        bytes.extend_from_slice(&64_i64.to_le_bytes());
+        bytes.push(result_shape.len() as u8);
+        for dimension in result_shape {
+            bytes.extend_from_slice(&dimension.to_le_bytes());
+        }
         let bytecode = b"ML\xefRtest";
         bytes.extend_from_slice(&(bytecode.len() as u32).to_le_bytes());
         bytes.extend_from_slice(bytecode);
         bytes
+    }
+
+    fn valid_package() -> Vec<u8> {
+        valid_package_with_result_shape(&[256, 64])
     }
 
     #[test]
@@ -204,6 +209,42 @@ mod tests {
         assert_eq!(package.backend_id, "awen.reference.v1");
         assert_eq!(package.commands.len(), 1);
         assert_eq!(package.mlir_bytecode, b"ML\xefRtest");
+    }
+
+    #[test]
+    fn decodes_equal_batch_rank_three_executable() {
+        let package =
+            ExecutablePackage::decode(&valid_package_with_result_shape(&[2, 16, 8])).unwrap();
+        assert_eq!(
+            package.commands[0],
+            ExecutableCommand::ExecuteGemm {
+                tile_m: 128,
+                tile_n: 64,
+                tile_k: 32,
+                minimum_effective_bits: 8,
+                calibration: "required".to_string(),
+                layout: "row_major".to_string(),
+                result_shape: vec![2, 16, 8],
+            }
+        );
+    }
+
+    #[test]
+    fn decodes_dynamic_equal_batch_rank_three_executable() {
+        let package =
+            ExecutablePackage::decode(&valid_package_with_result_shape(&[-1, -1, -1])).unwrap();
+        assert_eq!(
+            package.commands[0],
+            ExecutableCommand::ExecuteGemm {
+                tile_m: 128,
+                tile_n: 64,
+                tile_k: 32,
+                minimum_effective_bits: 8,
+                calibration: "required".to_string(),
+                layout: "row_major".to_string(),
+                result_shape: vec![-1, -1, -1],
+            }
+        );
     }
 
     #[test]
