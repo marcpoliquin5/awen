@@ -171,7 +171,10 @@ for entry in marketplace:
     manifest = (ROOT / "awen-ecosystem/marketplace" / entry["manifest"]).resolve()
     if not manifest.is_relative_to(ROOT) or not manifest.is_file():
         fail(f"marketplace manifest escapes or is missing: {entry['manifest']}")
-    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    # Git may materialize text with platform line endings. Hash the repository's
+    # normalized text content so the pinned digest is stable across clean clones.
+    normalized = manifest.read_bytes().replace(b"\r\n", b"\n")
+    digest = hashlib.sha256(normalized).hexdigest()
     if entry.get("checksum_algorithm") != "sha256" or entry.get("checksum") != digest:
         fail(f"marketplace checksum drift for {entry['name']}")
 

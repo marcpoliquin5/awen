@@ -7,7 +7,7 @@
     "author": "AWEN contributors",
     "manifest": "../../awen-runtime/plugins/reference_sim/backend-manifest.json",
     "checksum_algorithm": "sha256",
-    "checksum": "7826ea8b4661b419f3d3e33450b361ffcd3122aca5f130619d0ac53b7003f358",
+    "checksum": "dc1bade9ffba85e039a4a30054b4c17d80649b471e6c341393923c60317ec1a2",
     "status": "reference-only"
   }
 ]
