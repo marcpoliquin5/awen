@@ -25,6 +25,7 @@ fn discover_and_register_unverified_manifest() {
         public_key: None,
         path: None,
         backend: None,
+        physical_design_adapters: Vec::new(),
     };
 
     // Write manifest file (no signature)
@@ -62,6 +63,7 @@ fn backend_discovery_requeries_live_health_and_exposes_unavailability() {
                 path: PathBuf::from("health.json"),
             },
         }),
+        physical_design_adapters: Vec::new(),
     };
     let manifest_path = directory.path().join("manifest.json");
     fs::write(
@@ -153,6 +155,7 @@ fn backend_version_skew_produces_a_discovery_diagnostic() {
                 path: PathBuf::from("health.json"),
             },
         }),
+        physical_design_adapters: Vec::new(),
     };
     fs::write(
         directory.path().join("manifest.json"),

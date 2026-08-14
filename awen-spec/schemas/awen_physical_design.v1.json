@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_physical_design.v1.json",
+  "title": "AWEN Physical Design Boundary v1",
+  "oneOf": [
+    { "$ref": "#/$defs/binding" },
+    { "$ref": "#/$defs/mapping_request" },
+    { "$ref": "#/$defs/mapping_response" }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "artifact_reference": {
+      "type": "object",
+      "required": ["artifact_id", "digest", "media_type"],
+      "properties": {
+        "artifact_id": { "type": "string", "pattern": "^(urn:.+|sha256:[0-9a-f]{64})$" },
+        "digest": { "$ref": "#/$defs/sha256" },
+        "media_type": { "type": "string", "minLength": 1 },
+        "uri": { "type": "string", "pattern": "^(https://.+|urn:.+)$" }
+      },
+      "additionalProperties": false
+    },
+    "pdk_reference": {
+      "type": "object",
+      "required": ["name", "version", "manifest"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "manifest": { "$ref": "#/$defs/artifact_reference" }
+      },
+      "additionalProperties": false
+    },
+    "process_corner": {
+      "type": "object",
+      "required": ["corner_id", "fingerprint", "temperature_c", "parameters"],
+      "properties": {
+        "corner_id": { "type": "string", "minLength": 1 },
+        "fingerprint": { "$ref": "#/$defs/sha256" },
+        "temperature_c": { "type": "number" },
+        "parameters": { "$ref": "#/$defs/parameters" }
+      },
+      "additionalProperties": false
+    },
+    "parameters": {
+      "type": "object",
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "type": "number" }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "evidence_kind": {
+      "enum": ["connectivity", "drc", "lvs", "circuit_simulation", "electromagnetic_simulation"]
+    },
+    "adapter": {
+      "type": "object",
+      "required": ["kind", "tool", "request_version", "response_version", "supported_evidence"],
+      "properties": {
+        "kind": { "enum": ["gdsfactory", "circuit_simulator", "electromagnetic_simulator"] },
+        "tool": { "$ref": "#/$defs/tool" },
+        "request_version": { "const": "awen.physical-design.v1" },
+        "response_version": { "const": "awen.physical-design.v1" },
+        "supported_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/evidence_kind" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "wavelength": {
+      "type": "object",
+      "required": ["minimum_nm", "maximum_nm"],
+      "properties": {
+        "minimum_nm": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum_nm": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "port": {
+      "type": "object",
+      "required": ["name", "kind", "center", "orientation_degrees", "width", "unit", "layer"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["optical", "electrical", "placement"] },
+        "center": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number" }
+        },
+        "orientation_degrees": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "enum": ["nanometer", "micrometer", "meter"] },
+        "layer": { "type": "string", "minLength": 1 },
+        "wavelength": { "$ref": "#/$defs/wavelength" },
+        "mode": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "optical" } }, "required": ["kind"] },
+          "then": { "required": ["wavelength"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": ["instance_id", "component", "ports", "settings"],
+      "properties": {
+        "instance_id": { "type": "string", "minLength": 1 },
+        "component": { "type": "string", "minLength": 1 },
+        "ports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/port" } },
+        "settings": { "$ref": "#/$defs/parameters" }
+      },
+      "additionalProperties": false
+    },
+    "endpoint": {
+      "type": "object",
+      "required": ["port_name"],
+      "properties": {
+        "instance_id": { "type": "string", "minLength": 1 },
+        "port_name": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "connection": {
+      "type": "object",
+      "required": ["source", "destination"],
+      "properties": {
+        "source": { "$ref": "#/$defs/endpoint" },
+        "destination": { "$ref": "#/$defs/endpoint" }
+      },
+      "additionalProperties": false
+    },
+    "topology": {
+      "type": "object",
+      "required": ["name", "external_ports", "nodes", "connections"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "external_ports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/port" } },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "connections": { "type": "array", "items": { "$ref": "#/$defs/connection" } }
+      },
+      "additionalProperties": false
+    },
+    "layout_constraints": {
+      "type": "object",
+      "required": ["unit", "maximum_crossings", "allowed_layers"],
+      "properties": {
+        "unit": { "enum": ["nanometer", "micrometer", "meter"] },
+        "maximum_width": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum_height": { "type": "number", "exclusiveMinimum": 0 },
+        "minimum_bend_radius": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum_path_length_imbalance": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum_crossings": { "type": "integer", "minimum": 0 },
+        "allowed_layers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "circuit_model": {
+      "type": "object",
+      "required": ["name", "framework", "artifact", "ports", "wavelength", "parameters"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "framework": { "enum": ["circulax", "sax", "touchstone", "analytic"] },
+        "artifact": { "$ref": "#/$defs/artifact_reference" },
+        "ports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "wavelength": { "$ref": "#/$defs/wavelength" },
+        "parameters": { "$ref": "#/$defs/parameters" }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["kind", "status", "tool", "settings_fingerprint", "report"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/evidence_kind" },
+        "status": { "const": "passed" },
+        "tool": { "$ref": "#/$defs/tool" },
+        "settings_fingerprint": { "$ref": "#/$defs/sha256" },
+        "report": { "$ref": "#/$defs/artifact_reference" }
+      },
+      "additionalProperties": false
+    },
+    "binding": {
+      "type": "object",
+      "required": [
+        "contract_version", "classification", "pdk", "process_corner", "component_library",
+        "topology_artifact", "topology", "layout_constraints", "circuit_models", "adapters", "verification"
+      ],
+      "properties": {
+        "contract_version": { "const": "awen.physical-design.v1" },
+        "classification": { "enum": ["open_reference", "proprietary_reference"] },
+        "pdk": { "$ref": "#/$defs/pdk_reference" },
+        "process_corner": { "$ref": "#/$defs/process_corner" },
+        "component_library": { "$ref": "#/$defs/artifact_reference" },
+        "topology_artifact": { "$ref": "#/$defs/artifact_reference" },
+        "topology": { "$ref": "#/$defs/topology" },
+        "layout_constraints": { "$ref": "#/$defs/layout_constraints" },
+        "circuit_models": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/circuit_model" } },
+        "adapters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/adapter" },
+          "contains": {
+            "type": "object",
+            "properties": { "kind": { "const": "gdsfactory" } },
+            "required": ["kind"]
+          }
+        },
+        "verification": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/verification" },
+          "contains": {
+            "type": "object",
+            "properties": {
+              "kind": { "const": "connectivity" },
+              "status": { "const": "passed" }
+            },
+            "required": ["kind", "status"]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "classification": { "const": "proprietary_reference" } },
+            "required": ["classification"]
+          },
+          "then": {
+            "properties": {
+              "pdk": {
+                "properties": {
+                  "manifest": { "not": { "required": ["uri"] } }
+                }
+              },
+              "process_corner": {
+                "properties": { "parameters": { "maxProperties": 0 } }
+              },
+              "component_library": { "not": { "required": ["uri"] } },
+              "topology_artifact": { "not": { "required": ["uri"] } },
+              "topology": {
+                "properties": {
+                  "nodes": { "maxItems": 0 },
+                  "connections": { "maxItems": 0 }
+                }
+              },
+              "circuit_models": {
+                "items": {
+                  "properties": {
+                    "artifact": { "not": { "required": ["uri"] } },
+                    "parameters": { "maxProperties": 0 }
+                  }
+                }
+              },
+              "verification": {
+                "items": {
+                  "properties": {
+                    "report": { "not": { "required": ["uri"] } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "contract_version", "binding_fingerprint", "classification", "pdk_name", "pdk_version",
+        "pdk_manifest", "process_corner_id", "process_corner_fingerprint", "component_library",
+        "topology_artifact", "circuit_model_artifacts", "verification_reports"
+      ],
+      "properties": {
+        "contract_version": { "const": "awen.physical-design.v1" },
+        "binding_fingerprint": { "$ref": "#/$defs/sha256" },
+        "classification": { "enum": ["open_reference", "proprietary_reference"] },
+        "pdk_name": { "type": "string", "minLength": 1 },
+        "pdk_version": { "type": "string", "minLength": 1 },
+        "pdk_manifest": { "$ref": "#/$defs/artifact_reference" },
+        "process_corner_id": { "type": "string", "minLength": 1 },
+        "process_corner_fingerprint": { "$ref": "#/$defs/sha256" },
+        "component_library": { "$ref": "#/$defs/artifact_reference" },
+        "topology_artifact": { "$ref": "#/$defs/artifact_reference" },
+        "circuit_model_artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact_reference" } },
+        "verification_reports": { "type": "array", "items": { "$ref": "#/$defs/artifact_reference" } }
+      },
+      "additionalProperties": false
+    },
+    "logical_operation": {
+      "type": "object",
+      "required": ["operation_id", "kind"],
+      "properties": {
+        "operation_id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["matrix_multiply", "phase_shift", "split", "combine", "detect"] }
+      },
+      "additionalProperties": false
+    },
+    "mapping_request": {
+      "type": "object",
+      "required": ["contract_version", "request_id", "logical_operations", "required_ports", "constraints", "candidate_topologies"],
+      "properties": {
+        "contract_version": { "const": "awen.physical-design.v1" },
+        "request_id": { "type": "string", "minLength": 1 },
+        "logical_operations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/logical_operation" } },
+        "required_ports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/port" } },
+        "constraints": { "$ref": "#/$defs/layout_constraints" },
+        "candidate_topologies": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/topology" } }
+      },
+      "additionalProperties": false
+    },
+    "mapping_response": {
+      "type": "object",
+      "required": ["contract_version", "request_id", "adapter", "binding"],
+      "properties": {
+        "contract_version": { "const": "awen.physical-design.v1" },
+        "request_id": { "type": "string", "minLength": 1 },
+        "adapter": { "$ref": "#/$defs/adapter" },
+        "binding": { "$ref": "#/$defs/binding" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

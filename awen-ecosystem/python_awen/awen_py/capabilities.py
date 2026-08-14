@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import hashlib
+import json
 import math
 import struct
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -19,6 +21,7 @@ HEALTH_VERSION = "awen.backend-health.v1"
 RUNTIME_ABI_VERSION = "awen.runtime-backend.v1"
 PLUGIN_ABI_VERSION = "awen.backend-plugin.v1"
 CALIBRATION_SNAPSHOT_VERSION = "awen.calibration-snapshot.v1"
+PHYSICAL_DESIGN_VERSION = "awen.physical-design.v1"
 
 
 class CapabilityError(ValueError):
@@ -117,6 +120,32 @@ class AnalogNoise:
 
 
 @dataclass(frozen=True)
+class PhysicalDesignBinding:
+    """Validated identity view over a closed physical-design binding.
+
+    ``canonical_json`` preserves the Rust contract's deterministic field order
+    and omission rules. The Python framework layer does not expose layout or
+    solver payloads; callers that need the complete public logical document can
+    decode this string explicitly.
+    """
+
+    contract_version: str
+    classification: str
+    pdk_name: str
+    pdk_version: str
+    process_corner_id: str
+    topology_name: str
+    circuit_models: Tuple[str, ...]
+    adapter_kinds: Tuple[str, ...]
+    verification_kinds: Tuple[str, ...]
+    fingerprint: str
+    canonical_json: str
+
+    def document(self) -> Mapping[str, Any]:
+        return json.loads(self.canonical_json)
+
+
+@dataclass(frozen=True)
 class NegotiationDiagnostic:
     code: str
     message: str
@@ -158,6 +187,7 @@ class DeviceCapabilities:
     accumulation_modes: Tuple[str, ...]
     calibration_requirements: CalibrationRequirements
     calibration_profile: Optional[CalibrationProfile]
+    physical_design: PhysicalDesignBinding
     host_bandwidth_gbps: float
     link_bandwidth_gbps: float
     boundary_latency_ns: float
@@ -194,6 +224,7 @@ class DeviceCapabilities:
             "simultaneous_channels",
             "accumulation_modes",
             "calibration_requirements",
+            "physical_design",
             "host_bandwidth_gbps",
             "link_bandwidth_gbps",
             "boundary_latency_ns",
@@ -341,6 +372,9 @@ class DeviceCapabilities:
                 ),
             ),
             calibration_profile=profile,
+            physical_design=_physical_design(
+                _mapping(value["physical_design"], "physical_design")
+            ),
             host_bandwidth_gbps=_number(
                 value["host_bandwidth_gbps"], "host_bandwidth_gbps"
             ),
@@ -891,6 +925,435 @@ def _calibration_channel(value: Mapping[str, Any]) -> CalibrationChannel:
     )
 
 
+def _physical_design(value: Mapping[str, Any]) -> PhysicalDesignBinding:
+    fields = {
+        "contract_version",
+        "classification",
+        "pdk",
+        "process_corner",
+        "component_library",
+        "topology_artifact",
+        "topology",
+        "layout_constraints",
+        "circuit_models",
+        "adapters",
+        "verification",
+    }
+    _strict_keys(value, fields, set(), "physical_design")
+    contract_version = _text(value["contract_version"], "physical_design version")
+    _expect_version(contract_version, PHYSICAL_DESIGN_VERSION, "physical design")
+    classification = _text(value["classification"], "physical_design classification")
+    if classification not in {"open_reference", "proprietary_reference"}:
+        raise CapabilityError("unsupported physical_design classification")
+    proprietary = classification == "proprietary_reference"
+
+    pdk = _mapping(value["pdk"], "physical_design pdk")
+    _strict_keys(pdk, {"name", "version", "manifest"}, set(), "physical_design pdk")
+    normalized_pdk = {
+        "name": _text(pdk["name"], "physical_design pdk name"),
+        "version": _text(pdk["version"], "physical_design pdk version"),
+        "manifest": _physical_artifact(
+            _mapping(pdk["manifest"], "physical_design pdk manifest"),
+            "physical_design pdk manifest",
+            proprietary,
+        ),
+    }
+
+    corner = _mapping(value["process_corner"], "physical_design process corner")
+    _strict_keys(
+        corner,
+        {"corner_id", "fingerprint", "temperature_c", "parameters"},
+        set(),
+        "physical_design process corner",
+    )
+    parameters = _physical_parameters(
+        _mapping(corner["parameters"], "physical_design process parameters"),
+        "physical_design process parameters",
+    )
+    normalized_corner = {
+        "corner_id": _text(corner["corner_id"], "physical_design process corner id"),
+        "fingerprint": _sha256_text(
+            corner["fingerprint"], "physical_design process corner fingerprint"
+        ),
+        "temperature_c": _number(
+            corner["temperature_c"], "physical_design process temperature"
+        ),
+        "parameters": parameters,
+    }
+    component_library = _physical_artifact(
+        _mapping(value["component_library"], "physical_design component library"),
+        "physical_design component library",
+        proprietary,
+    )
+    topology_artifact = _physical_artifact(
+        _mapping(value["topology_artifact"], "physical_design topology artifact"),
+        "physical_design topology artifact",
+        proprietary,
+    )
+    topology = _physical_topology(
+        _mapping(value["topology"], "physical_design topology")
+    )
+    topology_json = _canonical_json(topology)
+    topology_digest = "sha256:" + hashlib.sha256(topology_json.encode("utf-8")).hexdigest()
+    if topology_artifact["digest"] != topology_digest:
+        raise CapabilityError("physical_design topology artifact digest mismatch")
+    constraints = _physical_constraints(
+        _mapping(value["layout_constraints"], "physical_design constraints")
+    )
+
+    models = tuple(
+        _physical_model(
+            _mapping(item, "physical_design circuit model"), proprietary
+        )
+        for item in _sequence(value["circuit_models"], "physical_design circuit models")
+    )
+    if not models:
+        raise CapabilityError("physical_design requires a circuit model")
+    _non_empty_unique(
+        tuple(model["name"] for model in models), "physical_design circuit models"
+    )
+    adapters = tuple(
+        _physical_adapter(_mapping(item, "physical_design adapter"))
+        for item in _sequence(value["adapters"], "physical_design adapters")
+    )
+    if not adapters:
+        raise CapabilityError("physical_design requires an adapter")
+    adapter_kinds = tuple(adapter["kind"] for adapter in adapters)
+    _non_empty_unique(adapter_kinds, "physical_design adapter kinds")
+    if "gdsfactory" not in adapter_kinds:
+        raise CapabilityError("physical_design requires a gdsfactory adapter")
+    if any(model["framework"] == "circulax" for model in models) and (
+        "circuit_simulator" not in adapter_kinds
+    ):
+        raise CapabilityError("Circulax model requires a circuit-simulator adapter")
+
+    evidence = tuple(
+        _physical_evidence(
+            _mapping(item, "physical_design verification"), proprietary
+        )
+        for item in _sequence(value["verification"], "physical_design verification")
+    )
+    if not evidence or not any(item["kind"] == "connectivity" for item in evidence):
+        raise CapabilityError("physical_design requires passed connectivity evidence")
+    supported_evidence = {
+        kind for adapter in adapters for kind in adapter["supported_evidence"]
+    }
+    if any(item["kind"] not in supported_evidence for item in evidence):
+        raise CapabilityError("physical_design verification is not supported by an adapter")
+
+    if proprietary:
+        if parameters or any(node["settings"] for node in topology["nodes"]):
+            raise CapabilityError("proprietary physical_design parameters must not be embedded")
+        if topology["nodes"] or topology["connections"]:
+            raise CapabilityError("proprietary topology internals must not be embedded")
+        if any(model["parameters"] for model in models):
+            raise CapabilityError("proprietary circuit parameters must not be embedded")
+
+    normalized = {
+        "contract_version": contract_version,
+        "classification": classification,
+        "pdk": normalized_pdk,
+        "process_corner": normalized_corner,
+        "component_library": component_library,
+        "topology_artifact": topology_artifact,
+        "topology": topology,
+        "layout_constraints": constraints,
+        "circuit_models": list(models),
+        "adapters": list(adapters),
+        "verification": list(evidence),
+    }
+    canonical_json = _canonical_json(normalized)
+    return PhysicalDesignBinding(
+        contract_version=contract_version,
+        classification=classification,
+        pdk_name=normalized_pdk["name"],
+        pdk_version=normalized_pdk["version"],
+        process_corner_id=normalized_corner["corner_id"],
+        topology_name=topology["name"],
+        circuit_models=tuple(model["name"] for model in models),
+        adapter_kinds=adapter_kinds,
+        verification_kinds=tuple(item["kind"] for item in evidence),
+        fingerprint="sha256:" + hashlib.sha256(canonical_json.encode("utf-8")).hexdigest(),
+        canonical_json=canonical_json,
+    )
+
+
+def _physical_artifact(
+    value: Mapping[str, Any], name: str, proprietary: bool
+) -> Dict[str, Any]:
+    _strict_keys(
+        value,
+        {"artifact_id", "digest", "media_type"},
+        {"uri"},
+        name,
+    )
+    artifact_id = _text(value["artifact_id"], name + " artifact_id")
+    if artifact_id.startswith("sha256:"):
+        _sha256_text(artifact_id, name + " artifact_id")
+    elif not artifact_id.startswith("urn:") or artifact_id == "urn:":
+        raise CapabilityError(name + " artifact_id must be an immutable urn or sha256 identity")
+    normalized = {
+        "artifact_id": artifact_id,
+        "digest": _sha256_text(value["digest"], name + " digest"),
+        "media_type": _text(value["media_type"], name + " media_type"),
+    }
+    if value.get("uri") is not None:
+        uri = _text(value["uri"], name + " uri")
+        if not (
+            (uri.startswith("https://") and len(uri) > 8)
+            or (uri.startswith("urn:") and len(uri) > 4)
+        ):
+            raise CapabilityError(name + " uri must use https or urn")
+        if proprietary:
+            raise CapabilityError("proprietary physical_design references must not expose URIs")
+        normalized["uri"] = uri
+    return normalized
+
+
+def _physical_parameters(value: Mapping[str, Any], name: str) -> Dict[str, float]:
+    normalized: Dict[str, float] = {}
+    for key in sorted(value):
+        normalized[_text(key, name + " key")] = _number(value[key], name + " value")
+    return normalized
+
+
+def _physical_wavelength(value: Mapping[str, Any], name: str) -> Dict[str, float]:
+    _strict_keys(value, {"minimum_nm", "maximum_nm"}, set(), name)
+    minimum = _number(value["minimum_nm"], name + " minimum")
+    maximum = _number(value["maximum_nm"], name + " maximum")
+    if minimum <= 0 or maximum <= 0 or minimum > maximum:
+        raise CapabilityError(name + " is invalid")
+    return {"minimum_nm": minimum, "maximum_nm": maximum}
+
+
+def _physical_port(value: Mapping[str, Any], name: str) -> Dict[str, Any]:
+    required = {"name", "kind", "center", "orientation_degrees", "width", "unit", "layer"}
+    _strict_keys(value, required, {"wavelength", "mode"}, name)
+    kind = _text(value["kind"], name + " kind")
+    if kind not in {"optical", "electrical", "placement"}:
+        raise CapabilityError(name + " has an unsupported kind")
+    center = _sequence(value["center"], name + " center")
+    if len(center) != 2:
+        raise CapabilityError(name + " center must have two coordinates")
+    orientation = _number(value["orientation_degrees"], name + " orientation")
+    width = _number(value["width"], name + " width")
+    unit = _text(value["unit"], name + " unit")
+    if not 0 <= orientation < 360 or width <= 0:
+        raise CapabilityError(name + " has invalid orientation or width")
+    if unit not in {"nanometer", "micrometer", "meter"}:
+        raise CapabilityError(name + " has an unsupported unit")
+    normalized: Dict[str, Any] = {
+        "name": _text(value["name"], name + " name"),
+        "kind": kind,
+        "center": [_number(center[0], name + " center x"), _number(center[1], name + " center y")],
+        "orientation_degrees": orientation,
+        "width": width,
+        "unit": unit,
+        "layer": _text(value["layer"], name + " layer"),
+    }
+    if value.get("wavelength") is not None:
+        normalized["wavelength"] = _physical_wavelength(
+            _mapping(value["wavelength"], name + " wavelength"), name + " wavelength"
+        )
+    elif kind == "optical":
+        raise CapabilityError(name + " optical port requires a wavelength")
+    if value.get("mode") is not None:
+        normalized["mode"] = _text(value["mode"], name + " mode")
+    return normalized
+
+
+def _physical_topology(value: Mapping[str, Any]) -> Dict[str, Any]:
+    _strict_keys(value, {"name", "external_ports", "nodes", "connections"}, set(), "physical_design topology")
+    external_ports = [
+        _physical_port(_mapping(item, "physical_design external port"), "physical_design external port")
+        for item in _sequence(value["external_ports"], "physical_design external ports")
+    ]
+    _non_empty_unique(tuple(port["name"] for port in external_ports), "physical_design external ports")
+    nodes = []
+    for item in _sequence(value["nodes"], "physical_design topology nodes"):
+        node = _mapping(item, "physical_design topology node")
+        _strict_keys(node, {"instance_id", "component", "ports", "settings"}, set(), "physical_design topology node")
+        ports = [
+            _physical_port(_mapping(port, "physical_design node port"), "physical_design node port")
+            for port in _sequence(node["ports"], "physical_design node ports")
+        ]
+        _non_empty_unique(tuple(port["name"] for port in ports), "physical_design node ports")
+        nodes.append(
+            {
+                "instance_id": _text(node["instance_id"], "physical_design node id"),
+                "component": _text(node["component"], "physical_design component"),
+                "ports": ports,
+                "settings": _physical_parameters(
+                    _mapping(node["settings"], "physical_design node settings"),
+                    "physical_design node settings",
+                ),
+            }
+        )
+    _non_empty_unique(
+        tuple(node["instance_id"] for node in nodes),
+        "physical_design node ids",
+        allow_empty=True,
+    )
+    connections = []
+    for item in _sequence(value["connections"], "physical_design connections"):
+        connection = _mapping(item, "physical_design connection")
+        _strict_keys(connection, {"source", "destination"}, set(), "physical_design connection")
+        connections.append(
+            {
+                "source": _physical_endpoint(_mapping(connection["source"], "physical_design source")),
+                "destination": _physical_endpoint(_mapping(connection["destination"], "physical_design destination")),
+            }
+        )
+    normalized = {
+        "name": _text(value["name"], "physical_design topology name"),
+        "external_ports": external_ports,
+        "nodes": nodes,
+        "connections": connections,
+    }
+    _validate_physical_connections(normalized)
+    return normalized
+
+
+def _physical_endpoint(value: Mapping[str, Any]) -> Dict[str, str]:
+    _strict_keys(value, {"port_name"}, {"instance_id"}, "physical_design endpoint")
+    normalized = {}
+    if value.get("instance_id") is not None:
+        normalized["instance_id"] = _text(value["instance_id"], "physical_design endpoint node")
+    normalized["port_name"] = _text(value["port_name"], "physical_design endpoint port")
+    return normalized
+
+
+def _validate_physical_connections(topology: Mapping[str, Any]) -> None:
+    external = {port["name"] for port in topology["external_ports"]}
+    nodes = {node["instance_id"]: {port["name"] for port in node["ports"]} for node in topology["nodes"]}
+    seen = set()
+    for connection in topology["connections"]:
+        pair = []
+        for endpoint in (connection["source"], connection["destination"]):
+            instance = endpoint.get("instance_id")
+            ports = external if instance is None else nodes.get(instance)
+            if ports is None or endpoint["port_name"] not in ports:
+                raise CapabilityError("physical_design connection references an unknown port")
+            pair.append((instance, endpoint["port_name"]))
+        if pair[0] == pair[1] or tuple(pair) in seen:
+            raise CapabilityError("physical_design connections must be unique and non-reflexive")
+        seen.add(tuple(pair))
+
+
+def _physical_constraints(value: Mapping[str, Any]) -> Dict[str, Any]:
+    required = {"unit", "maximum_crossings", "allowed_layers"}
+    optional = {"maximum_width", "maximum_height", "minimum_bend_radius", "maximum_path_length_imbalance"}
+    _strict_keys(value, required, optional, "physical_design constraints")
+    unit = _text(value["unit"], "physical_design constraint unit")
+    if unit not in {"nanometer", "micrometer", "meter"}:
+        raise CapabilityError("physical_design constraint unit is unsupported")
+    normalized: Dict[str, Any] = {"unit": unit}
+    for field in ("maximum_width", "maximum_height", "minimum_bend_radius", "maximum_path_length_imbalance"):
+        if value.get(field) is not None:
+            number = _number(value[field], "physical_design " + field)
+            if number <= 0:
+                raise CapabilityError("physical_design constraints must be positive")
+            normalized[field] = number
+    crossings = _integer(value["maximum_crossings"], "physical_design maximum crossings")
+    if crossings < 0:
+        raise CapabilityError("physical_design maximum crossings must be non-negative")
+    layers = tuple(
+        _text(item, "physical_design allowed layer")
+        for item in _sequence(value["allowed_layers"], "physical_design allowed layers")
+    )
+    _non_empty_unique(layers, "physical_design allowed layers")
+    normalized["maximum_crossings"] = crossings
+    normalized["allowed_layers"] = list(layers)
+    return normalized
+
+
+def _physical_adapter(value: Mapping[str, Any]) -> Dict[str, Any]:
+    _strict_keys(value, {"kind", "tool", "request_version", "response_version", "supported_evidence"}, set(), "physical_design adapter")
+    kind = _text(value["kind"], "physical_design adapter kind")
+    if kind not in {"gdsfactory", "circuit_simulator", "electromagnetic_simulator"}:
+        raise CapabilityError("unsupported physical_design adapter kind")
+    tool = _mapping(value["tool"], "physical_design adapter tool")
+    _strict_keys(tool, {"name", "version"}, set(), "physical_design adapter tool")
+    request_version = _text(value["request_version"], "physical_design adapter request version")
+    response_version = _text(value["response_version"], "physical_design adapter response version")
+    _expect_version(request_version, PHYSICAL_DESIGN_VERSION, "physical design adapter request")
+    _expect_version(response_version, PHYSICAL_DESIGN_VERSION, "physical design adapter response")
+    evidence = tuple(
+        _text(item, "physical_design adapter evidence")
+        for item in _sequence(value["supported_evidence"], "physical_design adapter evidence")
+    )
+    allowed = {"connectivity", "drc", "lvs", "circuit_simulation", "electromagnetic_simulation"}
+    if any(item not in allowed for item in evidence):
+        raise CapabilityError("unsupported physical_design evidence kind")
+    _non_empty_unique(evidence, "physical_design adapter evidence", allow_empty=True)
+    return {
+        "kind": kind,
+        "tool": {"name": _text(tool["name"], "physical_design tool name"), "version": _text(tool["version"], "physical_design tool version")},
+        "request_version": request_version,
+        "response_version": response_version,
+        "supported_evidence": list(evidence),
+    }
+
+
+def _physical_model(value: Mapping[str, Any], proprietary: bool) -> Dict[str, Any]:
+    _strict_keys(value, {"name", "framework", "artifact", "ports", "wavelength", "parameters"}, set(), "physical_design circuit model")
+    framework = _text(value["framework"], "physical_design model framework")
+    if framework not in {"circulax", "sax", "touchstone", "analytic"}:
+        raise CapabilityError("unsupported physical_design circuit framework")
+    ports = tuple(
+        _text(item, "physical_design model port")
+        for item in _sequence(value["ports"], "physical_design model ports")
+    )
+    _non_empty_unique(ports, "physical_design model ports")
+    return {
+        "name": _text(value["name"], "physical_design model name"),
+        "framework": framework,
+        "artifact": _physical_artifact(_mapping(value["artifact"], "physical_design model artifact"), "physical_design model artifact", proprietary),
+        "ports": list(ports),
+        "wavelength": _physical_wavelength(_mapping(value["wavelength"], "physical_design model wavelength"), "physical_design model wavelength"),
+        "parameters": _physical_parameters(_mapping(value["parameters"], "physical_design model parameters"), "physical_design model parameters"),
+    }
+
+
+def _physical_evidence(value: Mapping[str, Any], proprietary: bool) -> Dict[str, Any]:
+    _strict_keys(value, {"kind", "status", "tool", "settings_fingerprint", "report"}, set(), "physical_design verification")
+    kind = _text(value["kind"], "physical_design verification kind")
+    allowed = {"connectivity", "drc", "lvs", "circuit_simulation", "electromagnetic_simulation"}
+    if kind not in allowed:
+        raise CapabilityError("unsupported physical_design verification kind")
+    if value["status"] != "passed":
+        raise CapabilityError("physical_design binding cannot contain failed evidence")
+    tool = _mapping(value["tool"], "physical_design verification tool")
+    _strict_keys(tool, {"name", "version"}, set(), "physical_design verification tool")
+    return {
+        "kind": kind,
+        "status": "passed",
+        "tool": {"name": _text(tool["name"], "physical_design verification tool name"), "version": _text(tool["version"], "physical_design verification tool version")},
+        "settings_fingerprint": _sha256_text(value["settings_fingerprint"], "physical_design verification settings"),
+        "report": _physical_artifact(_mapping(value["report"], "physical_design verification report"), "physical_design verification report", proprietary),
+    }
+
+
+def _canonical_json(value: Mapping[str, Any]) -> str:
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+
+def _sha256_text(value: Any, name: str) -> str:
+    text = _text(value, name)
+    digest = text.removeprefix("sha256:")
+    if not text.startswith("sha256:") or len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        raise CapabilityError(name + " must be a lowercase sha256 digest")
+    return text
+
+
+def _text(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise CapabilityError(name + " must be a non-empty string")
+    return value
+
+
 def _topology_fingerprint(capabilities: DeviceCapabilities) -> str:
     payload = bytearray(capabilities.backend_id.encode())
     for dimension in (
@@ -902,6 +1365,7 @@ def _topology_fingerprint(capabilities: DeviceCapabilities) -> str:
         payload.extend(struct.pack("<Q", dimension))
     for wavelength in capabilities.supported_wavelengths_nm:
         payload.extend(struct.pack("<d", wavelength))
+    payload.extend(capabilities.physical_design.fingerprint.encode())
     fingerprint = 0xCBF29CE484222325
     for byte in payload:
         fingerprint ^= byte

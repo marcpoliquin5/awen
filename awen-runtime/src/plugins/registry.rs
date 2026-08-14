@@ -1,5 +1,5 @@
 use anyhow::Result;
-use awen_compiler::{BackendHealth, BackendSnapshot, DeviceCapabilities};
+use awen_compiler::{BackendHealth, BackendSnapshot, DeviceCapabilities, PhysicalDesignAdapter};
 use base64::{engine::general_purpose, Engine as _};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,9 @@ pub struct PluginManifest {
     /// Typed compiler/runtime contract for hardware or simulator backends.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backend: Option<BackendPluginContract>,
+    /// Closed adapter contracts for gdsfactory, circuit, or EM integrations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub physical_design_adapters: Vec<PhysicalDesignAdapter>,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +85,13 @@ impl PluginRegistry {
         self.validate_manifest_envelope(manifest)?;
         if let Some(backend) = &manifest.backend {
             backend.capabilities.validate()?;
+        }
+        let mut adapter_kinds = std::collections::HashSet::new();
+        for adapter in &manifest.physical_design_adapters {
+            adapter.validate()?;
+            if !adapter_kinds.insert(adapter.kind) {
+                anyhow::bail!("physical-design adapter kinds must be unique");
+            }
         }
         Ok(())
     }
@@ -310,6 +320,7 @@ mod tests {
             public_key: None,
             path: None,
             backend: None,
+            physical_design_adapters: Vec::new(),
         };
 
         // No signature/public_key present — verify_manifest should return false
