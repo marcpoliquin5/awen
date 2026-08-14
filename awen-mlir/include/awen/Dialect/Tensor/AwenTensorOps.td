@@ -29,7 +29,7 @@ class AwenTensorOp<string mnemonic, list<Trait> traits = []>
     : Op<AwenTensorDialect, mnemonic, traits>;
 
 def AwenTensorGemmOp : AwenTensorOp<"gemm", [Pure]> {
-  let summary = "Rank-two matrix multiplication with an accuracy contract";
+  let summary = "Rank-two or equal-batch rank-three matrix multiplication";
   let arguments = (ins AnyRankedTensor:$lhs,
                        AnyRankedTensor:$rhs,
                        BoolAttr:$transpose_lhs,

@@ -28,6 +28,12 @@ bool equals(DenseI64ArrayAttr attr, ArrayRef<int64_t> expected) {
   return attr && attr.asArrayRef() == expected;
 }
 
+bool staticDimensionsMatch(RankedTensorType lhs, int64_t lhsDimension,
+                           RankedTensorType rhs, int64_t rhsDimension) {
+  return lhs.isDynamicDim(lhsDimension) || rhs.isDynamicDim(rhsDimension) ||
+         lhs.getDimSize(lhsDimension) == rhs.getDimSize(rhsDimension);
+}
+
 bool isSupportedElementType(Type type) {
   return type.isF32() || type.isF16() || type.isBF16() ||
          isa<ComplexType>(type);
@@ -74,7 +80,7 @@ public:
     for (Operation *op : stablehloOps) {
       if (op->getName().getStringRef() != "stablehlo.dot_general") {
         op->emitError("unsupported StableHLO operation; AWEN v1 imports only "
-                      "rank-two dot_general GEMM");
+                      "rank-two or equal-batch rank-three dot_general GEMM");
         signalPassFailure();
         return;
       }
@@ -94,10 +100,12 @@ private:
     auto lhs = dyn_cast<RankedTensorType>(op->getOperand(0).getType());
     auto rhs = dyn_cast<RankedTensorType>(op->getOperand(1).getType());
     auto result = dyn_cast<RankedTensorType>(op->getResult(0).getType());
-    if (!lhs || !rhs || !result || lhs.getRank() != 2 || rhs.getRank() != 2 ||
-        result.getRank() != 2)
-      return op->emitError("AWEN dot_general import requires rank-two lhs, "
-                           "rhs, and result tensors");
+    if (!lhs || !rhs || !result || (lhs.getRank() != 2 && lhs.getRank() != 3) ||
+        rhs.getRank() != lhs.getRank() || result.getRank() != lhs.getRank())
+      return op->emitError(
+          "AWEN dot_general import requires matching rank-two or rank-three "
+          "lhs, rhs, and result tensors");
+    const bool batched = lhs.getRank() == 3;
 
     if (lhs.getElementType() != rhs.getElementType() ||
         lhs.getElementType() != result.getElementType())
@@ -119,20 +127,35 @@ private:
       return op->emitError(
           "normalized dot_general requires lhs/rhs batching and contracting "
           "dimension attributes as dense i64 arrays");
-    if (!isEmpty(lhsBatch) || !isEmpty(rhsBatch))
-      return op->emitError("batched dot_general is not supported by AWEN v1");
-    if (!equals(lhsContract, {1}) || !equals(rhsContract, {0}))
+    if (!batched && (!isEmpty(lhsBatch) || !isEmpty(rhsBatch)))
       return op->emitError(
-          "AWEN v1 requires lhs contracting dimension [1] and rhs [0]");
+          "rank-two dot_general requires empty batching dimensions");
+    if (batched && (!equals(lhsBatch, {0}) || !equals(rhsBatch, {0})))
+      return op->emitError(
+          "rank-three dot_general requires lhs and rhs batching dimension [0]");
 
-    if (!lhs.isDynamicDim(1) && !rhs.isDynamicDim(0) &&
-        lhs.getDimSize(1) != rhs.getDimSize(0))
+    const int64_t lhsM = batched ? 1 : 0;
+    const int64_t lhsK = batched ? 2 : 1;
+    const int64_t rhsK = batched ? 1 : 0;
+    const int64_t rhsN = batched ? 2 : 1;
+    const int64_t resultM = batched ? 1 : 0;
+    const int64_t resultN = batched ? 2 : 1;
+    if (!equals(lhsContract, {lhsK}) || !equals(rhsContract, {rhsK}))
+      return op->emitError(
+          batched
+              ? "rank-three dot_general requires lhs contracting dimension "
+                "[2] and rhs [1]"
+              : "rank-two dot_general requires lhs contracting dimension [1] "
+                "and rhs [0]");
+
+    if (batched && (!staticDimensionsMatch(lhs, 0, rhs, 0) ||
+                    !staticDimensionsMatch(lhs, 0, result, 0)))
+      return op->emitError("static batch dimensions do not match");
+    if (!staticDimensionsMatch(lhs, lhsK, rhs, rhsK))
       return op->emitError("static contracting dimensions do not match");
-    if (!lhs.isDynamicDim(0) && !result.isDynamicDim(0) &&
-        lhs.getDimSize(0) != result.getDimSize(0))
+    if (!staticDimensionsMatch(lhs, lhsM, result, resultM))
       return op->emitError("result M dimension does not match lhs");
-    if (!rhs.isDynamicDim(1) && !result.isDynamicDim(1) &&
-        rhs.getDimSize(1) != result.getDimSize(1))
+    if (!staticDimensionsMatch(rhs, rhsN, result, resultN))
       return op->emitError("result N dimension does not match rhs");
 
     OpBuilder builder(op);

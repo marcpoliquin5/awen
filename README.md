@@ -31,7 +31,7 @@ awen.hil benchmark suite
   -> recomputed p50/p95/p99 distributions and regression findings
   -> content-addressed artifact set and fail-closed verified claim generation
 
-normalized stablehlo.dot_general
+normalized rank-two or equal-batch rank-three stablehlo.dot_general
   -> registered MLIR awen_tensor dialect
   -> registered MLIR awen_photonic dialect
   -> registered MLIR awen_device dialect
@@ -60,8 +60,8 @@ PyTorch / JAX / NumPy / C++
   -> versioned profiling and deterministic replay trace
 ```
 
-The MLIR path currently accepts only normalized rank-two StableHLO
-`dot_general`. The Python integration separately provides a real
+The MLIR path currently accepts normalized rank-two and equal-batch rank-three
+StableHLO `dot_general`. The Python integration separately provides a real
 `torch.compile` backend for matrix/linear regions, JAX portable StableHLO
 export/import, an in-process NumPy runtime, and analytic framework gradients.
 The separate awenBLAS semantic library covers 22 executable kernel kinds.
@@ -151,6 +151,10 @@ cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
 
 The runtime reads the versioned binary command table directly. It does not
 parse compiler JSON or launch an MLIR subprocess.
+
+The same pipeline accepts normalized equal-batch rank-three operands
+`[B,M,K]` and `[B,K,N]`, retains the result shape `[B,M,N]` in AWENEXE, and
+rejects nonmatching batch or contracting dimensions before device lowering.
 
 ## Execute the calibrated reference benchmark
 

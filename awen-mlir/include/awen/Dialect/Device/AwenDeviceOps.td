@@ -24,7 +24,7 @@ class AwenDeviceOp<string mnemonic, list<Trait> traits = []>
     : Op<AwenDeviceDialect, mnemonic, traits>;
 
 def AwenDeviceExecuteGemmOp : AwenDeviceOp<"execute_gemm"> {
-  let summary = "Executable tiled GEMM dispatch";
+  let summary = "Executable rank-two or equal-batch rank-three GEMM dispatch";
   let arguments = (ins AnyRankedTensor:$lhs,
                        AnyRankedTensor:$rhs,
                        StrAttr:$backend,

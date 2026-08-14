@@ -128,8 +128,11 @@ int main(int argc, char **argv) {
     auto resultType =
         llvm::cast<mlir::RankedTensorType>(command.getResult().getType());
     artifact.push_back(static_cast<char>(resultType.getRank()));
-    for (int64_t dimension : resultType.getShape())
-      appendLittleEndian<int64_t>(artifact, dimension);
+    for (int64_t dimension : resultType.getShape()) {
+      const int64_t abiDimension =
+          mlir::ShapedType::isDynamic(dimension) ? -1 : dimension;
+      appendLittleEndian<int64_t>(artifact, abiDimension);
+    }
   }
 
   appendLittleEndian<uint32_t>(artifact,

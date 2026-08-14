@@ -7,7 +7,7 @@ and versioned schemas remain authoritative where they are more specific.
 | --- | --- | --- |
 | Rust tensor-to-photonic compiler | Implemented experimental slice | `awen-compiler`, compiler tests, typed schemas |
 | Rust runtime/HAL/scheduler/simulator | Implemented experimental reference | `awen-runtime`, runtime integration tests |
-| MLIR StableHLO rank-two GEMM path | Implemented narrow path | `awen-mlir` build and lit/CTest coverage |
+| MLIR StableHLO rank-two/equal-batch rank-three GEMM path | Implemented narrow path | `awen-mlir` build, deterministic AWENEXE, and lit/CTest coverage |
 | PyTorch/JAX/NumPy/C++ integration | Implemented reference boundaries | framework tests and compiled ABI tests |
 | Classical and quantum-photonic dialects | Implemented typed contracts | AEP-0020, schemas, runtime conformance |
 | Physical-design integration | Implemented metadata/evidence boundary only | AEP-0021 and physical-design conformance |
