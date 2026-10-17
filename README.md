@@ -1,4 +1,79 @@
+<div align="center">
+
 # AWEN
+
+**An open, experimental compiler and runtime for computing with light.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![AWEN Required Quality Gate](https://github.com/marcpoliquin5/awen/actions/workflows/observability-quality-gate.yml/badge.svg?branch=main)](https://github.com/marcpoliquin5/awen/actions/workflows/observability-quality-gate.yml)
+
+[Status site](https://marcpoliquin5.github.io/awenphotonics.github.io/) · [Implementation status](docs/IMPLEMENTATION-STATUS.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+## Why AWEN
+
+Neural networks spend most of their time multiplying matrices. Programmable
+photonic circuits can perform matrix multiplication with interfering light, but
+they are analog, finite in size, sensitive to calibration and drift, and must
+share work with CPUs and GPUs. AWEN is the software layer that takes a tensor
+program from a standard framework and decides, with explicit precision, error,
+and calibration contracts, what can run on a photonic matrix core, how to tile
+it, and how to verify the result against a CPU reference.
+
+```mermaid
+flowchart LR
+    F["PyTorch / JAX / NumPy<br/>or StableHLO"] --> C["AWEN compiler<br/>validation, precision and<br/>calibration contracts,<br/>CPU/GPU/photonic partitioning,<br/>GEMM tiling"]
+    C --> IR["Photonic IR<br/>to Device IR"]
+    IR --> R["AWEN runtime<br/>HAL, scheduler,<br/>observability"]
+    R --> S["Seeded analog-noise simulator<br/>with CPU comparison"]
+    R -.-> H["External hardware or lab drivers<br/>(no verified hardware results yet)"]
+```
+
+> **Status:** AWEN is experimental. The compiler, runtime, MLIR path, and
+> framework integrations are implemented as narrow, tested reference slices.
+> Physical accelerator performance is **not established**; see
+> [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md).
+
+## Quickstart
+
+Requires a current stable Rust toolchain (the crates declare `rust-version = "1.87"`; some dependencies need a newer release) and Python 3.10 or newer.
+
+```bash
+git clone https://github.com/marcpoliquin5/awen.git
+cd awen
+
+# Compile a 256 x 256 GEMM for a 128 x 128 photonic matrix core
+cargo run --manifest-path awen-runtime/Cargo.toml --bin awenctl -- \
+  compile awen-compiler/examples/gemm_256.json \
+  --capabilities awen-compiler/capabilities/pace_like_128.json \
+  --health awen-compiler/capabilities/pace_like_128.health.json \
+  --target photonic \
+  --output awen_compilation.json
+```
+
+Or use AWEN as a `torch.compile` backend for matrix and linear regions:
+
+```bash
+python -m pip install -e "awen-ecosystem/python_awen[frameworks,test]"
+```
+
+```python
+import torch
+from awen_py import awen
+
+model = torch.compile(model, backend=awen, dynamic=True)
+```
+
+The full build-and-verify procedure is in [Build and verify](#build-and-verify).
+
+## Related repositories
+
+- [awen-labs](https://github.com/marcpoliquin5/awen-labs): interactive platform website (React, TypeScript).
+- [awenphotonics.github.io](https://github.com/marcpoliquin5/awenphotonics.github.io): static, evidence-checked status site.
+- [understanding-ai](https://github.com/marcpoliquin5/understanding-ai): background on [photonic computing for AI](https://github.com/marcpoliquin5/understanding-ai/blob/main/docs/06-frontiers/photonic-computing.md).
+
+## Technical overview
 
 AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python integrations, MLIR lowering, and reference ecosystem metadata.
 
