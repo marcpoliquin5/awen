@@ -239,6 +239,7 @@ jobs:
       - name: Check safe model loading policy (no remote code, no pickle)
         run: |
           python scripts/check_safe_model_loading.py
+          python -m pip install --disable-pip-version-check "pyyaml==6.0.3"
           python -m pytest scripts/tests -q
 
       - name: Generate CycloneDX SBOMs

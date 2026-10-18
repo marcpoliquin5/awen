@@ -1,0 +1,138 @@
+# AWEN hardware assumptions, set v0 (Master Prompt v2, section 9).
+#
+# Every simulator, cost estimate and benchmark is meant to read device energies and noise
+# from this file; no other file may hard-code them. Wiring the noise model and cost
+# estimates to this file is a separate change (see STATUS.md).
+#
+# Each parameter has low / typical / high values (or, where marked kind: sweep, values keyed by
+# a swept variable such as bit depth), a unit, and a source with a type:
+#   measured  - peer-reviewed measurement (citation)
+#   vendor    - manufacturer claim, not independently verified
+#   estimate  - derived by AWEN with the stated formula
+# A value of null means no checked source yet. A null is never filled with a guess.
+# Sources were checked on 2026-10-18 against the publisher page or the Crossref record.
+version: awen.hardware-assumptions.v0
+date: "2026-10-18"
+
+sources:
+  hua2025:
+    citation: "S. Hua et al., An integrated large-scale photonic accelerator with ultralow latency, Nature 640, 361-367 (2025)"
+    doi: 10.1038/s41586-025-08786-6
+    type: measured
+    note: "Lightelligence PACE, 64x64 incoherent MAC, 65-nm silicon photonics + 28-nm CMOS EIC"
+  wang2018:
+    citation: "C. Wang et al., Integrated lithium niobate electro-optic modulators operating at CMOS-compatible voltages, Nature 562, 101-104 (2018)"
+    doi: 10.1038/s41586-018-0551-y
+    type: measured
+  xu2024:
+    citation: "Z. Xu et al., Large-scale photonic chiplet Taichi empowers 160-TOPS/W artificial general intelligence, Science 384, 202-209 (2024)"
+    doi: 10.1126/science.adl1203
+    type: measured
+    note: "on-chip efficiency figure; Master Prompt v2 notes it excludes much of the system electronics"
+  ramkaj2020:
+    citation: "A. T. Ramkaj et al., A 5-GS/s 158.6-mW 9.4-ENOB passive-sampling time-interleaved three-stage pipelined-SAR ADC with analog-digital corrections in 28-nm CMOS, IEEE JSSC (2020)"
+    doi: 10.1109/jssc.2019.2960476
+    type: measured
+  lagos2021:
+    citation: "J. Lagos et al., A 10.0 ENOB, 6.2 fJ/conv.-step, 500 MS/s ringamp-based pipelined-SAR ADC with background calibration and dynamic reference regulation in 16nm CMOS, Symposium on VLSI Circuits (2021)"
+    doi: 10.23919/vlsicircuits52068.2021.9492354
+    type: measured
+  harris2014:
+    citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487 (2014)"
+    doi: 10.1364/OE.22.010487
+    type: measured
+    note: "citation checked on Crossref; values not yet read from the paper, so none are used"
+
+parameters:
+  laser:
+    channel_optical_power:
+      {low: null, typical: null, high: 30.0, unit: mW, source: hua2025,
+       notes: "per laser channel, 'sub-mW to about 30 mW' in the PACE system"}
+    wall_plug_efficiency: {low: null, typical: null, high: null, unit: fraction, source: null}
+    rin: {low: null, typical: null, high: null, unit: dB/Hz, source: null,
+          notes: "the noise contract default (-150 dB/Hz) is an illustrative operating point, not sourced"}
+    linewidth: {low: null, typical: null, high: null, unit: Hz, source: null}
+  coupler:
+    grating_coupler_loss:
+      {low: null, typical: 1.0, high: null, unit: dB, source: hua2025,
+       notes: "average coupling efficiency about -1 dB near 1310 nm"}
+  modulator:
+    tfln_half_wave_voltage:
+      {low: null, typical: 1.4, high: 4.4, unit: V, source: wang2018,
+       notes: "1.4 V for a 20-mm device, 4.4 V for 5 mm"}
+    tfln_on_chip_loss: {low: null, typical: null, high: 0.5, unit: dB, source: wang2018,
+                        notes: "reported as less than 0.5 dB"}
+    tfln_extinction_ratio: {low: null, typical: 30.0, high: null, unit: dB, source: wang2018}
+    tfln_data_rate: {low: null, typical: null, high: 210.0, unit: Gbit/s, source: wang2018}
+    silicon_vector_modulator_rate: {low: null, typical: 1.0, high: null, unit: GHz, source: hua2025}
+    silicon_weight_modulator_rate: {low: null, typical: 0.01, high: null, unit: GHz, source: hua2025,
+                                    notes: "10 MHz weight update with 8-bit design accuracy"}
+    energy_per_symbol: {low: null, typical: null, high: null, unit: fJ, source: null}
+  phase_shifter:
+    thermo_optic_power_per_pi: {low: null, typical: null, high: null, unit: mW, source: harris2014}
+    thermo_optic_reconfiguration_time: {low: null, typical: null, high: null, unit: us, source: harris2014}
+  mzi:
+    insertion_loss: {low: null, typical: null, high: null, unit: dB, source: null}
+    splitter_imbalance: {low: null, typical: null, high: null, unit: fraction, source: null}
+    crosstalk: {low: null, typical: null, high: null, unit: dB, source: null}
+  microring:
+    quality_factor: {low: null, typical: null, high: null, unit: dimensionless, source: null}
+    thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null}
+    locking_overhead: {low: null, typical: null, high: null, unit: mW, source: null}
+  photodetector:
+    responsivity: {low: null, typical: 1.0, high: null, unit: A/W, source: hua2025,
+                   notes: "germanium detectors, around 1 A/W"}
+    dark_current: {low: null, typical: null, high: null, unit: nA, source: null}
+    bandwidth: {low: null, typical: null, high: null, unit: GHz, source: null}
+  adc:
+    energy_per_conversion:
+      low: 6.35
+      typical: null
+      high: 31.7
+      unit: pJ
+      source: [lagos2021, ramkaj2020]
+      type: estimate
+      notes: >-
+        low = Walden FOM x 2^ENOB = 6.2 fJ x 2^10.0 (500 MS/s);
+        high = power / sample rate = 158.6 mW / 5 GS/s (9.4 ENOB)
+    effective_bits:
+      {low: 9.4, typical: null, high: 10.0, unit: bits, source: [ramkaj2020, lagos2021],
+       notes: "ENOB of the two cited standalone CMOS ADCs (9.4 at 5 GS/s, 10.0 at 500 MS/s); not a photonic-system ENOB"}
+  dac:
+    weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025}
+    energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null}
+  shot_noise:
+    # A keyed sweep by bit depth, NOT an uncertainty range: each entry is the shot-noise floor
+    # for one target precision.
+    shot_noise_energy_per_detection_J:
+      kind: sweep
+      sweep_over: effective_bits
+      unit: J
+      source: null
+      type: estimate
+      values: {4: 3.28e-17, 6: 5.25e-16, 8: 8.39e-15}
+      per_mac_formula: "E_per_MAC = E_per_detection / N for an N-input dot product (one detection per output)"
+      notes: >-
+        Optical energy per detected output: E = n h c / lambda at lambda = 1550 nm
+        (1.282e-19 J per photon), with n = 4^b detected photons for b effective bits
+        (SNR = sqrt(n), one bit per factor 2 in SNR). Per detection, not per MAC; divide by
+        the dot-product length N for a per-MAC figure. Optics only; not a system energy.
+  channels:
+    rule: "channel counts are device capabilities, read from the device descriptor; never assumed here"
+    wavelengths: null
+    modes: null
+    polarizations: null
+    inter_channel_crosstalk: {low: null, typical: null, high: null, unit: dB, source: null}
+  system:
+    pace_enob:
+      {low: null, typical: 7.61, high: null, unit: bits, source: hua2025,
+       notes: "average channel ENOB of the whole PACE optical MAC system (25 MHz, no active feedback); a system figure, not an ADC spec"}
+    efficiency_including_lasers:
+      {low: null, typical: 2.38, high: null, unit: TOPS/W, source: hua2025,
+       notes: "4.21 TOPS/W excluding lasers; about 8.19 TOPS throughput"}
+    on_chip_efficiency_reported:
+      {low: null, typical: 160.0, high: null, unit: TOPS/W, source: xu2024,
+       notes: "on-chip figure; not comparable to system figures"}
+    control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null}
+    host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null}
+    thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null}
