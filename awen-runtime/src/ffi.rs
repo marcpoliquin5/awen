@@ -183,7 +183,9 @@ where
     }
 }
 
-fn ffi_boundary(function: impl FnOnce() -> Result<(), (AwenStatus, String)>) -> AwenStatus {
+pub(crate) fn ffi_boundary(
+    function: impl FnOnce() -> Result<(), (AwenStatus, String)>,
+) -> AwenStatus {
     clear_error();
     match catch_unwind(AssertUnwindSafe(function)) {
         Ok(Ok(())) => AwenStatus::Ok,
@@ -208,8 +210,12 @@ fn set_error(message: &str) {
         .with(|slot| *slot.borrow_mut() = CString::new(sanitized).expect("NUL bytes were removed"));
 }
 
-#[allow(dead_code)]
-unsafe fn _c_string(pointer: *const c_char) -> Result<String, (AwenStatus, String)> {
+/// Read a caller-owned NUL-terminated UTF-8 string.
+///
+/// # Safety
+///
+/// `pointer` must be null or point to a NUL-terminated string.
+pub(crate) unsafe fn c_string(pointer: *const c_char) -> Result<String, (AwenStatus, String)> {
     if pointer.is_null() {
         return Err((AwenStatus::InvalidArgument, "string pointer is null".into()));
     }

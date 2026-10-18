@@ -161,6 +161,27 @@ unknown operations are errors; mixed recognized dialects receive an explicit
 interop warning. See AEP-0020 and
 `awen-spec/specs/photonic-dialect-separation.md`.
 
+## Capability explorer and kernel profiler
+
+```bash
+# Summarise a device capability, plugin manifest, hardware description or awenBLAS backend profiles
+awenctl caps awen-compiler/capabilities/reference_2x2.json          # key: value text
+awenctl caps awen-compiler/kernels/reference_kernel_backends.json --json
+# Time one awenBLAS request and write a Chrome/Perfetto trace
+awenctl profile awen-compiler/kernels/transformer_qkv.json --mode simulator --repeat 20 \
+  --trace qkv.trace.json
+```
+
+`profile` reports host wall-clock times of the CPU reference or the photonic
+noise-model simulator, labelled as such. They are not device timings.
+
+## Runtime services (`awen_runtime::devrt`)
+
+Ordered streams and events, memory residency, leases and budgets,
+health-aware placement with CPU fallback, deterministic seeding with
+bit-exact experiment replay, and the profiler used by `awenctl profile`.
+All devices involved are simulated.
+
 ## Legacy graph commands
 
 Run the reference graph engine:
