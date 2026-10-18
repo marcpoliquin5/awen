@@ -1,0 +1,123 @@
+"""awen-spec/hardcoded_device_defaults.yaml must list exactly the device literals in the code."""
+
+import shutil
+import sys
+from collections import Counter
+from pathlib import Path
+
+import pytest
+import yaml  # required: CI pins pyyaml==6.0.3
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import hardcoded_defaults as hd
+
+INVENTORY = yaml.safe_load(hd.INVENTORY.read_text())
+
+
+def copy_tree(tmp_path: Path) -> Path:
+    for tree in INVENTORY["scope"]:
+        shutil.copytree(ROOT / tree, tmp_path / tree)
+    (tmp_path / "awen-spec").mkdir(exist_ok=True)
+    for name in ("hardcoded_device_defaults.yaml", "hardware_assumptions.yaml"):
+        shutil.copy(ROOT / "awen-spec" / name, tmp_path / "awen-spec" / name)
+    return tmp_path
+
+
+def edit(path: Path, old: str, new: str) -> None:
+    text = path.read_text()
+    assert text.count(old) == 1, old
+    path.write_text(text.replace(old, new))
+
+
+def test_inventory_matches_code_and_assumptions():
+    assert hd.check() == []
+
+
+def test_inventory_summary():
+    assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
+    assert INVENTORY["scope"] == ["awen-compiler/src"]
+    assert any(item.startswith("awen-runtime/src") for item in INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 95
+    assert Counter(e["status"] for e in INVENTORY["entries"]) == {
+        "unsourced": 76,
+        "definitional": 15,
+        "differs_from_assumption": 3,
+        "matches_assumption": 1,
+    }
+
+
+def test_new_hard_coded_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/noise.rs", "            photons_per_mac: Some(1000.0),\n",
+         "            photons_per_mac: Some(1000.0),\n            laser_energy_pj_per_mac: 3.0,\n")
+    assert any("new hard-coded device default" in p and "laser_energy_pj_per_mac" in p for p in hd.check(root))
+
+
+def test_changed_value_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/noise.rs", "rin_db_per_hz: Some(-150.0),", "rin_db_per_hz: Some(-140.0),")
+    assert any("rin_db_per_hz" in p and "code has -140.0" in p for p in hd.check(root))
+
+
+def test_removed_literal_is_reported_stale(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/cost.rs", "            memory_energy_pj_per_byte: 0.5,\n",
+         "            memory_energy_pj_per_byte: assumptions.memory_energy(),\n")
+    assert any("stale entry" in p and "memory_energy_pj_per_byte" in p for p in hd.check(root))
+
+
+def test_status_must_agree_with_assumption_values(tmp_path):
+    root = copy_tree(tmp_path)
+    inv = root / "awen-spec/hardcoded_device_defaults.yaml"
+    edit(inv, "field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: matches_assumption",
+         "field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: unsourced")
+    assert any("marked unsourced" in p for p in hd.check(root))
+
+
+def test_unknown_assumption_key_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    inv = root / "awen-spec/hardcoded_device_defaults.yaml"
+    edit(inv, "assumption: laser.rin,", "assumption: laser.not_a_parameter,")
+    assert any("not a parameter" in p for p in hd.check(root))
+
+
+def test_literal_in_a_new_function_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-compiler/src/cost.rs"
+    path.write_text(path.read_text().replace("#[cfg(test)]\nmod tests", "pub fn new_profile() -> Profile {\n    Profile {\n        laser_power_mw: 9.0,\n    }\n}\n\n#[cfg(test)]\nmod tests", 1))
+    assert any("new_profile" in p and "laser_power_mw" in p for p in hd.check(root))
+
+
+def test_contexts_numbering_and_test_module_cut():
+    text = (
+        "impl Default for Thing {\n    fn default() -> Self {\n        Self {\n"
+        "            gain: 0.9,\n            inner: Inner {\n                gain: 0.8,\n            },\n"
+        "            label: 3.0,\n        }\n    }\n}\n\n"
+        "fn free() {\n    let x = Y { energy_uj: 0.0, };\n    let y = Y {\n        energy_uj: 0.5,\n    };\n}\n\n"
+        "#[cfg(test)]\nmod tests {\n    fn t() { Z {\n        laser_power_mw: 1.0,\n    }; }\n}\n"
+    )
+    assert hd.literals(text) == {
+        ("impl Default for Thing::default", "gain"): 0.9,
+        ("impl Default for Thing::default", "gain#2"): 0.8,
+        ("free", "energy_uj"): 0.5,
+    }
+
+
+@pytest.mark.parametrize(
+    "line,expected",
+    [
+        ("            laser_power_mw: 2_000.0,", ("laser_power_mw", 2000.0)),
+        ("            rin_db_per_hz: Some(-150.0),", ("rin_db_per_hz", -150.0)),
+        ("            detection_bandwidth_hz: 10e9,", ("detection_bandwidth_hz", 10e9)),
+        ("            shot_noise_fraction: 0.000_05,", ("shot_noise_fraction", 5e-05)),
+    ],
+)
+def test_literal_forms(line, expected):
+    match = hd.LITERAL.match(line)
+    assert match and (match.group(1), hd.parse_number(match.group(2))) == expected
+
+
+def test_formulas_are_not_literals():
+    assert hd.LITERAL.match("            signal_to_noise_ratio_db: 6.02 * f64::from(bits) + 1.76,") is None
