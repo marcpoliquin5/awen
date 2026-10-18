@@ -96,7 +96,7 @@ impl PluginRegistry {
         Ok(())
     }
 
-    fn validate_manifest_envelope(&self, manifest: &PluginManifest) -> Result<()> {
+    pub(crate) fn validate_manifest_envelope(&self, manifest: &PluginManifest) -> Result<()> {
         if manifest.manifest_version != PLUGIN_MANIFEST_VERSION {
             anyhow::bail!(
                 "unsupported plugin manifest version '{}'; expected '{}'",
