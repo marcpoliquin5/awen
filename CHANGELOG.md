@@ -19,6 +19,23 @@
   (exclusive/shared, logical-clock expiry) with operation, energy and wall-time
   budgets. Budgets enforce caller-reported or simulator-estimated usage; they
   are not hardware measurements (refs #64).
+- Added `awen_py.stablehlo_exec`: runs the StableHLO that JAX lowers
+  (`dot_general` on the f64 reference or the photonic noise model,
+  simulated; a few shape and elementwise ops electronically) and refuses
+  other operations by name. Checked against JAX CPU. This is not yet a PJRT
+  plugin; `docs/PJRT_BOUNDARY.md` records what remains (#100, refs #61).
+- Added the quantum-photonic resource model (`awen_qphotonic.resources`) and
+  a small quantum-kernel experiment (`awen_qphotonic.kernel`,
+  `awen-qkernel`) compared with RBF and linear baselines on the same
+  splits. Committed results (simulation, three seeds): the photonic kernel
+  scores below RBF on both toy datasets; no advantage is claimed (#99,
+  closes #69).
+- Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
+  formalism with hbar = 2): squeezing, two-mode squeezing, passive
+  interferometers, displacement, pure loss, thermal states, purity,
+  symplectic eigenvalues, vacuum probability, homodyne sampling and
+  conditioning. Checked against closed forms and a truncated-Fock-space
+  squeeze operator. Simulation only (#98, refs #69).
 - Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
   separate from the classical photonic domain (AEP-0020): permanents by
   Ryser's formula, Fock-space linear optics, exact boson sampling for small
