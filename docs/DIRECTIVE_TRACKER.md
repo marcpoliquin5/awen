@@ -85,5 +85,5 @@ their testable portion implemented and the blocked boundary written down.
 | S2 | Lab Agent (simulation only, approval gates) | proposed | | | hardware actions disabled; #76 |
 | S3 | Cloud architecture doc, marked not available | proposed | | | no service |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
-| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | proposed | | | #78 |
+| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | implemented | #PRX1B | `tests/plugin_signing.rs` (10), `scripts/tests` (6), cargo-deny + SBOM + safe-loading steps in the gate; release checksums land with X2 | #78 |
 | X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |

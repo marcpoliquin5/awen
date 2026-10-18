@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Security (X1b): trust-pinned Ed25519 plugin signing (`TrustedKeys`,
+  `sign_manifest`, `discover_trusted`; `awenctl plugin keygen|sign|verify|discover`)
+  so self-signed manifests from unpinned keys are rejected; `cargo deny`
+  license/source policy (`deny.toml`); CycloneDX SBOMs for the three Rust
+  crates and the CI Python environment (`scripts/generate_sbom.py`, uploaded
+  per CI run); an AST-based safe-model-loading check (no remote code, no
+  pickle, `torch.load` only with `weights_only=True`); `docs/REPRODUCIBLE_BUILDS.md`
+  and `docs/COMPATIBILITY.md` (refs #78).
 - Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
   when no GPU is visible), the AWEN software reference, the photonic
   simulator and a hybrid placement on GEMM and AWEN-Mini inference, with

@@ -1,0 +1,35 @@
+# cargo-deny policy for AWEN's Rust crates (license compliance, X1b).
+# Run for each crate:
+#   cargo deny --manifest-path awen-runtime/Cargo.toml --config deny.toml check licenses sources
+# Advisories are enforced separately by `cargo audit` in the quality gate.
+
+[graph]
+all-features = true
+
+[licenses]
+# Permissive licenses only. Adding a license here is a policy change that must be
+# argued in the pull request. Copyleft (GPL/AGPL/SSPL/BUSL) is not accepted.
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-1-Clause",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+confidence-threshold = 0.9
+# One allowlist serves three crates; not every crate uses every license.
+unused-allowed-license = "allow"
+
+[licenses.private]
+# The AWEN workspace crates are not published to crates.io.
+ignore = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
