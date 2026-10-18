@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Research (R1–R3): `research/ledger/` adds the research ledger schema
+  (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
+  (unchecked rows land as `citation pending`) and 15 seed directions, each
+  with a citation checked against Crossref. The 72-paper historical ledger is
+  not available and is not reconstructed. `research/frontier-physics/` adds
+  hypotheses H1 (Casimir), H2 (toroidal/fractal optics) and H3 (information
+  capacity), each with falsification conditions and runnable checks of the
+  established results they build on. `docs/RESEARCH_PIPELINE.md` describes
+  the research-to-code path. Kept separate from the core; no free-energy
+  claims (refs #77).
 - Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
   when no GPU is visible), the AWEN software reference, the photonic
   simulator and a hybrid placement on GEMM and AWEN-Mini inference, with
