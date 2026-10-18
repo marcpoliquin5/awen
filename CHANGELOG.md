@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgraded the runtime's `jsonschema` from 0.16 to 0.59 (closes #79). A new
+  `awen_runtime::schema` module wraps it for every caller: formats are
+  asserted under every draft (0.16 behaviour), `$ref`s resolve only against
+  documents passed in (offline; nothing is fetched), and errors come back as
+  a flat message list. 0.59 resolves references eagerly, so the plugin-manifest
+  conformance test now registers the capability and calibration schemas it
+  transitively references.
 - Security (X1b): trust-pinned Ed25519 plugin signing (`TrustedKeys`,
   `sign_manifest`, `discover_trusted`; `awenctl plugin keygen|sign|verify|discover`)
   so self-signed manifests from unpinned keys are rejected; `cargo deny`

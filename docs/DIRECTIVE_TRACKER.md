@@ -22,7 +22,7 @@ their testable portion implemented and the blocked boundary written down.
 | F2 | PyTorch 2.14 support (supersedes Dependabot #49) | implemented | #52 | pytest on torch 2.10.0 and 2.14.1 | |
 | F3 | Dependabot backlog resolved | implemented | #51, #53 | obsolete PRs closed with reasons; updates merged green | |
 | F4 | Dead code and mock-only tests removed; loader/CLI/HAL coverage raised | implemented | #54 | runtime coverage 81.2% → 85.6% | |
-| F5 | jsonschema upgrade | proposed | | schema tests pass on current jsonschema | #79 |
+| F5 | jsonschema upgrade | implemented (0.16 -> 0.59 behind `awen_runtime::schema`) | #115 | all runtime schema conformance tests pass on 0.59; `cargo audit` clean | #79 |
 | P0.1 | `docs/AUDIT.md` truth table and baseline | implemented | #81, #90 | doc lists every component with evidence | |
 | P0.2 | `docs/ROADMAP.md` dependency-aware with acceptance tests and hardware needs | implemented | #81 | every milestone has a CI acceptance test | |
 | P0.3 | Labeled issues for missing modules | implemented | issues #55–#79 | one open issue per missing module | |

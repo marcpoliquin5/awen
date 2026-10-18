@@ -3,7 +3,7 @@ use awen_compiler::{
     KernelBackendProfile, KernelRequest, KernelSimulatorOptions, OptimizationObjective,
     TargetBackend,
 };
-use jsonschema::JSONSchema;
+use awen_runtime::schema::Validator;
 use serde_json::Value;
 
 const REQUEST_SCHEMA_ID: &str = "https://awen.dev/schemas/awen_blas.v1.json";
@@ -49,25 +49,24 @@ fn schemas() -> Vec<(&'static str, Value)> {
     ]
 }
 
-fn compile_schema(schema_id: &str) -> JSONSchema {
+fn compile_schema(schema_id: &str) -> Validator {
     let documents = schemas();
     let selected = documents
         .iter()
         .find_map(|(id, schema)| (*id == schema_id).then_some(schema))
         .expect("requested schema must be registered");
-    let mut options = JSONSchema::options();
-    for (id, document) in documents.iter() {
-        options.with_document((*id).to_string(), document.clone());
-    }
-    options
-        .compile(selected)
+    let refs: Vec<(&str, &Value)> = documents
+        .iter()
+        .map(|(id, document)| (*id, document))
+        .collect();
+    awen_runtime::schema::compile_with(selected, &refs)
         .expect("published awenBLAS schema must compile")
 }
 
 fn assert_valid(schema_id: &str, value: &Value) {
     let validator = compile_schema(schema_id);
-    if let Err(errors) = validator.validate(value) {
-        let messages = errors.map(|error| error.to_string()).collect::<Vec<_>>();
+    let messages = awen_runtime::schema::errors(&validator, value);
+    if !messages.is_empty() {
         panic!("{schema_id} rejected instance: {messages:?}");
     };
 }

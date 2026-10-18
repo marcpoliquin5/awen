@@ -34,7 +34,7 @@ fn reference_cost_model_conforms_to_schema_and_rust_contract() {
         "../../awen-compiler/cost_models/reference_full_system.json"
     ))
     .expect("cost-model fixture");
-    let compiled = jsonschema::JSONSchema::compile(&schema).expect("compile cost-model schema");
+    let compiled = awen_runtime::schema::compile(&schema).expect("compile cost-model schema");
     assert!(compiled.is_valid(&instance));
     model().validate().expect("Rust cost-model validation");
 
@@ -47,7 +47,7 @@ fn reference_cost_model_conforms_to_schema_and_rust_contract() {
     ))
     .expect("observation fixture");
     let compiled =
-        jsonschema::JSONSchema::compile(&observation_schema).expect("compile observation schema");
+        awen_runtime::schema::compile(&observation_schema).expect("compile observation schema");
     assert!(compiled.is_valid(&observation_instance));
     serde_json::from_value::<ObservationSet>(observation_instance)
         .expect("Rust observation decoding")

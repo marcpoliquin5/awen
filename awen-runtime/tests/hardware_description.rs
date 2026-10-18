@@ -2,18 +2,16 @@ use awen_runtime::hal::hardware::{
     DetectorAdcDriver, HardwareDescription, MicroringBankDriver, MziMeshDriver, C64,
 };
 use awen_runtime::hal::Device;
-use jsonschema::JSONSchema;
+use awen_runtime::schema::Validator;
 use serde_json::{json, Value};
 use std::f64::consts::PI;
 
 const SCHEMA: &str = include_str!("../../awen-spec/schemas/awen_hardware_description.v1.json");
 const FIXTURE: &str = include_str!("../../awen-spec/fixtures/hardware_reference_simulator.v1.json");
 
-fn validator() -> JSONSchema {
+fn validator() -> Validator {
     let schema: Value = serde_json::from_str(SCHEMA).unwrap();
-    JSONSchema::options()
-        .compile(&schema)
-        .expect("schema compiles")
+    awen_runtime::schema::compile(&schema).expect("schema compiles")
 }
 
 fn fixture() -> HardwareDescription {
