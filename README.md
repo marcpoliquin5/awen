@@ -37,7 +37,7 @@ flowchart LR
 
 ## Quickstart
 
-Requires a current stable Rust toolchain (the crates declare `rust-version = "1.87"`; some dependencies need a newer release) and Python 3.10 or newer.
+Requires Rust 1.88 or newer (the minimum CI checks; `rust-toolchain.toml` pins 1.99.1, which rustup installs automatically) and Python 3.10 or newer.
 
 ```bash
 git clone https://github.com/marcpoliquin5/awen.git

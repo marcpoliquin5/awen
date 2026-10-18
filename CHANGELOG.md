@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Pinned the Rust toolchain (1.99.1) in `rust-toolchain.toml`, declared and
+  CI-checked a minimum supported Rust version of 1.88, added a weekly scheduled
+  quality-gate run, Rust build caching, a prebuilt `cargo-audit`, and upgraded
+  GitHub Actions off the deprecated Node 20 runtime.
 - Added strict normalized equal-batch rank-three StableHLO `dot_general`
   lowering through typed MLIR dialects, deterministic AWENEXE emission, and
   direct Rust runtime preparation.
