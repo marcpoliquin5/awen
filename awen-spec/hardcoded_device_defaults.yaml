@@ -23,10 +23,8 @@
 # script (for example `optical_propagation_ns: 0.1`). `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
-scope: [awen-compiler/src]
+scope: [awen-compiler/src, awen-runtime/src]
 not_yet_inventoried:
-  - "awen-runtime/src (for example hal_v0.rs device descriptors and executable.rs noise\
-  \ contracts)"
   - "awen-native/src"
   - "awen-mlir"
   - "Python packages (awen-models, awen-physics, awen-systems, awen-qphotonic, awen-lab,\
@@ -68,6 +66,27 @@ blocks:
   - {id: precision_default_quantization, file: awen-compiler/src/precision.rs, context: default_quantization}
   - {id: precision_error_attribution_checked, file: awen-compiler/src/precision.rs, context: 'impl ErrorAttribution::checked'}
   - {id: simulator_compare, file: awen-compiler/src/simulator.rs, context: compare}
+  - {id: rt_mod_drift_detector_threshold_drift_detector_detect_drift, file: awen-runtime/src/calibration/mod.rs, context: 'impl DriftDetector for ThresholdDriftDetector::detect_drift'}
+  - {id: rt_mod_reference_calibration_executor_evaluate_cost_function, file: awen-runtime/src/calibration/mod.rs, context: 'impl ReferenceCalibrationExecutor::evaluate_cost_function'}
+  - {id: rt_mod_engine_run_graph, file: awen-runtime/src/engine/mod.rs, context: 'impl Engine::run_graph'}
+  - {id: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, file: awen-runtime/src/gradients.rs, context: 'impl ReferenceAdjointProvider::analytic_grad_for_param'}
+  - {id: rt_hardware_device_detector_adc_driver_read_sensor, file: awen-runtime/src/hal/hardware.rs, context: 'impl Device for DetectorAdcDriver::read_sensor'}
+  - {id: rt_hal_v0_detector_calibration_default, file: awen-runtime/src/hal_v0.rs, context: 'impl Default for DetectorCalibration::default'}
+  - {id: rt_hal_v0_device_capabilities_default, file: awen-runtime/src/hal_v0.rs, context: 'impl Default for DeviceCapabilities::default'}
+  - {id: rt_hal_v0_device_metrics_default, file: awen-runtime/src/hal_v0.rs, context: 'impl Default for DeviceMetrics::default'}
+  - {id: rt_hal_v0_fault_detection_thresholds_default, file: awen-runtime/src/hal_v0.rs, context: 'impl Default for FaultDetectionThresholds::default'}
+  - {id: rt_hal_v0_phase_calibration_default, file: awen-runtime/src/hal_v0.rs, context: 'impl Default for PhaseCalibration::default'}
+  - {id: rt_hal_v0_hal_manager_new, file: awen-runtime/src/hal_v0.rs, context: 'impl HalManager::new'}
+  - {id: rt_hal_v0_simulator_backend_new, file: awen-runtime/src/hal_v0.rs, context: 'impl SimulatorBackend::new'}
+  - {id: rt_photonic_quantum_result_validate_against, file: awen-runtime/src/photonic.rs, context: 'impl QuantumResult::validate_against'}
+  - {id: rt_photonic_positive_semidefinite, file: awen-runtime/src/photonic.rs, context: 'positive_semidefinite'}
+  - {id: rt_reference_sim_run_reference_simulator, file: awen-runtime/src/plugins/reference_sim.rs, context: 'run_reference_simulator'}
+  - {id: rt_quantum_quantum_state_new_cv, file: awen-runtime/src/quantum.rs, context: 'impl QuantumState::new_cv'}
+  - {id: rt_mod_scheduler_static_scheduler_schedule, file: awen-runtime/src/scheduler/mod.rs, context: 'impl Scheduler for StaticScheduler::schedule'}
+  - {id: rt_mod_static_scheduler_compute_critical_path, file: awen-runtime/src/scheduler/mod.rs, context: 'impl StaticScheduler::compute_critical_path'}
+  - {id: rt_memory_memory_primitive_hybrid_register_write, file: awen-runtime/src/state/memory.rs, context: 'impl MemoryPrimitive for HybridRegister::write'}
+  - {id: rt_memory_resonator_store_new, file: awen-runtime/src/state/memory.rs, context: 'impl ResonatorStore::new'}
+  - {id: rt_mod_state_evolver_reference_state_evolver_evolve_state, file: awen-runtime/src/state/mod.rs, context: 'impl StateEvolver for ReferenceStateEvolver::evolve_state'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -202,3 +221,46 @@ entries:
   - {block: precision_default_quantization, field: 'expr:max', value: 1.0, unit: levels, assumption: null, status: numeric_guard, notes: divide-by-zero guard on quantization levels}
   - {block: precision_error_attribution_checked, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on total error fraction at 1}
   - {block: simulator_compare, field: 'expr:max', value: 1e-12, unit: magnitude, assumption: null, status: numeric_guard, notes: divide-by-zero guard for relative error}
+  - {block: rt_mod_drift_detector_threshold_drift_detector_detect_drift, field: 'expr:max', value: 1e-10, unit: 'magnitude', assumption: null, status: numeric_guard, notes: 'divide-by-zero guard for relative drift (calibration/mod.rs L273)'}
+  - {block: rt_mod_reference_calibration_executor_evaluate_cost_function, field: 'expr:unwrap_or', value: 0.0, unit: 'value', assumption: null, status: definitional, notes: 'missing cost-function target defaults to 0 (mock quadratic cost, L357)'}
+  - {block: rt_mod_engine_run_graph, field: 'expr:unwrap_or', value: 0.785, unit: 'rad', assumption: null, status: unsourced, notes: 'phase used when a node has no phase parameter (0.785, about pi/4; engine/mod.rs L110); no source'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:clamp', value: 0.0, unit: 'fraction', assumption: null, status: numeric_guard, notes: 'loss clamped to [0, 1] (L320)'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:unwrap_or', value: 1.0, unit: 'amplitude', assumption: null, status: definitional, notes: 'unit input amplitude when graph metadata has none (L271)'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:unwrap_or#2', value: 0.0, unit: 'rad', assumption: null, status: definitional, notes: 'missing phase parameter = 0 rad (L280)'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:unwrap_or#3', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'missing loss parameter = lossless (L319)'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:unwrap_or#4', value: 0.1, unit: 'fraction', assumption: null, status: unsourced, notes: 'ring coupling used when a node has none (0.1, L327); no microring coupling entry in the assumption set'}
+  - {block: rt_gradients_reference_adjoint_provider_analytic_grad_for_param, field: 'expr:unwrap_or#5', value: 0.0, unit: 'value', assumption: null, status: definitional, notes: 'missing detuning = on resonance (L328)'}
+  - {block: rt_hardware_device_detector_adc_driver_read_sensor, field: 'expr:clamp', value: 0.0, unit: 'ADC code', assumption: null, status: numeric_guard, notes: 'ADC code clamped to [0, max_code] (L433)'}
+  - {block: rt_hal_v0_detector_calibration_default, field: 'quantum_efficiency', value: 0.8, unit: 'fraction', assumption: null, status: unsourced, notes: 'detector QE default (L186); no assumption entry in this unit (photodetector.responsivity is A/W)'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'crosstalk_db', value: -20.0, unit: 'dB', assumption: mzi.crosstalk, status: unsourced, notes: 'device-level crosstalk default (L71); mzi.crosstalk has no checked value yet'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'insertion_loss_db', value: 1.5, unit: 'dB', assumption: mzi.insertion_loss, status: unsourced, notes: 'device-level insertion loss default (L70); the assumption entry is per MZI and has no value yet'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'max_sustained_power_mw', value: 50.0, unit: 'mW', assumption: null, status: unsourced, notes: 'sustained optical power limit default (L81); no entry in the assumption set'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'power_handling_mw', value: 50.0, unit: 'mW', assumption: null, status: unsourced, notes: 'optical power handling default (L69); no entry in the assumption set'}
+  - {block: rt_hal_v0_device_metrics_default, field: 'average_power_consumption_mw', value: 10.0, unit: 'mW', assumption: null, status: unsourced, notes: 'initial reported power before any measurement (L219); not measured'}
+  - {block: rt_hal_v0_device_metrics_default, field: 'peak_temperature_celsius', value: 25.0, unit: 'degC', assumption: null, status: unsourced, notes: 'initial reported temperature before any measurement (L218); room-temperature starting value, not measured'}
+  - {block: rt_hal_v0_fault_detection_thresholds_default, field: 'phase_shifter_drift_radians_per_ms', value: 0.001, unit: 'rad/ms', assumption: null, status: unsourced, notes: 'fault threshold for phase-shifter drift (L260); no drift entry in the assumption set'}
+  - {block: rt_hal_v0_phase_calibration_default, field: 'thermal_drift_per_degree', value: 0.001, unit: 'rad/K', assumption: null, status: unsourced, notes: 'thermal phase drift coefficient default (L170); no entry in the assumption set'}
+  - {block: rt_hal_v0_hal_manager_new, field: 'average_power_consumption_mw', value: 10.0, unit: 'mW', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (L428)'}
+  - {block: rt_hal_v0_hal_manager_new, field: 'peak_temperature_celsius', value: 25.0, unit: 'degC', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (L427)'}
+  - {block: rt_hal_v0_simulator_backend_new, field: 'average_power_consumption_mw', value: 10.0, unit: 'mW', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (L561)'}
+  - {block: rt_hal_v0_simulator_backend_new, field: 'peak_temperature_celsius', value: 25.0, unit: 'degC', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (L560)'}
+  - {block: rt_photonic_quantum_result_validate_against, field: 'expr:unwrap_or', value: 0.0, unit: 'probability', assumption: null, status: definitional, notes: 'outcome missing from the expected distribution has probability 0 (L1101)'}
+  - {block: rt_photonic_positive_semidefinite, field: 'expr:max', value: 0.0, unit: 'value', assumption: null, status: numeric_guard, notes: 'non-negative clamp inside a square root (Cholesky, L856)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:clamp', value: 0.0, unit: 'fraction', assumption: null, status: numeric_guard, notes: 'loss clamped to [0, 1] (L86)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:min', value: 1.0, unit: 'probability', assumption: null, status: numeric_guard, notes: 'detection probability capped at 1 (L99)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or', value: 1.0, unit: 'amplitude', assumption: null, status: definitional, notes: 'unit input amplitude when graph metadata has none (L43)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#2', value: 0.0, unit: 'rad', assumption: null, status: definitional, notes: 'missing phase parameter = 0 rad (L57)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#3', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'missing loss parameter = lossless (L66)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#4', value: 0.1, unit: 'fraction', assumption: null, status: unsourced, notes: 'ring coupling used when a node has none (0.1, L72); no microring coupling entry in the assumption set'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#5', value: 0.0, unit: 'value', assumption: null, status: definitional, notes: 'missing detuning = on resonance (L73)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#6', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'missing loss parameter = lossless (L80)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#7', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'missing loss parameter = lossless (L85)'}
+  - {block: rt_reference_sim_run_reference_simulator, field: 'expr:unwrap_or#8', value: 0.0, unit: 'flag', assumption: null, status: definitional, notes: 'missing quantum flag = classical (L97)'}
+  - {block: rt_quantum_quantum_state_new_cv, field: 'thermal_photons', value: 0.0, unit: 'photons', assumption: null, status: definitional, notes: 'new CV state starts as vacuum (L139)'}
+  - {block: rt_mod_scheduler_static_scheduler_schedule, field: 'bandwidth_ghz', value: 100.0, unit: 'GHz', assumption: null, status: unsourced, notes: 'WDM channel bandwidth of the static scheduler''s built-in channel list (L334); no entry in the assumption set'}
+  - {block: rt_mod_scheduler_static_scheduler_schedule, field: 'bandwidth_ghz#2', value: 100.0, unit: 'GHz', assumption: null, status: unsourced, notes: 'second built-in channel, same value (L340)'}
+  - {block: rt_mod_scheduler_static_scheduler_schedule, field: 'expr:unwrap_or', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'edge without a delay has delay 0 (L356)'}
+  - {block: rt_mod_static_scheduler_compute_critical_path, field: 'expr:unwrap_or', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'edge without a delay has delay 0 (L177)'}
+  - {block: rt_memory_memory_primitive_hybrid_register_write, field: 'expr:unwrap_or', value: 0.0, unit: 'amplitude', assumption: null, status: definitional, notes: 'empty amplitude list reads as 0 (L262)'}
+  - {block: rt_memory_resonator_store_new, field: 'bandwidth_ghz', value: 10.0, unit: 'GHz', assumption: null, status: unsourced, notes: 'resonator store bandwidth (L131); no entry in the assumption set'}
+  - {block: rt_mod_state_evolver_reference_state_evolver_evolve_state, field: 'expr:unwrap_or', value: 0.1, unit: 'value', assumption: null, status: unsourced, notes: 'nonlinearity used when a node has none (0.1, L223); no source'}

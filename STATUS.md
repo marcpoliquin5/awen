@@ -1,10 +1,10 @@
 # AWEN status
 
-Updated 2026-10-18 13:36 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `c1086fc` (#132), after `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129),
-`ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at `0235668`; the
-inventory counts at `c1086fc`. Gates passed on `0235668` (run 39140149777), `840f5c5` (run 39141006838),
-`132d4d9` (run 39143781587) and `c02eee9` (run 39147442569); the gate on `c1086fc` (run 39150273629) was running at commit time.
+Updated 2026-10-18 13:48 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `01b927f` (#133), after `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130),
+`75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at
+`0235668`; the inventory counts at `01b927f` with this change. Gates passed on `0235668` (run 39140149777), `840f5c5`
+(run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569) and `c1086fc` (run 39150273629); the gate on `01b927f` (run 39151136678) was running at commit time.
 
 ## Current phase
 
@@ -50,7 +50,7 @@ command shown.
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
 | Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`) |
-| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` code, two literal forms: single-line `field: <number>,` device literals (95) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38); 133 entries in 36 functions (88 unsourced, 21 numeric guards, 20 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern; `awen-runtime` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
+| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` and `awen-runtime/src` code, two literal forms: single-line `field: <number>,` device literals (95) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38 compiler + 26 runtime); 176 entries (compiler 133 in 36 functions, runtime 43 in 21 functions; 108 unsourced, 27 numeric guards, 37 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern (e.g. `coupling_q`, `read_efficiency` in `awen-runtime/src/state/memory.rs`), test modules (e.g. `photons_per_mac: Some(10.0)` in an `executable.rs` test); `awen-native`, `awen-mlir` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
 
@@ -63,7 +63,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 | Gap | v2 section | Current level | Needed |
 | --- | --- | --- | --- |
-| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; `awen-compiler` device literals and in-expression fallbacks (133 entries, forms listed in the truth table) inventoried and checked in CI, `awen-runtime` and Python not yet | loader in `awen-compiler`, then replace inventoried literals one block at a time |
+| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; `awen-compiler` and `awen-runtime` device literals and in-expression fallbacks (176 entries, forms listed in the truth table) inventoried and checked in CI, `awen-native` and Python not yet | loader in `awen-compiler`, then replace inventoried literals one block at a time |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
@@ -101,11 +101,11 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
   and held by Marc only; the agent must never create or hold it. Blocked on Marc.
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
-- Device energies and noise defaults are still hard-coded in `awen-compiler` (133 entries: 95 field
-  literals and 38 in-expression fallbacks, listed in `awen-spec/hardcoded_device_defaults.yaml`) until the
-  noise model and cost estimates read `hardware_assumptions.yaml`. 88 have no checked value in the assumption set yet, so wiring them needs
-  sourced values first, never guesses. `awen-runtime` (for example `hal_v0.rs`, `executable.rs`) and the
-  Python packages also hard-code device values and are not inventoried yet.
+- Device energies and noise defaults are still hard-coded in `awen-compiler` (133 entries) and
+  `awen-runtime` (43 entries, mostly `hal_v0.rs` defaults and reference-simulator fallbacks), all listed in
+  `awen-spec/hardcoded_device_defaults.yaml`, until the noise model and cost estimates read
+  `hardware_assumptions.yaml`. 108 have no checked value in the assumption set yet, so wiring them needs
+  sourced values first, never guesses. `awen-native` and the Python packages are not inventoried yet.
 
 ## In progress (draft, not merged)
 

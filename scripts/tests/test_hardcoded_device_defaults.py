@@ -37,17 +37,18 @@ def test_inventory_matches_code_and_assumptions():
 
 def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
-    assert INVENTORY["scope"] == ["awen-compiler/src"]
-    assert any(item.startswith("awen-runtime/src") for item in INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 133
+    assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src"]
+    assert not any(item.startswith("awen-runtime") for item in INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 176
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 88,
-        "numeric_guard": 21,
-        "definitional": 20,
+        "unsourced": 108,
+        "numeric_guard": 27,
+        "definitional": 37,
         "differs_from_assumption": 3,
         "matches_assumption": 1,
     }
-    assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38
+    assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38 + 26
+    assert sum(b["file"].startswith("awen-runtime/") for b in INVENTORY["blocks"]) == 21
 
 
 def test_new_hard_coded_default_is_caught(tmp_path):
@@ -164,3 +165,9 @@ def test_new_fallback_is_caught(tmp_path):
     edit(root / "awen-compiler/src/cost.rs", "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01);",
          "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01).min(0.95);")
     assert any("new hard-coded device default" in p and "expr:min" in p for p in hd.check(root))
+
+
+def test_runtime_literal_change_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-runtime/src/hal_v0.rs", "insertion_loss_db: 1.5,", "insertion_loss_db: 1.25,")
+    assert any("hal_v0.rs" in p and "insertion_loss_db" in p for p in hd.check(root))
