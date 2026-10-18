@@ -20,6 +20,14 @@ counts, measured and simulated results, and blocked items are in
   `docs/AUDIT.md`, `docs/IMPLEMENTATION-STATUS.md`, the README and the
   directive tracker were brought up to date for 0.1.0 (closes #120).
 
+- Added AWEN Studio (`awen-studio`, S1): a local web app (FastAPI backend +
+  React/Vite frontend, blue/black interference design) wired to the real
+  backends: projects, AWEN-Mini generation on CPU or the photonic simulator,
+  Rust compiler placement/capability/diagnostics, the operator table, noise
+  contract validation with analytic noise, photonic-sim vs CPU GEMM and
+  likelihood comparison, Lab Agent experiment history, and Markdown/JSON
+  report export. Localhost only; not hosted. 13 API tests and an HTTP
+  end-to-end test run in CI after a frontend build (closes #75).
 - Upgraded the runtime's `jsonschema` from 0.16 to 0.59 (closes #79). A new
   `awen_runtime::schema` module wraps it for every caller: formats are
   asserted under every draft (0.16 behaviour), `$ref`s resolve only against

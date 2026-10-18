@@ -91,6 +91,20 @@ At the default illustrative noise contract (1,000 photons per MAC, 8-bit
 converters) the simulated output is visibly degraded. Validation loss
 against simulated optical power is in `awen-models/results/photonic-sim-demo.json`.
 
+### Open AWEN Studio (local web app)
+
+`awen-studio` is a local browser UI over the same backends: projects, AWEN-Mini
+generation on CPU or the photonic simulator, compiler placement and
+diagnostics, the operator table, noise-contract editing, photonic-sim vs CPU
+comparisons, Lab Agent experiment history and report export. It runs on
+`127.0.0.1` only and is not hosted anywhere. See `awen-studio/README.md`.
+
+```bash
+python -m pip install ./awen-native ./awen-models ./awen-qphotonic ./awen-lab ./awen-studio
+(cd awen-studio/frontend && npm ci && npm run build)
+awen-studio            # http://127.0.0.1:8765
+```
+
 ## Technical overview
 
 AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python integrations, MLIR lowering, and reference ecosystem metadata.
@@ -176,7 +190,7 @@ measured product performance.
 - `awen-qphotonic`: quantum-photonic simulation (permanents, Fock and Gaussian states, boson sampling, detection, resource model, kernel vs classical baseline). Simulation only.
 - `awen-systems`: modeled photonic memory and optical/electrical interconnect simulators with per-value provenance.
 - `awen-lab`: simulation-only Lab Agent with content-addressed lab states and approval gates; hardware actions are refused.
-- `awen-studio`: local web app (FastAPI + React) over the real backends; not hosted.
+- `awen-studio`: local web app (FastAPI + React/Vite) over the compiler, simulator, AWEN-Mini and the Lab Agent; localhost only.
 - `research`: research ledger schema and importer, research-to-code pipeline, frontier-physics hypotheses with falsification criteria.
 - `awen-runtime/include/awen/awen.h`: the C SDK header (kernel ABI `awen.kernel-c.v1`).
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
