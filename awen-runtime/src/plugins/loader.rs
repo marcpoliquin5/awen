@@ -42,3 +42,42 @@ impl PluginLoader {
         }
     }
 }
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::PluginLoader;
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::PathBuf;
+
+    fn script(name: &str, body: &str) -> (tempfile::TempDir, PathBuf) {
+        let dir = tempfile::tempdir().expect("temporary plugin directory");
+        let path = dir.path().join(name);
+        std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write plugin script");
+        let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&path, permissions).expect("make plugin executable");
+        (dir, path)
+    }
+
+    #[test]
+    fn missing_plugin_returns_none() {
+        let result = PluginLoader::invoke("/nonexistent/awen-plugin", "{}").expect("no error");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn plugin_receives_stdin_and_returns_stdout() {
+        let (_dir, path) = script("echo-plugin", "cat");
+        let output = PluginLoader::invoke(&path, r#"{"op":"gemm"}"#)
+            .expect("plugin runs")
+            .expect("successful plugin returns output");
+        assert_eq!(output, r#"{"op":"gemm"}"#);
+    }
+
+    #[test]
+    fn failing_plugin_returns_none() {
+        let (_dir, path) = script("failing-plugin", "cat >/dev/null; exit 3");
+        let result = PluginLoader::invoke(&path, "{}").expect("spawn succeeds");
+        assert!(result.is_none());
+    }
+}

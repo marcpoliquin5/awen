@@ -151,3 +151,59 @@ impl LabDevice for SimulatedDevice {
         m
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simulated_device_reports_identity_and_optical_capabilities() {
+        let device = SimulatedDevice::new();
+        assert_eq!(device.id(), "simulated");
+        let names: Vec<String> = device.capabilities().into_iter().map(|c| c.name).collect();
+        assert_eq!(names, vec!["mzi", "ring", "detector"]);
+        assert!(device
+            .capabilities()
+            .iter()
+            .all(|c| matches!(c.channel, ChannelType::Optical)));
+        assert!(device.set_param("mzi_0:phase", 0.5).is_ok());
+        assert_eq!(device.read_sensor("detector_0:power"), Ok(0.0));
+        assert_eq!(
+            device.health_report().get("status").map(String::as_str),
+            Some("simulated-ok")
+        );
+    }
+
+    #[test]
+    fn calibration_without_limits_is_echoed() {
+        let device = SimulatedDevice::new();
+        let mapping = HashMap::from([("mzi_0:v".to_string(), 3.0)]);
+        let result = device.apply_calibration(&mapping, None).expect("applies");
+        assert!(result.success);
+        assert_eq!(result.applied, mapping);
+        assert!(result.warnings.is_empty());
+    }
+
+    #[test]
+    fn calibration_clamps_to_safety_limits_with_warnings() {
+        let device = SimulatedDevice::new();
+        let mapping = HashMap::from([
+            ("high".to_string(), 12.0),
+            ("low".to_string(), -7.0),
+            ("ok".to_string(), 1.0),
+        ]);
+        let limits = SafetyLimits {
+            max_voltage: Some(5.0),
+            min_voltage: Some(-5.0),
+            max_temperature: None,
+            notes: None,
+        };
+        let result = device
+            .apply_calibration(&mapping, Some(&limits))
+            .expect("applies");
+        assert_eq!(result.applied["high"], 5.0);
+        assert_eq!(result.applied["low"], -5.0);
+        assert_eq!(result.applied["ok"], 1.0);
+        assert_eq!(result.warnings.len(), 2);
+    }
+}
