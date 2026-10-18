@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added the efficiency program (`awen-efficiency`): low-rank, tensor-train,
+  untied head, MoE top-1, 50% magnitude pruning, int4 QAT vs PTQ,
+  distillation from AWEN-Mini and recursive reuse, all at a matched
+  818k-parameter budget with two seeds on CPU, plus a Pareto plot of quality
+  vs parameters, latency, memory and MACs (energy only estimated). Negative
+  results (low-rank, sparsity, untied head) are reported (refs #72).
 - `awen_runtime::devrt`: health-aware placement over simulated photonic
   devices (healthy / degraded / failed) that remaps past unavailable devices
   and falls back to the exact CPU reference, with the reason recorded;
