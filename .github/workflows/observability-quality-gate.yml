@@ -179,6 +179,11 @@ jobs:
           python -m pip install --disable-pip-version-check "./awen-qphotonic[test]"
           python -m pytest awen-qphotonic/tests -q
 
+      - name: Test the simulation-only Lab Agent
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-lab[test]"
+          python -m pytest awen-lab/tests -q
+
       - name: Test research ledger and frontier-physics checks
         run: python -m pytest research/tests -q
 

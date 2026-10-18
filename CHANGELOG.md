@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Lab Agent (S2): new `awen-lab` package and CLI. It orchestrates Quick,
+  Truth, Repro, Compare and Publish workflows over the existing simulators
+  (the Rust photonic GEMM model and the quantum-photonic references). Each
+  run produces an immutable, content-addressed lab state with provenance,
+  and states support branch, restore, history and diff. Operating bounds
+  cap every simulation. Publish writes a local, self-verifying bundle only
+  after a recorded approval. Every hardware action is refused, with or
+  without approval (refs #76).
 - Research (R1–R3): `research/ledger/` adds the research ledger schema
   (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
   (unchecked rows land as `citation pending`) and 15 seed directions, each
