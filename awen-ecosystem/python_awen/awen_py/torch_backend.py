@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import hashlib
 import json
 import operator
@@ -29,6 +29,8 @@ class TorchBackendOptions:
     deterministic: bool = True
     seed: int = 0
     profile: bool = True
+    photonic_noise: Optional[Mapping[str, Any]] = field(default=None, compare=False, hash=False)
+    photonic_tile_k: int = 64
 
     @classmethod
     def from_mapping(cls, values: Optional[Mapping[str, Any]]) -> "TorchBackendOptions":
@@ -44,6 +46,7 @@ class TorchBackendOptions:
             deterministic=result.deterministic,
             seed=result.seed,
             profile=result.profile,
+            photonic_tile_k=result.photonic_tile_k,
         ).validate()
         return result
 
@@ -61,6 +64,8 @@ class TorchBackendOptions:
             deterministic=self.deterministic,
             seed=self.seed,
             profile=self.profile,
+            photonic_noise=self.photonic_noise,
+            photonic_tile_k=self.photonic_tile_k,
         )
 
 
