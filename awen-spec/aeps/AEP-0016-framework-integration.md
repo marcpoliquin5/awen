@@ -302,10 +302,10 @@ The Python package requires Python 3.10 or later. Optional dependency groups
 are:
 
 - NumPy `>=1.26,<3`;
-- PyTorch `>=2.10,<2.14`; and
+- PyTorch `>=2.10,<2.15`; and
 - JAX `>=0.9,<0.12` on Python 3.12 or later.
 
-The release gate tests PyTorch 2.13.0 and JAX/JAXlib 0.11.0 together on Python
+The release gate tests PyTorch 2.14.1 and JAX/JAXlib 0.11.0 together on Python
 3.12 and retains a minimum-version job for PyTorch 2.10 and JAX 0.9. Runtime
 version checks reject an installed PyTorch or JAX outside the declared range
 instead of silently relying on an untested extension contract.
