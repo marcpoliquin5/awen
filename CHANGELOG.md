@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added `awen_runtime::devrt`, runtime services layered on the existing HAL
+  and scheduler: ordered asynchronous streams (one worker thread each) with
+  events for cross-stream and cross-device dependencies and sticky error
+  propagation; memory residency tracking with per-device capacity, LRU
+  eviction, pinning and transfer byte accounting; and device leases
+  (exclusive/shared, logical-clock expiry) with operation, energy and wall-time
+  budgets. Budgets enforce caller-reported or simulator-estimated usage; they
+  are not hardware measurements (refs #64).
 - Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
   separate from the classical photonic domain (AEP-0020): permanents by
   Ryser's formula, Fock-space linear optics, exact boson sampling for small
