@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added `docs/CLOUD_ARCHITECTURE.md`: a design-only architecture for a
+  possible hosted service, mapped component by component onto existing
+  modules and schemas, with what exists and what does not. No service exists
+  (closes #116).
 - Research (R1–R3): `research/ledger/` adds the research ledger schema
   (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
   (unchecked rows land as `citation pending`) and 15 seed directions, each

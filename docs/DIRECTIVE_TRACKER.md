@@ -83,7 +83,7 @@ their testable portion implemented and the blocked boundary written down.
 | B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | implemented (`awen-bench`: CPU, CUDA (skipped with reason when absent), AWEN software reference, photonic-sim and hybrid on GEMM and AWEN-Mini inference; p50/p95/p99, throughput, RSS, compile time, TTFT, tok/s, perplexity; bootstrap CIs over runs; write-once self-hashed evidence `awen.benchmark-evidence.v1`; one measured box-CPU run committed; see docs/BENCHMARKS.md) | #111 | `awen-models/tests/test_bench.py` (8) + validate_json checks every committed evidence record | no GPU on the build host, so CUDA rows are skipped; simulator wall-clock is not device speed; #74 |
 | S1 | Studio local web app wired to real backends | proposed | | | #75 |
 | S2 | Lab Agent (simulation only, approval gates) | proposed | | | hardware actions disabled; #76 |
-| S3 | Cloud architecture doc, marked not available | proposed | | | no service |
+| S3 | Cloud architecture doc, marked not available | implemented (`docs/CLOUD_ARCHITECTURE.md`, design only) | #PRS3 | doc states not available; every component mapped to an existing module or marked not built | no service; #116 |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
 | X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | proposed | | | #78 |
 | X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |
