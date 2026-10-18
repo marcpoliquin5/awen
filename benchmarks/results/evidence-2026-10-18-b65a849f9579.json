@@ -1,0 +1,855 @@
+{
+  "created_at": "2026-10-18T10:27:14Z",
+  "environment": {
+    "awen_native": "0.1.0",
+    "numpy": "2.5.4",
+    "python": "3.13.5",
+    "torch": "2.14.1+cpu"
+  },
+  "evidence_policy": "cpu/cuda rows are measured on the recorded hardware. awen-reference, photonic-sim and hybrid rows time the simulator on this host; their accuracy is simulated. No row is a photonic hardware measurement.",
+  "evidence_sha256": "sha256:b65a849f9579758731cd00fdd1eea9b320c7b51894c7a904e8314343792a33f1",
+  "git": {
+    "dirty": false,
+    "sha": "d9ade4ca0b63169c3f0cbe2ca6dafedffbf671f4"
+  },
+  "hardware": {
+    "cpu_count": 8,
+    "cpu_model": "Intel(R) Xeon(R) Processor",
+    "cuda_available": false,
+    "load_average_1_5_15": [
+      3.74,
+      2.78,
+      3.17
+    ],
+    "machine": "x86_64",
+    "mem_total_kib": 16386368,
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "torch_threads": 8
+  },
+  "label": "box CPU (Intel Xeon, 8 vCPU, no GPU)",
+  "results": [
+    {
+      "backend": "cpu",
+      "fidelity": "measured",
+      "latency": {
+        "mean_ms": 4.280203589878511,
+        "median_ci95_ms": [
+          0.011889260804309748,
+          6.530288002977613
+        ],
+        "min_ms": 0.008624003385193646,
+        "p50_ms": 0.013921999197918922,
+        "p95_ms": 8.403705203090794,
+        "p99_ms": 13.108827400574585,
+        "run_median_ci95_ms": [
+          0.011552200157893822,
+          6.034176798857516
+        ],
+        "run_median_mean_ms": 3.004632599913748,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 237.8203125,
+      "relative_rms_error_vs_fp64": {
+        "max": 5.118583075552479e-08,
+        "mean": 5.11858307555248e-08
+      },
+      "shape_mkn": [
+        64,
+        128,
+        128
+      ],
+      "status": "ok",
+      "throughput_gflops": 150.63583686411107,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 131072,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cuda",
+      "reason": "no CUDA device visible to PyTorch on this host",
+      "shape_mkn": [
+        64,
+        128,
+        128
+      ],
+      "status": "skipped",
+      "workload": "gemm"
+    },
+    {
+      "backend": "awen-reference",
+      "compile": {
+        "mean_ms": 0.6639464489126112,
+        "median_ci95_ms": [
+          0.6291460013017058,
+          0.661204809875926
+        ],
+        "min_ms": 0.6138989992905408,
+        "p50_ms": 0.6437980009650346,
+        "p95_ms": 0.7291990510566394,
+        "p99_ms": 0.9227566049230514,
+        "run_median_ci95_ms": [
+          0.6437980009650346,
+          0.6437980009650346
+        ],
+        "run_median_mean_ms": 0.6437980009650346,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "software reference (exact math)",
+      "latency": {
+        "mean_ms": 1.2520532802591333,
+        "median_ci95_ms": [
+          1.2500719967647456,
+          1.3078270058031194
+        ],
+        "min_ms": 0.9866010004770942,
+        "p50_ms": 1.270560998818837,
+        "p95_ms": 1.5172905474173604,
+        "p99_ms": 1.5589500869828044,
+        "run_median_ci95_ms": [
+          1.154450599278789,
+          1.3649732994963415
+        ],
+        "run_median_mean_ms": 1.2675477002630942,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 239.41796875,
+      "relative_rms_error_vs_fp64": {
+        "max": 6.382795045414222e-09,
+        "mean": 6.3827950454142215e-09
+      },
+      "shape_mkn": [
+        64,
+        128,
+        128
+      ],
+      "status": "ok",
+      "throughput_gflops": 1.6505716781402815,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 131072,
+      "workload": "gemm"
+    },
+    {
+      "backend": "photonic-sim",
+      "compile": {
+        "mean_ms": 0.7951709489134373,
+        "median_ci95_ms": [
+          0.7644599972991273,
+          0.8461585020995699
+        ],
+        "min_ms": 0.689421001879964,
+        "p50_ms": 0.7951954976306297,
+        "p95_ms": 0.8931476997531718,
+        "p99_ms": 0.9102279395301592,
+        "run_median_ci95_ms": [
+          0.7951954976306297,
+          0.7951954976306297
+        ],
+        "run_median_mean_ms": 0.7951954976306297,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "simulated (compact model)",
+      "latency": {
+        "mean_ms": 2.387093600045773,
+        "median_ci95_ms": [
+          2.176538502681069,
+          2.2895475012774114
+        ],
+        "min_ms": 2.026250003837049,
+        "p50_ms": 2.2442970002884977,
+        "p95_ms": 3.4028144975309256,
+        "p99_ms": 4.314585285537761,
+        "run_median_ci95_ms": [
+          2.1440119024191517,
+          2.3203197997645475
+        ],
+        "run_median_mean_ms": 2.222783101024106,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 240.1328125,
+      "relative_rms_error_vs_fp64": {
+        "max": 0.1682986786832978,
+        "mean": 0.16650896781669194
+      },
+      "shape_mkn": [
+        64,
+        128,
+        128
+      ],
+      "status": "ok",
+      "throughput_gflops": 0.9344360393167291,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 131072,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cpu",
+      "fidelity": "measured",
+      "latency": {
+        "mean_ms": 0.023827089898986742,
+        "median_ci95_ms": [
+          0.020355000742711127,
+          0.02211199898738414
+        ],
+        "min_ms": 0.01730499934637919,
+        "p50_ms": 0.021534498955588788,
+        "p95_ms": 0.03695875529956537,
+        "p99_ms": 0.10240768031508196,
+        "run_median_ci95_ms": [
+          0.0191696010006126,
+          0.024251500144600868
+        ],
+        "run_median_mean_ms": 0.02156370028387755,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 245.01953125,
+      "relative_rms_error_vs_fp64": {
+        "max": 6.81621307847825e-08,
+        "mean": 6.81621307847825e-08
+      },
+      "shape_mkn": [
+        128,
+        256,
+        256
+      ],
+      "status": "ok",
+      "throughput_gflops": 779.0855052908421,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 524288,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cuda",
+      "reason": "no CUDA device visible to PyTorch on this host",
+      "shape_mkn": [
+        128,
+        256,
+        256
+      ],
+      "status": "skipped",
+      "workload": "gemm"
+    },
+    {
+      "backend": "awen-reference",
+      "compile": {
+        "mean_ms": 0.7226954996440327,
+        "median_ci95_ms": [
+          0.6580940025742166,
+          0.7532484996772837
+        ],
+        "min_ms": 0.6136759984656237,
+        "p50_ms": 0.6934980010555591,
+        "p95_ms": 0.8367072452529102,
+        "p99_ms": 1.033839845549664,
+        "run_median_ci95_ms": [
+          0.6934980010555591,
+          0.6934980010555591
+        ],
+        "run_median_mean_ms": 0.6934980010555591,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "software reference (exact math)",
+      "latency": {
+        "mean_ms": 10.98033196045435,
+        "median_ci95_ms": [
+          9.264946005714592,
+          10.421364000649191
+        ],
+        "min_ms": 7.8189190026023425,
+        "p50_ms": 9.958213500794955,
+        "p95_ms": 16.18982469844923,
+        "p99_ms": 17.30998677361649,
+        "run_median_ci95_ms": [
+          9.225058700394584,
+          10.965732201293577
+        ],
+        "run_median_mean_ms": 9.975102500902722,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 245.01953125,
+      "relative_rms_error_vs_fp64": {
+        "max": 5.960945204640898e-09,
+        "mean": 5.960945204640897e-09
+      },
+      "shape_mkn": [
+        128,
+        256,
+        256
+      ],
+      "status": "ok",
+      "throughput_gflops": 1.6847616290472875,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 524288,
+      "workload": "gemm"
+    },
+    {
+      "backend": "photonic-sim",
+      "compile": {
+        "mean_ms": 0.6929455506906379,
+        "median_ci95_ms": [
+          0.6343759996525478,
+          0.7118935027392581
+        ],
+        "min_ms": 0.6129480025265366,
+        "p50_ms": 0.6686220003757626,
+        "p95_ms": 0.837673397472827,
+        "p99_ms": 0.9727314799965823,
+        "run_median_ci95_ms": [
+          0.6686220003757626,
+          0.6686220003757626
+        ],
+        "run_median_mean_ms": 0.6686220003757626,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "simulated (compact model)",
+      "latency": {
+        "mean_ms": 20.395615530069335,
+        "median_ci95_ms": [
+          19.687235999299446,
+          20.847460535151185
+        ],
+        "min_ms": 15.45311299560126,
+        "p50_ms": 20.13117900060024,
+        "p95_ms": 24.716483899464947,
+        "p99_ms": 24.911422071381825,
+        "run_median_ci95_ms": [
+          19.096500700106844,
+          20.982049599842867
+        ],
+        "run_median_mean_ms": 19.948740499967244,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 245.01953125,
+      "relative_rms_error_vs_fp64": {
+        "max": 0.15764790936295298,
+        "mean": 0.15716488458780736
+      },
+      "shape_mkn": [
+        128,
+        256,
+        256
+      ],
+      "status": "ok",
+      "throughput_gflops": 0.8333946064212018,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 524288,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cpu",
+      "fidelity": "measured",
+      "latency": {
+        "mean_ms": 0.3698852696834365,
+        "median_ci95_ms": [
+          0.11675858540911578,
+          0.12353199781500734
+        ],
+        "min_ms": 0.09280900121666491,
+        "p50_ms": 0.12104150300729088,
+        "p95_ms": 0.5556377491302555,
+        "p99_ms": 4.879580028718979,
+        "run_median_ci95_ms": [
+          0.11348910193191841,
+          0.13191399848437868
+        ],
+        "run_median_mean_ms": 0.12257350026629867,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 250.14453125,
+      "relative_rms_error_vs_fp64": {
+        "max": 5.50816230903266e-08,
+        "mean": 5.50816230903266e-08
+      },
+      "shape_mkn": [
+        256,
+        512,
+        512
+      ],
+      "status": "ok",
+      "throughput_gflops": 1108.8570834411685,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 2097152,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cuda",
+      "reason": "no CUDA device visible to PyTorch on this host",
+      "shape_mkn": [
+        256,
+        512,
+        512
+      ],
+      "status": "skipped",
+      "workload": "gemm"
+    },
+    {
+      "backend": "awen-reference",
+      "compile": {
+        "mean_ms": 0.7014149501628708,
+        "median_ci95_ms": [
+          0.6383849977282807,
+          0.6679549987893552
+        ],
+        "min_ms": 0.6318489977275021,
+        "p50_ms": 0.6478875002358109,
+        "p95_ms": 0.8823577041766839,
+        "p99_ms": 0.9462995446665444,
+        "run_median_ci95_ms": [
+          0.6478875002358109,
+          0.6478875002358109
+        ],
+        "run_median_mean_ms": 0.6478875002358109,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "software reference (exact math)",
+      "latency": {
+        "mean_ms": 78.96209147984337,
+        "median_ci95_ms": [
+          73.50171899815905,
+          81.94926449868944
+        ],
+        "min_ms": 64.22450500394916,
+        "p50_ms": 77.87560500219115,
+        "p95_ms": 93.54572060292412,
+        "p99_ms": 115.46207017898269,
+        "run_median_ci95_ms": [
+          71.58573140040971,
+          82.21932700107573
+        ],
+        "run_median_mean_ms": 76.90252920074272,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 254.38671875,
+      "relative_rms_error_vs_fp64": {
+        "max": 4.855641056515284e-09,
+        "mean": 4.855641056515284e-09
+      },
+      "shape_mkn": [
+        256,
+        512,
+        512
+      ],
+      "status": "ok",
+      "throughput_gflops": 1.7234887356088415,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 2097152,
+      "workload": "gemm"
+    },
+    {
+      "backend": "photonic-sim",
+      "compile": {
+        "mean_ms": 0.7899673488282133,
+        "median_ci95_ms": [
+          0.7414114988932852,
+          0.801490998128429
+        ],
+        "min_ms": 0.6329199968604371,
+        "p50_ms": 0.7656479974684771,
+        "p95_ms": 0.9011028978420658,
+        "p99_ms": 1.2305157772061641,
+        "run_median_ci95_ms": [
+          0.7656479974684771,
+          0.7656479974684771
+        ],
+        "run_median_mean_ms": 0.7656479974684771,
+        "runs": 1,
+        "samples": 20
+      },
+      "fidelity": "simulated (compact model)",
+      "latency": {
+        "mean_ms": 134.94438686982903,
+        "median_ci95_ms": [
+          133.03632600218407,
+          136.95582299988018
+        ],
+        "min_ms": 116.80480300128693,
+        "p50_ms": 135.45525150402682,
+        "p95_ms": 151.34999325491663,
+        "p99_ms": 160.95394817050004,
+        "run_median_ci95_ms": [
+          131.31118430028437,
+          136.38080750024528
+        ],
+        "run_median_mean_ms": 133.9613187003124,
+        "runs": 5,
+        "samples": 100
+      },
+      "process_max_rss_mib": 254.48828125,
+      "relative_rms_error_vs_fp64": {
+        "max": 0.12730751857683079,
+        "mean": 0.12713790240524747
+      },
+      "shape_mkn": [
+        256,
+        512,
+        512
+      ],
+      "status": "ok",
+      "throughput_gflops": 0.9908639680611421,
+      "throughput_note": "host wall-clock; for simulated backends this is simulator speed, not device speed",
+      "working_set_bytes": 2097152,
+      "workload": "gemm"
+    },
+    {
+      "backend": "cpu",
+      "decode_latency_per_token": {
+        "mean_ms": 3.9160511843647328,
+        "median_ci95_ms": [
+          1.262248499983798,
+          8.332622609373175
+        ],
+        "min_ms": 1.262248499983798,
+        "p50_ms": 1.808966093676645,
+        "p95_ms": 8.047255815631615,
+        "p99_ms": 8.275549250624863,
+        "run_median_ci95_ms": [
+          1.3749446499787155,
+          6.634857309381914
+        ],
+        "run_median_mean_ms": 3.9160511843647328,
+        "runs": 5,
+        "samples": 5
+      },
+      "decode_tokens_per_s": {
+        "ci95": [
+          216.48690731767374,
+          741.2144689052817
+        ],
+        "mean": 479.3732789637721
+      },
+      "eval_windows": 32,
+      "fidelity": "measured",
+      "model": "awen-mini",
+      "new_tokens_per_run": 64,
+      "parameters": 1016320,
+      "perplexity": {
+        "ci95": [
+          3.8876786752405597,
+          4.817232325829039
+        ],
+        "mean": 4.314206773519099
+      },
+      "process_max_rss_mib": 269.5703125,
+      "run_loss_spread_nats": 0.0,
+      "status": "ok",
+      "time_to_first_token": {
+        "mean_ms": 6.871216598665342,
+        "median_ci95_ms": [
+          1.0560059963609092,
+          29.78327999881003
+        ],
+        "min_ms": 1.0560059963609092,
+        "p50_ms": 1.1814030003733933,
+        "p95_ms": 24.063101198407814,
+        "p99_ms": 28.639244238729585,
+        "run_median_ci95_ms": [
+          1.1063613972510211,
+          18.336850199557375
+        ],
+        "run_median_mean_ms": 6.871216598665342,
+        "runs": 5,
+        "samples": 5
+      },
+      "val_loss_nats": {
+        "ci95": [
+          1.3578122379258275,
+          1.5721995568834244
+        ],
+        "mean": 1.4619134776294231
+      },
+      "workload": "awen-mini-inference"
+    },
+    {
+      "backend": "cuda",
+      "reason": "no CUDA device visible to PyTorch on this host",
+      "status": "skipped",
+      "workload": "awen-mini-inference"
+    },
+    {
+      "backend": "awen-reference",
+      "decode_latency_per_token": {
+        "mean_ms": 46.67472682810967,
+        "median_ci95_ms": [
+          44.862662890636784,
+          47.808323750018644
+        ],
+        "min_ms": 44.862662890636784,
+        "p50_ms": 47.493088281157725,
+        "p95_ms": 47.76794481251727,
+        "p99_ms": 47.80024796251837,
+        "run_median_ci95_ms": [
+          45.59988851563048,
+          47.664518781243714
+        ],
+        "run_median_mean_ms": 46.67472682810967,
+        "runs": 5,
+        "samples": 5
+      },
+      "decode_tokens_per_s": {
+        "ci95": [
+          20.98010945835744,
+          21.96092749662568
+        ],
+        "mean": 21.439338259036585
+      },
+      "eval_windows": 32,
+      "fidelity": "software reference (exact math)",
+      "model": "awen-mini",
+      "new_tokens_per_run": 64,
+      "parameters": 1016320,
+      "perplexity": {
+        "ci95": [
+          3.8876786513440527,
+          4.81723197431983
+        ],
+        "mean": 4.3142066851249
+      },
+      "process_max_rss_mib": 288.8125,
+      "run_loss_spread_nats": 0.0,
+      "status": "ok",
+      "time_to_first_token": {
+        "mean_ms": 16.16521020041546,
+        "median_ci95_ms": [
+          12.497005998739041,
+          28.87787500367267
+        ],
+        "min_ms": 12.497005998739041,
+        "p50_ms": 12.891635997220874,
+        "p95_ms": 25.85056660318514,
+        "p99_ms": 28.27241332357516,
+        "run_median_ci95_ms": [
+          12.70440999942366,
+          22.574392802198417
+        ],
+        "run_median_mean_ms": 16.16521020041546,
+        "runs": 5,
+        "samples": 5
+      },
+      "val_loss_nats": {
+        "ci95": [
+          1.3578122317790986,
+          1.5721994839143005
+        ],
+        "mean": 1.4619134571403265
+      },
+      "workload": "awen-mini-inference"
+    },
+    {
+      "backend": "photonic-sim",
+      "decode_latency_per_token": {
+        "mean_ms": 100.76685901246947,
+        "median_ci95_ms": [
+          97.30210101554349,
+          102.07969982809573
+        ],
+        "min_ms": 97.30210101554349,
+        "p50_ms": 101.41809151559755,
+        "p95_ms": 102.05842457810377,
+        "p99_ms": 102.07544477809734,
+        "run_median_ci95_ms": [
+          99.00941639994016,
+          101.88355241562022
+        ],
+        "run_median_mean_ms": 100.76685901246947,
+        "runs": 5,
+        "samples": 5
+      },
+      "decode_tokens_per_s": {
+        "ci95": [
+          9.81517992909324,
+          10.106660713624127
+        ],
+        "mean": 9.927040717240981
+      },
+      "eval_windows": 32,
+      "fidelity": "simulated (compact model)",
+      "model": "awen-mini",
+      "new_tokens_per_run": 64,
+      "parameters": 1016320,
+      "perplexity": {
+        "ci95": [
+          61.7896233489583,
+          73.79512942719006
+        ],
+        "mean": 67.60290709933172
+      },
+      "process_max_rss_mib": 297.83984375,
+      "run_loss_spread_nats": 0.12727311253547668,
+      "status": "ok",
+      "time_to_first_token": {
+        "mean_ms": 38.13187299965648,
+        "median_ci95_ms": [
+          35.13811399898259,
+          40.54466600064188
+        ],
+        "min_ms": 35.13811399898259,
+        "p50_ms": 38.78332099702675,
+        "p95_ms": 40.27367920061806,
+        "p99_ms": 40.49046864063712,
+        "run_median_ci95_ms": [
+          36.58573332973902,
+          39.650423399871215
+        ],
+        "run_median_mean_ms": 38.13187299965648,
+        "runs": 5,
+        "samples": 5
+      },
+      "val_loss_nats": {
+        "ci95": [
+          4.123735443390906,
+          4.30129273250699
+        ],
+        "mean": 4.2136509865522385
+      },
+      "workload": "awen-mini-inference"
+    },
+    {
+      "backend": "hybrid",
+      "decode_latency_per_token": {
+        "mean_ms": 69.64258417813198,
+        "median_ci95_ms": [
+          66.7187530625597,
+          72.7367113594255
+        ],
+        "min_ms": 66.7187530625597,
+        "p50_ms": 69.14859448431798,
+        "p95_ms": 72.53398402192488,
+        "p99_ms": 72.69616589192538,
+        "run_median_ci95_ms": [
+          67.67153504686121,
+          71.56504506494854
+        ],
+        "run_median_mean_ms": 69.64258417813198,
+        "runs": 5,
+        "samples": 5
+      },
+      "decode_tokens_per_s": {
+        "ci95": [
+          13.968614032267515,
+          14.779887421983924
+        ],
+        "mean": 14.374250727125718
+      },
+      "eval_windows": 32,
+      "fidelity": "simulated (compact model) + measured host",
+      "model": "awen-mini",
+      "new_tokens_per_run": 64,
+      "parameters": 1016320,
+      "perplexity": {
+        "ci95": [
+          42.1823917983339,
+          48.23639591800019
+        ],
+        "mean": 45.15501548318924
+      },
+      "placement": "ffn.fc/ffn.proj GEMMs on photonic-sim; attention GEMMs, norms, softmax, head on CPU",
+      "process_max_rss_mib": 301.734375,
+      "run_loss_spread_nats": 0.06710465252399445,
+      "status": "ok",
+      "time_to_first_token": {
+        "mean_ms": 29.619292600546032,
+        "median_ci95_ms": [
+          24.857477001205552,
+          39.79837700171629
+        ],
+        "min_ms": 24.857477001205552,
+        "p50_ms": 27.690506001817994,
+        "p95_ms": 37.553009801194996,
+        "p99_ms": 39.34930356161203,
+        "run_median_ci95_ms": [
+          26.064506800321396,
+          34.95522860175697
+        ],
+        "run_median_mean_ms": 29.619292600546032,
+        "runs": 5,
+        "samples": 5
+      },
+      "val_loss_nats": {
+        "ci95": [
+          3.7420028780028223,
+          3.8761138381436466
+        ],
+        "mean": 3.8101013585925103
+      },
+      "workload": "awen-mini-inference"
+    }
+  ],
+  "settings": {
+    "awen_reference_contract": {
+      "adc_bits": null,
+      "crosstalk_db": null,
+      "dac_bits": null,
+      "detection_bandwidth_hz": 1.0,
+      "drift_rad_per_sqrt_s": 0.0,
+      "insertion_loss_db": 0.0,
+      "phase_sigma_rad": 0.0,
+      "photons_per_mac": null,
+      "quantum_efficiency": 1.0,
+      "rin_db_per_hz": null,
+      "seconds_since_calibration": 0.0,
+      "thermal_noise_electrons": 0.0,
+      "version": "awen.photonic-noise-contract.v1"
+    },
+    "backends": [
+      "cpu",
+      "cuda",
+      "awen-reference",
+      "photonic-sim",
+      "hybrid"
+    ],
+    "bootstrap_resamples": 2000,
+    "ci_level": 0.95,
+    "gemm_shapes_mkn": [
+      [
+        64,
+        128,
+        128
+      ],
+      [
+        128,
+        256,
+        256
+      ],
+      [
+        256,
+        512,
+        512
+      ]
+    ],
+    "new_tokens": 64,
+    "photonic_sim_contract": {
+      "adc_bits": 8,
+      "crosstalk_db": -35.0,
+      "dac_bits": 8,
+      "detection_bandwidth_hz": 10000000000.0,
+      "drift_rad_per_sqrt_s": 0.0,
+      "insertion_loss_db": 6.0,
+      "phase_sigma_rad": 0.002,
+      "photons_per_mac": 1000.0,
+      "quantum_efficiency": 0.8,
+      "rin_db_per_hz": -150.0,
+      "seconds_since_calibration": 0.0,
+      "thermal_noise_electrons": 100.0,
+      "version": "awen.photonic-noise-contract.v1"
+    },
+    "repeats": 20,
+    "runs": 5,
+    "seed": 0,
+    "warmup": 3,
+    "windows": 32
+  },
+  "version": "awen.benchmark-evidence.v1",
+  "wall_seconds": 199.333
+}

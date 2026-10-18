@@ -64,6 +64,11 @@ instances = {
     "awen-spec/fixtures/vpisa_quantum_feed_forward.json": "awen_vpisa.v1.json",
     "awen-spec/fixtures/hardware_reference_simulator.v1.json": "awen_hardware_description.v1.json",
 }
+instances.update({
+    name: "awen_benchmark_evidence.v1.json"
+    for name in documents
+    if name.startswith("benchmarks/results/evidence-")
+})
 
 for instance_name, schema_file in instances.items():
     schema_name = f"awen-spec/schemas/{schema_file}"

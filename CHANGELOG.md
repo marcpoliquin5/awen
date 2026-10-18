@@ -12,6 +12,26 @@
   established results they build on. `docs/RESEARCH_PIPELINE.md` describes
   the research-to-code path. Kept separate from the core; no free-energy
   claims (refs #77).
+- Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
+  when no GPU is visible), the AWEN software reference, the photonic
+  simulator and a hybrid placement on GEMM and AWEN-Mini inference, with
+  p50/p95/p99 latency, throughput, memory, compile time, time to first token,
+  tokens/s and perplexity, bootstrap 95% CIs over multiple runs, and a
+  write-once, self-hashed evidence record (`awen.benchmark-evidence.v1`,
+  git SHA, hardware, environment). One measured run on the build host's CPU
+  is committed; see `docs/BENCHMARKS.md` (refs #74).
+- Added the efficiency program (`awen-efficiency`): low-rank, tensor-train,
+  untied head, MoE top-1, 50% magnitude pruning, int4 QAT vs PTQ,
+  distillation from AWEN-Mini and recursive reuse, all at a matched
+  818k-parameter budget with two seeds on CPU, plus a Pareto plot of quality
+  vs parameters, latency, memory and MACs (energy only estimated). Negative
+  results (low-rank, sparsity, untied head) are reported (refs #72).
+- Added `awen_systems.fabric`, a discrete-event interconnect simulator (links,
+  electrical packet and optical circuit switches, contention, reconfiguration
+  delay, loss budget, power, failures with rerouting, ring all-reduce and
+  all-to-all) checked against M/M/1 and the alpha-beta all-reduce formula,
+  plus an optical-vs-electrical study on identical workloads under stated
+  assumed parameters (`awen-fabric-study`; modeled, refs #71).
 - Added `awen-systems` with a memory-technology parameter schema
   (`awen.memory_technologies.v1`: phase-change photonic, microring fading,
   optical RRAM, delay line, HBM2 baseline). Every value carries a provenance;

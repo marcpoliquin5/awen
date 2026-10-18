@@ -147,6 +147,62 @@ Caveats:
 - Latency was measured while other jobs shared the CPU, so treat it as a
   relative comparison only.
 
+## Efficiency program (matched-budget ablations)
+
+`awen-efficiency` (`awen_models.efficiency`) trains ten variants of a 4-layer,
+d=128 character model on Tiny Shakespeare at the same stored-parameter budget
+(818,048 ± 3%), with identical data, AdamW schedule, 1500 steps, batch 32 and
+seeds 1 and 2, on this machine's CPU. Results: `results/efficiency/results.json`
+and `results/efficiency/pareto.png` (quality vs parameters, latency, weight
+memory and MACs per token).
+
+| variant | stored params | val loss (mean ± sd, nats/char) | latency b1 (ms) | weight memory (KiB) | MACs/token (rel.) |
+|---|---|---|---|---|---|
+| baseline (GELU MLP 512, tied head) | 818,048 | 1.7182 ± 0.0039 | 1.28 | 3,196 | 1.00 |
+| untied head (MLP 504) | 818,144 | 1.7246 ± 0.0020 | 1.23 | 3,196 | 0.99 |
+| low-rank MLP (1024 wide, rank 56) | 811,904 | 1.9742 ± 0.0040 | 1.57 | 3,172 | 0.99 |
+| tensor-train MLP (1024 wide, rank 85) | 818,048 | 1.7059 ± 0.0014 | 2.29 | 3,196 | 1.57 |
+| MoE, 4 experts, top-1 | 821,632 | 1.6957 ± 0.0192 | 2.10 | 3,210 | 0.58 (active) |
+| 50% magnitude-pruned MLP (1024 wide) | 820,096 nonzero | 1.7412 ± 0.0104 | 1.77 | 3,204 | 1.57 (dense kernels) |
+| QAT int4 weights | 818,048 | 1.7298 ± 0.0051 | 1.33 | 508 | 1.00 |
+| PTQ int4 weights (no QAT) | 818,048 | 1.7443 ± 0.0054 | 1.35 | 508 | 1.00 |
+| KD from bundled AWEN-Mini (1.02M) | 818,048 | 1.6983 ± 0.0114 | 1.48 | 3,196 | 1.00 |
+| recursive (1 shared block x4, d=256) | 839,680 | 1.6114 ± 0.0055 | 3.18 | 3,280 | 3.70 |
+
+What this shows, including the negative results:
+
+* Recursive weight reuse gives the best loss at this budget but costs 2.5x
+  latency and 3.7x MACs per token: it trades compute for parameters.
+* MoE top-1 and KD both improve on the baseline (1.696 and 1.698 vs 1.718).
+  MoE uses 0.58x the MACs per token, but it is slower on this CPU (2.10 vs
+  1.28 ms) because the routing and gather overhead outweighs the smaller
+  experts at this size. MoE has the largest seed spread (sd 0.019).
+* QAT recovers about half of the int4 loss penalty (1.730 vs PTQ 1.744 vs
+  fp32 1.718) at 6.3x smaller weight memory.
+* Low-rank is clearly worse (1.974). Unstructured 50% sparsity is worse than
+  dense (1.741) and slower here because PyTorch runs the masked weights as
+  dense GEMMs. Untying the output head does not help (1.725).
+* Tensor-train is slightly better than the baseline (1.706) at the same
+  parameter count, but the forward pass materializes the TT matrix and runs a
+  dense 1024-wide GEMM, so it costs 1.57x MACs and 1.8x latency.
+
+Measurement notes: losses are on the fixed validation split (last 10%,
+20 batches, seed 0). Latency is the median batch-1 full-context forward on
+the CPU recorded in `hardware`, measured while the two seed runs were sharing
+the 8-core CPU (4 threads each), so absolute values are noisy; compare them
+only within this table. Weight memory is computed from stored values
+(sparse index overhead excluded). MACs per token are counted at 128-token
+context. **Energy is not measured**: the harness reports energy as MACs
+relative to the baseline, or as MACs x a pJ/MAC value only if you pass
+`--pj-per-mac` (no value is bundled).
+
+```bash
+awen-efficiency --steps 1500 --seeds 1 2 --out results/efficiency
+# or one process per seed, then merge
+awen-efficiency --seeds 1 --threads 4 --out runs/s1 & awen-efficiency --seeds 2 --threads 4 --out runs/s2
+awen-efficiency --merge runs/s1/results.json runs/s2/results.json --out results/efficiency
+```
+
 ## Fine-tuning, QLoRA and distillation
 
 `python -m awen_models.finetune lora|distill` (`awen-finetune`):
@@ -244,6 +300,15 @@ Activation-activation `MatMul`, elementwise ops (`Add`, `Sub`, `Mul`, `Div`,
 refuses the graph. The photonic MAC fraction is static analysis, not a
 measurement. Not mapped yet: `Gather`, `LayerNormalization`, pooling, grouped
 and dilated convolution, and fused attention ops.
+
+## Benchmarks
+
+`awen-bench --runs 5 --out-dir benchmarks/results` times CPU, CUDA (skipped
+when absent), the AWEN software reference, the photonic simulator and a
+hybrid placement on GEMM and AWEN-Mini inference, and writes a write-once,
+self-hashed evidence record. Simulator wall-clock is the cost of simulation
+on the host, not photonic device speed. Method and the committed run:
+[`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md).
 
 ## Model conversion (`awen-convert`)
 
