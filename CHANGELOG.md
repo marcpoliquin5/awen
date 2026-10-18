@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `awen-physics`: 1-D Yee FDTD reflectance spectra (`fdtd1d`, full-wave 1-D)
+  converging at second order to the transfer-matrix result, and a 2-D
+  scalar paraxial Crank–Nicolson BPM with imaginary-distance mode solving
+  (`bpm`), checked against the Gaussian-beam width and the analytic slab
+  mode (#95, refs #68).
 - `awen-physics`: planar multilayer optics by transfer matrices and an
   independent Redheffer S-matrix composition (`tmm`), and microring
   all-pass/add-drop transmission with explicit round-trip propagation, FSR

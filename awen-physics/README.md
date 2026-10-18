@@ -15,6 +15,8 @@ every number the AWEN simulator produces can be traced to a validated model.
 | `clements` | Clements (2016) rectangular MZI-mesh decomposition, reconstruction, phase-error sensitivity | analytic |
 | `tmm` | Planar multilayers: characteristic (transfer) matrices and an independent Redheffer S-matrix composition; s/p polarization, oblique incidence, absorbing layers | analytic |
 | `rings` | Microring all-pass and add-drop transmission (closed form), explicit round-trip field propagation, FSR, FWHM, loss conversion | analytic / numerical propagation |
+| `fdtd1d` | 1-D Yee FDTD for normal-incidence layer stacks; pulse reflectance spectra | full-wave (1-D) |
+| `bpm` | 2-D scalar paraxial Crank–Nicolson BPM; imaginary-distance fundamental mode | numerical propagation |
 | `enob` | Sine-test ENOB of the Rust photonic GEMM model (`awen_native`) vs theory | compact model |
 
 Checks for `tmm` and `rings` (`tests/test_tmm_rings.py`): bare interfaces vs
@@ -25,6 +27,15 @@ weak index-matched absorber, S-matrix stability where the transfer matrix
 overflows; round-trip propagation vs the analytic ring (|ΔT| < 1e-11),
 critical coupling, lossless add-drop power conservation, and FSR (rel. 1e-4)
 and FWHM (rel. 1e-2) measured from a sampled dispersive spectrum vs formula.
+
+Checks for `fdtd1d` and `bpm` (`tests/test_fdtd_bpm.py`): FDTD half-space vs
+Fresnel; FDTD two-layer stack vs `tmm` over 0.8–1.4 µm at dx = 20, 10, 5 nm
+with observed convergence order 1.8–2.2 (measured locally: 2.00, 2.00; max
+|ΔR| 3.6e-4 at 5 nm); BPM Gaussian beam width vs `w(z)` (rel. < 1e-3 at
+dz = 0.5 µm, monotone in dz); exact norm preservation (1e-12); imaginary-distance
+n_eff vs the analytic slab (< 1e-5 at 40 pts/µm, order 1.8–2.2); a launched
+mode keeps its shape over 500 µm and its phase matches the Crank–Nicolson
+eigenvalue (< 1e-6 rad).
 
 ## Validation notebooks
 
