@@ -254,6 +254,31 @@ self-hashed evidence record. Simulator wall-clock is the cost of simulation
 on the host, not photonic device speed. Method and the committed run:
 [`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md).
 
+## Model conversion (`awen-convert`)
+
+```bash
+# AWEN-Mini checkpoint -> ONNX, checked against PyTorch with onnx's reference evaluator
+awen-convert to-onnx --output mini.onnx --seq-len 32 --report mini.conversion.json
+# ONNX -> awen.tensor.v1 program (constant-weight MatMul/Gemm only), then plan it
+awen-convert to-program mini.onnx --output mini.program.json
+awenctl compile mini.program.json --output mini.compiled.json
+```
+
+`to-onnx` uses the legacy TorchScript exporter at opset 17 with a fixed
+sequence length. On the bundled checkpoint at sequence length 32 the largest
+logit difference between PyTorch and `onnx.reference.ReferenceEvaluator` was
+1.0e-05 (run on CPU here, 2026-10-18); the test requires < 1e-4. The report
+also carries the ONNX compatibility analysis: 21 of 31 MatMul nodes have a
+constant weight and are photonic candidates (96% of the MACs at that
+sequence length); the 10 attention products multiply two activations and
+stay electronic.
+
+`to-program` keeps only the GEMMs. Gemm `alpha` and bias are listed as
+electronic epilogues and are not part of the program. The default dtype is
+`f32` because the model is fp32; the reference photonic capability accepts
+`f16`/`int8` only, so `awenctl compile` places an fp32 program on the CPU and
+says why. Pass `--dtype int8` to plan a quantized deployment.
+
 ## Tests
 
 ```bash
