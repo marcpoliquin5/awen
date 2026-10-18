@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+No changes since 0.1.0.
+
+## 0.1.0 (2026-10-18)
+
+First tagged AWEN software release. It is **simulator-only**: everything runs
+on conventional CPUs, photonic results come from AWEN's noise-model simulator,
+compiler cost figures are estimates, CUDA/GPU paths are untested, and no
+photonic or quantum-photonic hardware was used. It makes no claim of physical
+acceleration, measured energy savings or quantum advantage. Commands, test
+counts, measured and simulated results, and blocked items are in
+`docs/EVIDENCE.md`; per-item status is in `docs/DIRECTIVE_TRACKER.md`.
+
+- Evidence (P0.4): `docs/EVIDENCE.md` records the environment, the exact
+  command and test count for every package, the release-artifact check, and
+  which results are measured on CPU, simulated, estimated or blocked.
+  `docs/AUDIT.md`, `docs/IMPLEMENTATION-STATUS.md`, the README and the
+  directive tracker were brought up to date for 0.1.0 (closes #120).
 - Release automation (X2): the manual `Verified release` workflow now builds
   real artifacts with `scripts/build_release_artifacts.sh` (the `awenctl`
   Linux x86_64 binary, built twice to record bit-for-bit reproducibility;

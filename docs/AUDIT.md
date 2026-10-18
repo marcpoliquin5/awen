@@ -2,9 +2,8 @@
 
 Baseline: `main` at `020be48` (October 18, 2026, after the Step 1 cleanup
 pull requests #51–#54). Every statement below is grounded in the source tree,
-a local test run, or a dependency scan; the commands are in
-`docs/EVIDENCE.md` (added when the directive completes; until then the commands
-are in each pull request description).
+a local test run, or a dependency scan; the commands and results for the
+0.1.0 state are in `docs/EVIDENCE.md` (#120).
 
 ## Classification used
 
@@ -36,33 +35,33 @@ Rows marked "since #N" were updated after the baseline; the rest describe `020be
 
 | Capability | Status | Fidelity | Evidence | Gap / issue |
 | --- | --- | --- | --- | --- |
-| Tensor IR validation, precision/scaling/error contracts | implemented | analytic | compiler tests | Contracts are dimensionless fractions, not physical units (#56) |
+| Tensor IR validation, precision/scaling/error contracts | implemented | analytic | compiler tests | Physical-unit contracts added since #80; tensor-level contracts remain fractions |
 | Calibration-aware compilation, fault remapping | experimental | compact model | `calibration_aware.rs` tests | Calibration data is synthetic |
 | Capability/health negotiation | experimental | n/a | conformance tests | Reference capability files are synthetic |
 | Cost model and autotuning | experimental | compact model | `cost_model_conformance` | Energy/latency numbers are estimates, never measured |
 | CPU/GPU/photonic partitioning, GEMM tiling | implemented | n/a | partitioner tests | GEMM only (#62) |
-| Photonic IR → Device IR | implemented | n/a | pipeline tests | No written ISA (#55) |
-| Calibrated transfer simulator (`awenctl benchmark`) | experimental | compact model | CLI smoke test | Noise is fractional, not photon/ENOB based (#57) |
-| awenBLAS (22 kernel kinds) | implemented (reference) | analytic | `awenblas_kernels.rs` | GPU/photonic paths are simulated dispatch (#65) |
+| Photonic IR → Device IR | implemented | n/a | pipeline tests | Virtual Photonic ISA v1 written since #89; quantum domain validated, not executed |
+| Calibrated transfer simulator (`awenctl benchmark`) | experimental | compact model | CLI smoke test | Photon/ENOB-based noise model since #80; parameters illustrative |
+| awenBLAS (25 kernel kinds since #103) | implemented (reference) | analytic | `awenblas_kernels.rs` | GPU/photonic paths are simulated dispatch (#65) |
 | MLIR StableHLO `dot_general` → AWENEXE | partial | n/a | CTest | Rank 2 and equal-batch rank 3 only |
 | `awenctl execute` | implemented (since #82) | compact model | ABI step in CI | GEMM dispatches only |
 | C/C++ GEMM ABI | implemented | analytic | C++20 consumer in CI | f32/f64 GEMM only (#66) |
 | HAL | experimental | n/a | unit tests | Only `SimulatedDevice`; no hardware driver (#67) |
-| Scheduler, observability, artifacts, plugin registry | implemented | n/a | integration tests | No streams/events, multi-device, plugin isolation (#64) |
+| Scheduler, observability, artifacts, plugin registry | implemented; streams/events, residency, leases, remap, recording, profiling since #101, #102 | n/a | integration tests | Multi-device on simulated devices only; plugin out-of-process isolation not started (#64) |
 | HIL benchmark orchestration and claim generator | implemented | n/a | `hil_benchmark_conformance` | Zero physical artifacts exist |
-| Quantum Gaussian/Fock experiments | experimental | numerical | `quantum_integration.rs` | No permanents, boson sampling or resource model (#69) |
+| Quantum Gaussian/Fock experiments | numerically validated, simulation only (since #97–#99) | numerical | `quantum_integration.rs`, `awen-qphotonic/tests` (61) | Permanents, boson sampling, resource model added; photonic kernel worse than RBF, no advantage; no single-photon hardware (#69) |
 | Python `torch.compile` backend, JAX StableHLO, NumPy API | partial | analytic / compact model | pytest | `target="photonic"` routes GEMMs through Rust via `awen-native` since #84; other targets use host framework math |
 | PyTorch PrivateUse1 device | partial (since #87) | compact model | `test_device.py` (6) | Inference only; mm/addmm/bmm/add/relu |
-| OpenXLA PJRT plugin | missing | | | #61 |
-| ONNX import | missing | | | #63 |
-| Physics solvers (mode solver, FDTD, BPM, rings, SHG) | missing | | | #68 |
+| OpenXLA PJRT plugin | partial (since #100) | compact model | `test_stablehlo_exec.py` (8) | JAX-lowered StableHLO executes; the PJRT C API plugin is blocked on StableHLO bytecode deserialization (`docs/PJRT_BOUNDARY.md`, #61) |
+| ONNX import | implemented, minimal (since #93) | n/a | compiler tests, `test_convert.py` | MatMul/Gemm/Conv plus electronic ops; others reported by name (#63) |
+| Physics solvers (mode solver, FDTD, BPM, rings, SHG) | partial (since #94–#96) | analytic / numerical | `awen-physics/tests` (51) | TMM/S-matrix, rings, 1-D FDTD, 2-D BPM, SHG, adjoint check done; 2-D FDTD, dispersion, thermo/electro-optic, external adapters open (#68) |
 | Physical-unit noise model | implemented (since #80) | compact model | Monte Carlo vs closed form in `noise.rs` | Parameter values are illustrative, not measured |
 | Physics validation notebooks | implemented (since #86) | analytic / numerical | `awen-physics/tests/test_notebooks.py` | Slab, Clements mesh, ENOB only; solvers in #68 |
-| Memory subsystem / fabric simulators | missing | | | #70, #71 |
+| Memory subsystem / fabric simulators | implemented, modeled (since #108, #109) | compact model | `awen-systems/tests` (26) | Only three cited device values; no device or switch data (#70, #71) |
 | Trained model checkpoints | implemented (since #83) | measured (CPU training) | `awen-models` tests reproduce recorded loss | AWEN-Mini 1.0M params, char-level |
-| Studio, Lab Agent | missing (removed earlier as nonfunctional) | | | #75, #76 |
-| Hosted cloud | not offered | | | Architecture document only |
-| Supply chain (SBOM, binary release artifacts) | partial | | release workflow publishes source only | #78 |
+| Studio, Lab Agent | implemented (Lab Agent since #113, simulation only; Studio since #118, local only, not hosted) | as labeled by each backend | `awen-lab/tests` (11), `awen-studio/tests` (14) + frontend build in CI | Every hardware action refused (#75, #76) |
+| Hosted cloud | not offered | | | Architecture document only (`docs/CLOUD_ARCHITECTURE.md`, #117) |
+| Supply chain (SBOM, binary release artifacts) | implemented (since #114, #119) | n/a | cargo-deny, safe-loading check, CycloneDX SBOMs in CI; release workflow builds, verifies and attests binaries and wheels | Reproducibility checked for `awenctl` only (#78) |
 
 ## Dependency and security scan at baseline
 
@@ -70,7 +69,8 @@ Rows marked "since #N" were updated after the baseline; the rest describe `020be
 - GitHub Dependabot alerts: 0 open (8 fixed). Secret scanning: 0 open. Code
   scanning: not configured.
 - `pip-audit` on the CI environment: clean on the last green run.
-- Outdated: `jsonschema` 0.16 (#79), `base64` 0.21, `rand` 0.8.
+- Outdated: `jsonschema` 0.16 (#79), `base64` 0.21, `rand` 0.8. `jsonschema` was
+  upgraded to 0.59 in #115.
 - MSRV: Rust 1.88, checked in CI; toolchain pinned to 1.99.1.
 
 ## Changes made by the Step 1 cleanup
@@ -97,3 +97,29 @@ PyTorch 2.14.1 CPU):
 
 The MLIR CTest suite and the C++ ABI consumer run in the required CI gate
 (green on #54).
+
+## Test results at 0.1.0
+
+Run locally on October 18, 2026 on the tree that became 0.1.0 (Intel Xeon,
+8 vCPU, no GPU; Rust 1.99.1, Python 3.13.5, PyTorch 2.14.1 CPU). Commands
+are in `docs/EVIDENCE.md`.
+
+| Package | Baseline (`020be48`) | 0.1.0 |
+| --- | --- | --- |
+| `awen-compiler` | 83 | 129 |
+| `awen-runtime` (+ `awenctl`) | 268 | 305 |
+| `awen_py` | 29 | 48 |
+| `awen-native` | not present | 23 |
+| `awen-models` | not present | 75 (+2 skipped) |
+| `awen-physics` | not present | 51 |
+| `awen-qphotonic` | not present | 61 |
+| `awen-systems` | not present | 26 |
+| `awen-lab` | not present | 11 |
+| `awen-studio` | not present | 14 |
+| `research` | not present | 16 |
+| `scripts` | not present | 10 |
+| JSON | 60 documents, 33 schemas, 17 instances | 90 documents, 37 schemas, 22 instances |
+
+`cargo audit`: 0 vulnerabilities (27, 172 and 45 crates for compiler,
+runtime and native). `cargo deny` licenses and sources: ok for all three.
+

@@ -30,10 +30,14 @@ flowchart LR
     R -.-> H["External hardware or lab drivers<br/>(no verified hardware results yet)"]
 ```
 
-> **Status:** AWEN is experimental. The compiler, runtime, MLIR path, and
-> framework integrations are implemented as narrow, tested reference slices.
-> Physical accelerator performance is **not established**; see
-> [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md).
+> **Status:** AWEN 0.1.0 is an experimental, **simulator-only** release. The
+> compiler, runtime, MLIR path, model tools and framework integrations are
+> tested reference implementations that run on conventional CPUs. No photonic
+> hardware was used: photonic results come from AWEN's noise-model simulator,
+> and CUDA/GPU paths are untested. Physical accelerator performance is **not
+> established**. Commands, test counts and results are in
+> [docs/EVIDENCE.md](docs/EVIDENCE.md); per-item status is in
+> [docs/DIRECTIVE_TRACKER.md](docs/DIRECTIVE_TRACKER.md).
 
 ## Quickstart
 
@@ -182,8 +186,13 @@ measured product performance.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
 - `awen-models`: AWEN-Mini (trained checkpoint, int8, evaluation), the `awen.Runtime` facade with `device="photonic-sim"`, AWEN-Nonlinear ablations, AWEN-Photon noise-aware training, and a safe Hugging Face adapter with an AWEN capability report.
 - `awen-native`: PyO3 binding to the Rust compiler and photonic GEMM noise model. It backs the `photonic` target of `awen_py` and the PrivateUse1 `awen` device.
-- `awen-physics`: reference physics (slab modes, Clements meshes, ENOB) and CI-executed validation notebooks (AEP-0023).
+- `awen-physics`: reference physics (slab modes, Clements meshes, ENOB, TMM/S-matrix, microrings, 1-D FDTD, BPM, χ⁽²⁾ SHG, adjoint gradient check) and CI-executed validation notebooks (AEP-0023).
+- `awen-qphotonic`: quantum-photonic simulation (permanents, Fock and Gaussian states, boson sampling, detection, resource model, kernel vs classical baseline). Simulation only.
+- `awen-systems`: modeled photonic memory and optical/electrical interconnect simulators with per-value provenance.
+- `awen-lab`: simulation-only Lab Agent with content-addressed lab states and approval gates; hardware actions are refused.
 - `awen-studio`: local web app (FastAPI + React/Vite) over the compiler, simulator, AWEN-Mini and the Lab Agent; localhost only.
+- `research`: research ledger schema and importer, research-to-code pipeline, frontier-physics hypotheses with falsification criteria.
+- `awen-runtime/include/awen/awen.h`: the C SDK header (kernel ABI `awen.kernel-c.v1`).
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
 - `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, reference-only marketplace metadata, and plugin implementation guidance.
 
@@ -361,7 +370,11 @@ inventing semantics. See AEP-0020 and
 
 The canonical required check is `AWEN required quality gate`. Public performance claims must be generated from verified immutable end-to-end artifacts that include host transfer, memory, scheduling, reconfiguration, lasers, DAC/ADC, calibration, digital post-processing, and support power. The repository currently ships no measured physical-accelerator artifact and makes no validated hardware-acceleration claim.
 
-There is no supported AWEN product release. Exact capability classifications
-are in `docs/IMPLEMENTATION-STATUS.md`; verified release criteria are in
-`docs/RELEASING.md`. Project decisions and reporting paths are defined by
+AWEN 0.1.0 is a simulator-only software release: its binaries, wheels and
+AWEN-Mini checkpoint are attached to the GitHub Release built by
+`.github/workflows/release.yml`, with checksums and build-provenance
+attestations. It is not a hardware product and makes no hardware-performance
+claim. The evidence for 0.1.0 is in `docs/EVIDENCE.md`, exact capability
+classifications are in `docs/IMPLEMENTATION-STATUS.md` and
+`docs/DIRECTIVE_TRACKER.md`, and release criteria are in `docs/RELEASING.md`. Project decisions and reporting paths are defined by
 `GOVERNANCE.md`, `CONTRIBUTING.md`, `MAINTAINERS.md`, and `SECURITY.md`.
