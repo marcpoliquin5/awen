@@ -184,6 +184,27 @@ jobs:
           python -m pip install --disable-pip-version-check "./awen-lab[test]"
           python -m pytest awen-lab/tests -q
 
+      - name: Set up Node.js for AWEN Studio
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: awen-studio/frontend/package-lock.json
+
+      - name: Build AWEN Studio frontend (typecheck + production bundle)
+        working-directory: awen-studio/frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Test AWEN Studio API and HTTP end-to-end smoke test
+        env:
+          AWEN_STUDIO_REQUIRE_FRONTEND: "1"
+          OMP_NUM_THREADS: "2"
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-studio[test]"
+          python -m pytest awen-studio/tests -q
+
       - name: Test research ledger and frontier-physics checks
         run: python -m pytest research/tests -q
 
