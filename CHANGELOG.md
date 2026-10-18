@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added `docs/CLOUD_ARCHITECTURE.md`: a design-only architecture for a
+  possible hosted service, mapped component by component onto existing
+  modules and schemas, with what exists and what does not. No service exists
+  (closes #116).
 - Lab Agent (S2): new `awen-lab` package and CLI. It orchestrates Quick,
   Truth, Repro, Compare and Publish workflows over the existing simulators
   (the Rust photonic GEMM model and the quantum-photonic references). Each
