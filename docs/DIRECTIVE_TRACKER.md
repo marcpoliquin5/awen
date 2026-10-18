@@ -68,7 +68,7 @@ their testable portion implemented and the blocked boundary written down.
 | C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | implemented (12-op library: gemm hardware_lowerable, 11 photonic_sim, none measured; minimal ONNX import: MatMul/Gemm/Conv + 13 electronic ops, report + execution) | #92, #93 | `awen-compiler/tests/ops.rs` (7), `awen-native/tests/test_ops.py` (15, NumPy oracles), `awen-models/tests/test_onnx_import.py` (7, onnx ReferenceEvaluator oracle) | hardware levels need a device; ONNX LayerNorm/Gather/attention fusions not mapped yet |
 | C8 | Runtime extensions (discovery, streams/events, multi-device, residency, leases, remap, fallback, deterministic mode, recording, profiling, plugin isolation) | proposed | | | #64 |
 | C9 | awenBLAS extensions | proposed | | per-kernel oracle | #65 |
-| C10 | SDKs: Python, C/C++ header + example, CLI tools, conversion utility, compatibility metadata | proposed | | | #66 |
+| C10 | SDKs: Python, C/C++ header + example, CLI tools, conversion utility, compatibility metadata | partial (C SDK: `include/awen/awen.h` kernel ABI `awen.kernel-c.v1` with kind listing, interleaved complex GEMM and JSON kernel execution on the CPU reference or simulator; C11 example compiled with `-Werror -pedantic` and run in CI; Python SDK from #84/#85) | #PRC10A | `awen-runtime/tests/ffi_kernels.rs` (3) + CI step checking the C example output | CLI explorer/profiler/conversion utility next; #66 |
 | C11 | Vendor-neutral hardware capability schemas, reference simulator drivers, vendor integration guide | proposed | | schema tests | vendor SDKs; #67 |
 
 ## Research, tooling, efficiency, security

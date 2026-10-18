@@ -1698,7 +1698,8 @@ fn compare_outputs(expected: &[KernelTensor], actual: &[KernelTensor]) -> Result
     Ok((maximum_absolute, maximum_relative))
 }
 
-fn all_kernel_kinds() -> BTreeSet<KernelKind> {
+/// Every kernel kind in the library.
+pub fn all_kernel_kinds() -> BTreeSet<KernelKind> {
     [
         KernelKind::Gemm,
         KernelKind::BatchedGemm,

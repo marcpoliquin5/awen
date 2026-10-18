@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- C SDK: `awen-runtime/include/awen/awen.h` adds the awenBLAS kernel ABI
+  (`awen.kernel-c.v1`) next to the existing dense GEMM ABI: kernel kind
+  listing, interleaved complex GEMM (`awen_cgemm_f64`) and
+  `awen_kernel_execute_json`, which runs any `awen.blas.v1` request on the
+  CPU reference or the photonic noise-model simulator and returns the result
+  JSON with size-query semantics. A C11 example
+  (`examples/awen_c_example.c`) is compiled with `-Werror -pedantic` and run
+  in CI (refs #66).
 - Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
   formalism with hbar = 2): squeezing, two-mode squeezing, passive
   interferometers, displacement, pure loss, thermal states, purity,
