@@ -9,7 +9,8 @@
   agent-sourced. `research/ledger/ledger.json` is now an empty index for Marc's 72-paper export.
 - Spec: `awen-spec/hardware_assumptions.yaml` v0 (`awen.hardware-assumptions.v0`), low/typical/high
   device parameters with units and checked sources (measured, vendor or estimate with formula);
-  unsourced parameters are null. Tested by `scripts/tests/test_hardware_assumptions.py`.
+  unsourced parameters are null; shot-noise energy is per detection, as a 4/6/8-bit sweep; PACE ENOB is
+  `system.pace_enob`. Tested by `scripts/tests/test_hardware_assumptions.py` (pyyaml pinned, no skip).
 - CI: the release and hardware-benchmark workflows install `rustfmt` and
   `clippy` with the pinned toolchain, matching `rust-toolchain.toml`, so
   rustup no longer installs them mid-build where they conflicted with the
