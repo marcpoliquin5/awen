@@ -2,7 +2,7 @@
 name = "awen_runtime"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.88"
 license = "MIT"
 description = "Experimental runtime and hardware abstraction layer for AWEN"
 repository = "https://github.com/marcpoliquin5/awen"

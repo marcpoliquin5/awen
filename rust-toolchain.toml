@@ -1,0 +1,8 @@
+# Pinned toolchain for reproducible lint and test results. Bump deliberately in
+# a dedicated pull request; the quality gate verifies this file and the
+# workflow agree. The minimum supported Rust version is declared separately as
+# `rust-version` in each crate manifest and is checked in CI.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

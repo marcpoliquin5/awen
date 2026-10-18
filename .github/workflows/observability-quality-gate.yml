@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Weekly on Monday 09:17 UTC: catches new lints and newly published
+    # advisories on main even when nobody pushes.
+    - cron: "17 9 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -22,13 +26,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout complete history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Scan Git history for secrets
-        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,10 +43,28 @@ jobs:
           fail-on-severity: moderate
           deny-licenses: AGPL-3.0, GPL-3.0, SSPL-1.0
 
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install pinned Rust toolchain (rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.99.1"
           components: rustfmt, clippy
+
+      - name: Install minimum supported Rust version
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+
+      - name: Cache Rust builds
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            awen-compiler -> target
+            awen-runtime -> target
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit@0.22.2
 
       - name: Check repository policy
         run: python scripts/validate_repository.py
@@ -52,6 +74,11 @@ jobs:
 
       - name: Lint compiler
         run: cargo clippy --manifest-path awen-compiler/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Check minimum supported Rust version
+        run: |
+          cargo +1.88.0 check --locked --manifest-path awen-compiler/Cargo.toml --all-targets --all-features
+          cargo +1.88.0 check --locked --manifest-path awen-runtime/Cargo.toml --all-targets --all-features
 
       - name: Test compiler
         run: cargo test --manifest-path awen-compiler/Cargo.toml --all-features --no-fail-fast
@@ -76,7 +103,7 @@ jobs:
             /tmp/awen-framework-cpp | grep "19 22 43 50"
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -114,7 +141,6 @@ jobs:
 
       - name: Audit Rust dependencies
         run: |
-          cargo install cargo-audit --locked --version 0.22.2
           cargo audit --file awen-compiler/Cargo.lock
           cargo audit --file awen-runtime/Cargo.lock
 

@@ -166,6 +166,30 @@ for path in workflows:
     elif automated:
         fail(f"manual workflow {path.name} has automated triggers")
 
+toolchain_match = re.search(
+    r'(?m)^channel\s*=\s*"([^"]+)"', (ROOT / "rust-toolchain.toml").read_text(encoding="utf-8")
+)
+if not toolchain_match:
+    fail("rust-toolchain.toml must pin an explicit channel")
+pinned_toolchain = toolchain_match.group(1)
+for name in ("observability-quality-gate.yml", "hardware-benchmark.yml"):
+    content = (workflow_dir / name).read_text(encoding="utf-8")
+    if "rust-toolchain@stable" in content:
+        fail(f"{name} uses an unpinned stable Rust toolchain")
+    if f'toolchain: "{pinned_toolchain}"' not in content:
+        fail(f"{name} does not install the pinned toolchain {pinned_toolchain}")
+msrv_values = set()
+for name in ("awen-compiler/Cargo.toml", "awen-runtime/Cargo.toml"):
+    msrv = re.search(r'(?m)^rust-version\s*=\s*"([^"]+)"', (ROOT / name).read_text(encoding="utf-8"))
+    if not msrv:
+        fail(f"{name} must declare rust-version")
+    msrv_values.add(msrv.group(1))
+if len(msrv_values) != 1:
+    fail("crates declare different minimum supported Rust versions")
+msrv_value = msrv_values.pop()
+if f"+{msrv_value}.0 check" not in (workflow_dir / "observability-quality-gate.yml").read_text(encoding="utf-8"):
+    fail(f"quality gate does not check the declared MSRV {msrv_value}")
+
 marketplace = json.loads((ROOT / "awen-ecosystem/marketplace/index.json").read_text())
 for entry in marketplace:
     manifest = (ROOT / "awen-ecosystem/marketplace" / entry["manifest"]).resolve()

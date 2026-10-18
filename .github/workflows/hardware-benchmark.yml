@@ -25,8 +25,10 @@ jobs:
     runs-on: [self-hosted, awen-hardware]
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.1"
       - name: Verify a clean immutable source revision
         shell: bash
         run: |
@@ -64,7 +66,7 @@ jobs:
             --output-dir awen_hardware_artifacts \
             --commit-sha "$AWEN_COMMIT_SHA" \
             --runner-id "$AWEN_RUNNER_ID"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: awen-hardware-${{ github.run_id }}-${{ github.sha }}
