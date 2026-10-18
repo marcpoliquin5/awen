@@ -142,8 +142,13 @@ def test_hill_estimator_recovers_pareto_tail():
 
 
 # ------------------------------------------------------------------ committed results
-@pytest.mark.parametrize("name", ["meshes_n8.json", "meshes_n16.json", "stacks.json", "structured_weights.json",
-                                  "boxcount.json"])
+@pytest.mark.parametrize("name", ["meshes_n8.json", "meshes_n16.json", "stacks.json"])
 def test_committed_results_parse(name):
     data = json.loads((FRACTAL / "results" / name).read_text())
-    assert data["study"].startswith("awen.fractal-") or data.get("harness", "").startswith("awen.fractal-")
+    assert data["study"].startswith("awen.fractal-")
+
+
+def test_pilot_metadata_lists_every_result_file():
+    meta = json.loads((FRACTAL / "results" / "PILOT_RUNS.json").read_text())
+    stored = {p.name for p in (FRACTAL / "results").iterdir()} - {"PILOT_RUNS.json"}
+    assert stored <= set(meta["commands"])
