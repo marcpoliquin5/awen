@@ -87,6 +87,20 @@ At the default illustrative noise contract (1,000 photons per MAC, 8-bit
 converters) the simulated output is visibly degraded. Validation loss
 against simulated optical power is in `awen-models/results/photonic-sim-demo.json`.
 
+### Open AWEN Studio (local web app)
+
+`awen-studio` is a local browser UI over the same backends: projects, AWEN-Mini
+generation on CPU or the photonic simulator, compiler placement and
+diagnostics, the operator table, noise-contract editing, photonic-sim vs CPU
+comparisons, Lab Agent experiment history and report export. It runs on
+`127.0.0.1` only and is not hosted anywhere. See `awen-studio/README.md`.
+
+```bash
+python -m pip install ./awen-native ./awen-models ./awen-qphotonic ./awen-lab ./awen-studio
+(cd awen-studio/frontend && npm ci && npm run build)
+awen-studio            # http://127.0.0.1:8765
+```
+
 ## Technical overview
 
 AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python integrations, MLIR lowering, and reference ecosystem metadata.
@@ -169,6 +183,7 @@ measured product performance.
 - `awen-models`: AWEN-Mini (trained checkpoint, int8, evaluation), the `awen.Runtime` facade with `device="photonic-sim"`, AWEN-Nonlinear ablations, AWEN-Photon noise-aware training, and a safe Hugging Face adapter with an AWEN capability report.
 - `awen-native`: PyO3 binding to the Rust compiler and photonic GEMM noise model. It backs the `photonic` target of `awen_py` and the PrivateUse1 `awen` device.
 - `awen-physics`: reference physics (slab modes, Clements meshes, ENOB) and CI-executed validation notebooks (AEP-0023).
+- `awen-studio`: local web app (FastAPI + React/Vite) over the compiler, simulator, AWEN-Mini and the Lab Agent; localhost only.
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
 - `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, reference-only marketplace metadata, and plugin implementation guidance.
 

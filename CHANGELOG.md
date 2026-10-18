@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added AWEN Studio (`awen-studio`, S1): a local web app (FastAPI backend +
+  React/Vite frontend, blue/black interference design) wired to the real
+  backends: projects, AWEN-Mini generation on CPU or the photonic simulator,
+  Rust compiler placement/capability/diagnostics, the operator table, noise
+  contract validation with analytic noise, photonic-sim vs CPU GEMM and
+  likelihood comparison, Lab Agent experiment history, and Markdown/JSON
+  report export. Localhost only; not hosted. 13 API tests and an HTTP
+  end-to-end test run in CI after a frontend build (closes #75).
 - Lab Agent (S2): new `awen-lab` package and CLI. It orchestrates Quick,
   Truth, Repro, Compare and Publish workflows over the existing simulators
   (the Rust photonic GEMM model and the quantum-photonic references). Each

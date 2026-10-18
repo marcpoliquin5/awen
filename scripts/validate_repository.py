@@ -82,7 +82,9 @@ for path in files:
     if path.name.startswith(".env") and path.name != ".env.example":
         fail(f"environment file is tracked: {posix}")
 
-removed_products = ("awen-cloud/", "awen-studio/", "awen-ecosystem/kernels/datacom/")
+# awen-studio/ returned as a functional local app wired to real backends (S1, #75);
+# its API endpoints and an HTTP end-to-end test run in the quality gate.
+removed_products = ("awen-cloud/", "awen-ecosystem/kernels/datacom/")
 for rel in relative:
     if rel.startswith(removed_products):
         fail(f"removed nonfunctional product surface returned: {rel}")
@@ -136,6 +138,7 @@ metadata_checks = {
     "awen-native/Cargo.toml": ('license = "MIT"', "repository = "),
     "awen-native/pyproject.toml": ('license = "MIT"',),
     "awen-physics/pyproject.toml": ('license = "MIT"', "Repository = "),
+    "awen-studio/pyproject.toml": ('license = "MIT"', "Repository = "),
     "awen-lab/pyproject.toml": ('license = "MIT"', "Repository = "),
     "awen-ecosystem/python_awen/pyproject.toml": ('license = "MIT"', "Repository = "),
 }
