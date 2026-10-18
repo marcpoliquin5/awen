@@ -225,6 +225,32 @@ jobs:
       - name: Scan dependency licenses
         run: python scripts/check_dependency_licenses.py
 
+      - name: Install cargo-deny and cargo-cyclonedx
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20.2,cargo-cyclonedx@0.5.9
+
+      - name: Enforce Rust license and source policy (cargo-deny, deny.toml)
+        run: |
+          for crate in awen-compiler awen-runtime awen-native; do
+            cargo deny --manifest-path "$crate/Cargo.toml" --config deny.toml check licenses sources
+          done
+
+      - name: Check safe model loading policy (no remote code, no pickle)
+        run: |
+          python scripts/check_safe_model_loading.py
+          python -m pytest scripts/tests -q
+
+      - name: Generate CycloneDX SBOMs
+        run: python scripts/generate_sbom.py --out sbom --python
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v7
+        with:
+          name: awen-sbom-${{ github.sha }}
+          path: sbom/
+          retention-days: 30
+
       - name: Install MLIR compiler dependencies
         run: |
           sudo apt-get update -qq

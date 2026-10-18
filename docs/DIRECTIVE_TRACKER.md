@@ -22,7 +22,7 @@ their testable portion implemented and the blocked boundary written down.
 | F2 | PyTorch 2.14 support (supersedes Dependabot #49) | implemented | #52 | pytest on torch 2.10.0 and 2.14.1 | |
 | F3 | Dependabot backlog resolved | implemented | #51, #53 | obsolete PRs closed with reasons; updates merged green | |
 | F4 | Dead code and mock-only tests removed; loader/CLI/HAL coverage raised | implemented | #54 | runtime coverage 81.2% → 85.6% | |
-| F5 | jsonschema upgrade | proposed | | schema tests pass on current jsonschema | #79 |
+| F5 | jsonschema upgrade | implemented (0.16 -> 0.59 behind `awen_runtime::schema`) | #115 | all runtime schema conformance tests pass on 0.59; `cargo audit` clean | #79 |
 | P0.1 | `docs/AUDIT.md` truth table and baseline | implemented | #81, #90 | doc lists every component with evidence | |
 | P0.2 | `docs/ROADMAP.md` dependency-aware with acceptance tests and hardware needs | implemented | #81 | every milestone has a CI acceptance test | |
 | P0.3 | Labeled issues for missing modules | implemented | issues #55–#79 | one open issue per missing module | |
@@ -83,7 +83,7 @@ their testable portion implemented and the blocked boundary written down.
 | B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | implemented (`awen-bench`: CPU, CUDA (skipped with reason when absent), AWEN software reference, photonic-sim and hybrid on GEMM and AWEN-Mini inference; p50/p95/p99, throughput, RSS, compile time, TTFT, tok/s, perplexity; bootstrap CIs over runs; write-once self-hashed evidence `awen.benchmark-evidence.v1`; one measured box-CPU run committed; see docs/BENCHMARKS.md) | #111 | `awen-models/tests/test_bench.py` (8) + validate_json checks every committed evidence record | no GPU on the build host, so CUDA rows are skipped; simulator wall-clock is not device speed; #74 |
 | S1 | Studio local web app wired to real backends | implemented (`awen-studio`: FastAPI over awen_native / awen / awen_lab + React/Vite frontend; 8 panels, each backed by a tested endpoint; localhost only) | #118 | `awen-studio/tests/test_api.py` (13), `test_e2e.py` (HTTP e2e over the built frontend) | not hosted by design; no browser-driven UI test; #75 |
 | S2 | Lab Agent (simulation only, approval gates) | implemented (`awen-lab`: Quick/Truth/Repro/Compare/Publish over the Rust photonic GEMM model and the quantum-photonic simulators; immutable content-addressed lab states with branch/restore/history/diff; provenance in every state; operating bounds; Publish needs a recorded approval; every hardware action refused, approval or not; `awen-lab` CLI) | #113 | `awen-lab/tests/test_lab.py` (11) | no hardware path by design; #76 |
-| S3 | Cloud architecture doc, marked not available | proposed | | | no service |
+| S3 | Cloud architecture doc, marked not available | implemented (`docs/CLOUD_ARCHITECTURE.md`, design only) | #117 | doc states not available; every component mapped to an existing module or marked not built | no service; #116 |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
-| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | proposed | | | #78 |
+| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | implemented | #114 | `tests/plugin_signing.rs` (10), `scripts/tests` (6), cargo-deny + SBOM + safe-loading steps in the gate; release checksums land with X2 | #78 |
 | X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |
