@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `awen-physics`: χ⁽²⁾ second-harmonic generation by integrating the
+  coupled-wave equations (`shg`), checked against the undepleted sinc²,
+  depleted tanh² and first-order quasi-phase-matching closed forms; and a
+  1-D frequency-domain Helmholtz solver with adjoint permittivity gradients
+  (`fdfd_adjoint`), checked against central finite differences and the
+  transfer-matrix reflectance (#96, refs #68).
 - `awen-physics`: 1-D Yee FDTD reflectance spectra (`fdtd1d`, full-wave 1-D)
   converging at second order to the transfer-matrix result, and a 2-D
   scalar paraxial Crank–Nicolson BPM with imaginary-distance mode solving

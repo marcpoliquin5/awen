@@ -17,6 +17,8 @@ every number the AWEN simulator produces can be traced to a validated model.
 | `rings` | Microring all-pass and add-drop transmission (closed form), explicit round-trip field propagation, FSR, FWHM, loss conversion | analytic / numerical propagation |
 | `fdtd1d` | 1-D Yee FDTD for normal-incidence layer stacks; pulse reflectance spectra | full-wave (1-D) |
 | `bpm` | 2-D scalar paraxial Crank–Nicolson BPM; imaginary-distance fundamental mode | numerical propagation |
+| `shg` | χ⁽²⁾ second-harmonic coupled-wave equations (numerical), undepleted sinc², depleted tanh² and first-order QPM closed forms | numerical propagation / analytic |
+| `fdfd_adjoint` | 1-D frequency-domain Helmholtz FD with radiation boundaries; adjoint gradient of probe intensity w.r.t. every pixel permittivity | full-wave (1-D) |
 | `enob` | Sine-test ENOB of the Rust photonic GEMM model (`awen_native`) vs theory | compact model |
 
 Checks for `tmm` and `rings` (`tests/test_tmm_rings.py`): bare interfaces vs
@@ -36,6 +38,16 @@ dz = 0.5 µm, monotone in dz); exact norm preservation (1e-12); imaginary-distan
 n_eff vs the analytic slab (< 1e-5 at 40 pts/µm, order 1.8–2.2); a launched
 mode keeps its shape over 500 µm and its phase matches the Crank–Nicolson
 eigenvalue (< 1e-6 rad).
+
+Checks for `shg` and `fdfd_adjoint` (`tests/test_shg_adjoint.py`): numerical
+SHG vs the undepleted closed form at ~1e-6 conversion for Δk = 0 and three
+mismatches (rel. 1e-5), harmonic peak at one coherence length, depleted
+phase-matched growth vs tanh² (rel. 1e-9, > 90 % conversion) with power
+conservation (1e-10), first-order QPM vs (2/π)² (rel. 1e-5); FDFD reflectance
+vs `tmm` at h = 20, 10, 5 nm with observed order 1.8–2.2 (measured locally:
+2.01, 2.00); reflection-free radiation boundaries; adjoint gradient vs
+central finite differences at 8 pixels including both boundaries (rel. 1e-5);
+a gradient step raises the objective as the first-order prediction says.
 
 ## Validation notebooks
 
