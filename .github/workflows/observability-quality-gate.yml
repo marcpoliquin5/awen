@@ -179,6 +179,32 @@ jobs:
           python -m pip install --disable-pip-version-check "./awen-qphotonic[test]"
           python -m pytest awen-qphotonic/tests -q
 
+      - name: Test the simulation-only Lab Agent
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-lab[test]"
+          python -m pytest awen-lab/tests -q
+
+      - name: Set up Node.js for AWEN Studio
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: awen-studio/frontend/package-lock.json
+
+      - name: Build AWEN Studio frontend (typecheck + production bundle)
+        working-directory: awen-studio/frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Test AWEN Studio API and HTTP end-to-end smoke test
+        env:
+          AWEN_STUDIO_REQUIRE_FRONTEND: "1"
+          OMP_NUM_THREADS: "2"
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-studio[test]"
+          python -m pytest awen-studio/tests -q
+
       - name: Test research ledger and frontier-physics checks
         run: python -m pytest research/tests -q
 
@@ -198,6 +224,32 @@ jobs:
 
       - name: Scan dependency licenses
         run: python scripts/check_dependency_licenses.py
+
+      - name: Install cargo-deny and cargo-cyclonedx
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20.2,cargo-cyclonedx@0.5.9
+
+      - name: Enforce Rust license and source policy (cargo-deny, deny.toml)
+        run: |
+          for crate in awen-compiler awen-runtime awen-native; do
+            cargo deny --manifest-path "$crate/Cargo.toml" --config deny.toml check licenses sources
+          done
+
+      - name: Check safe model loading policy (no remote code, no pickle)
+        run: |
+          python scripts/check_safe_model_loading.py
+          python -m pytest scripts/tests -q
+
+      - name: Generate CycloneDX SBOMs
+        run: python scripts/generate_sbom.py --out sbom --python
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v7
+        with:
+          name: awen-sbom-${{ github.sha }}
+          path: sbom/
+          retention-days: 30
 
       - name: Install MLIR compiler dependencies
         run: |

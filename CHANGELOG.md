@@ -13,6 +13,41 @@
   build-provenance attestations, and creates a draft release whose notes
   state plainly that everything runs on CPUs and nothing is a hardware
   measurement. `-rc.N` tags become pre-releases (closes #78).
+- Added AWEN Studio (`awen-studio`, S1): a local web app (FastAPI backend +
+  React/Vite frontend, blue/black interference design) wired to the real
+  backends: projects, AWEN-Mini generation on CPU or the photonic simulator,
+  Rust compiler placement/capability/diagnostics, the operator table, noise
+  contract validation with analytic noise, photonic-sim vs CPU GEMM and
+  likelihood comparison, Lab Agent experiment history, and Markdown/JSON
+  report export. Localhost only; not hosted. 13 API tests and an HTTP
+  end-to-end test run in CI after a frontend build (closes #75).
+- Upgraded the runtime's `jsonschema` from 0.16 to 0.59 (closes #79). A new
+  `awen_runtime::schema` module wraps it for every caller: formats are
+  asserted under every draft (0.16 behaviour), `$ref`s resolve only against
+  documents passed in (offline; nothing is fetched), and errors come back as
+  a flat message list. 0.59 resolves references eagerly, so the plugin-manifest
+  conformance test now registers the capability and calibration schemas it
+  transitively references.
+- Security (X1b): trust-pinned Ed25519 plugin signing (`TrustedKeys`,
+  `sign_manifest`, `discover_trusted`; `awenctl plugin keygen|sign|verify|discover`)
+  so self-signed manifests from unpinned keys are rejected; `cargo deny`
+  license/source policy (`deny.toml`); CycloneDX SBOMs for the three Rust
+  crates and the CI Python environment (`scripts/generate_sbom.py`, uploaded
+  per CI run); an AST-based safe-model-loading check (no remote code, no
+  pickle, `torch.load` only with `weights_only=True`); `docs/REPRODUCIBLE_BUILDS.md`
+  and `docs/COMPATIBILITY.md` (refs #78).
+- Added `docs/CLOUD_ARCHITECTURE.md`: a design-only architecture for a
+  possible hosted service, mapped component by component onto existing
+  modules and schemas, with what exists and what does not. No service exists
+  (closes #116).
+- Lab Agent (S2): new `awen-lab` package and CLI. It orchestrates Quick,
+  Truth, Repro, Compare and Publish workflows over the existing simulators
+  (the Rust photonic GEMM model and the quantum-photonic references). Each
+  run produces an immutable, content-addressed lab state with provenance,
+  and states support branch, restore, history and diff. Operating bounds
+  cap every simulation. Publish writes a local, self-verifying bundle only
+  after a recorded approval. Every hardware action is refused, with or
+  without approval (refs #76).
 - Research (R1–R3): `research/ledger/` adds the research ledger schema
   (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
   (unchecked rows land as `citation pending`) and 15 seed directions, each

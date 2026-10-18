@@ -1,0 +1,25 @@
+[project]
+name = "awen-lab"
+version = "0.1.0"
+description = "AWEN Lab Agent: simulation-only experiment orchestration with content-addressed lab states, provenance, approval gates and operating bounds. Refuses every hardware action."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+awen-lab = "awen_lab.cli:main"
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+
+[tool.setuptools]
+packages = ["awen_lab"]
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
