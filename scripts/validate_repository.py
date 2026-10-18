@@ -136,6 +136,7 @@ metadata_checks = {
     "awen-native/Cargo.toml": ('license = "MIT"', "repository = "),
     "awen-native/pyproject.toml": ('license = "MIT"',),
     "awen-physics/pyproject.toml": ('license = "MIT"', "Repository = "),
+    "awen-lab/pyproject.toml": ('license = "MIT"', "Repository = "),
     "awen-ecosystem/python_awen/pyproject.toml": ('license = "MIT"', "Repository = "),
 }
 for name, needles in metadata_checks.items():
