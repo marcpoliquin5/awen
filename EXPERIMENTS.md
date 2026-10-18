@@ -20,11 +20,11 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 | E-011 | KV-cache placement across memory technologies | `awen-systems` KV-cache study | 1 | done (modeled) | [kvcache_study.json](awen-systems/results/kvcache_study.json) |
 | E-012 | Backend benchmark (CPU, AWEN reference, photonic-sim, hybrid) | `python -m awen_models.bench --runs 5` | 5 runs | done | [evidence record](benchmarks/results/evidence-2026-10-18-b65a849f9579.json) |
 | E-013 | Which SmolLM2-135M layers AWEN can lower | `awen_models.hf_adapter` report | n/a | done | [capability report](awen-models/results/smollm2-135m-capability-report.txt) |
-| P-001 | H1 pilot: butterfly vs Clements expressivity vs depth (N = 8, 16) | branch `research/fractal-track` | 1 | pilot | not merged |
-| P-002 | H3 pilot: Fibonacci/Cantor stacks (trace map, quarter-wave 6-cycle, scaling scan) | branch `research/fractal-track` | n/a | pilot | not merged |
-| P-003 | H2 pilot: Monarch / 3-factor Kronecker FFNs vs dense at matched params | branch `research/fractal-track` | 2 | pilot (running) | not merged |
+| P-001 | H1 pilot: butterfly vs Clements expressivity vs depth (N = 8, 16) | branch `research/fractal-track` | 1 | pilot | draft #128: `meshes_n8.json`, `meshes_n16.json` |
+| P-002 | H3 pilot: Fibonacci/Cantor stacks (trace map, quarter-wave 6-cycle, scaling scan) | branch `research/fractal-track` | n/a | pilot | draft #128: `stacks.json` |
+| P-003 | H2 pilot: Monarch / 3-factor Kronecker FFNs vs dense at matched params | branch `research/fractal-track` | 2 | pilot (partial: baseline and Monarch stored; other variants not run to completion) | draft #128: `h2_pilot_partial_runs.jsonl` |
 | H1-H4 | Multiplexing/fractal hypotheses (v2 section 10) | `research/experiments/multiplexing-fractal/` | ≥3 | planned | pre-registration first |
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
-an independently parameterized noise model (sim-to-real control); no experiment reads
-`hardware_assumptions.yaml` yet.
+an independently parameterized noise model (sim-to-real control); `awen-spec/hardware_assumptions.yaml`
+exists (merged in #126) but no experiment reads it yet.

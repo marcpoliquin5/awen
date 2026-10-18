@@ -1,8 +1,8 @@
 # AWEN status
 
-Updated 2026-10-18 11:30 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-Main is `0235668` (#125). Its required quality gate is CI run 39140149777 (started 11:22 ET); the
-last green gate on main is run 39131215603 on `e6d4224`.
+Updated 2026-10-18 11:37 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Main is `840f5c5` (#126), after `0235668` (#125). Truth-table counts were measured at `0235668`; the
+gate on `0235668` passed (CI run 39140149777); the gate on `840f5c5` (run 39141006838) was running at this commit.
 
 ## Current phase
 
@@ -10,7 +10,7 @@ last green gate on main is run 39131215603 on `e6d4224`.
 engineering already exists from the earlier directive (see the truth table), but
 several earlier agent decisions now need Marc's ratification
 ([DECISIONS.md](DECISIONS.md), D-007 to D-012), so Phase 0 is not done until they
-are settled and `awen-spec/hardware_assumptions.yaml` v0 lands.
+are settled. `awen-spec/hardware_assumptions.yaml` v0 is merged (#126); nothing reads it yet.
 
 ## Evidence levels
 
@@ -46,7 +46,7 @@ command shown.
 | Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests, measured @ 0235668: `cd awen-lab && pytest -q` |
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
-| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | missing on main | PR #126 in review (v2 section 9) |
+| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up PR #130 in review |
 
 Count commands (run at `0235668`):
 
@@ -59,7 +59,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 | Gap | v2 section | Current level | Needed |
 | --- | --- | --- | --- |
-| `hardware_assumptions.yaml` with cited low/typical/high; simulators read it | 9 | missing | file + wiring, no hard-coded device energies |
+| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126), not read by any code | wiring, no hard-coded device energies |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
@@ -97,21 +97,21 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
   and held by Marc only; the agent must never create or hold it. Blocked on Marc.
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
-- Device energies and noise defaults are still hard-coded in the noise contract until
-  `hardware_assumptions.yaml` exists and is wired in.
+- Device energies and noise defaults are still hard-coded in the noise contract until the
+  noise model and cost estimates read `hardware_assumptions.yaml`.
 
 ## In progress (draft, not merged)
 
 - Multiplexing/fractal pilots (H1 butterfly vs Clements meshes, H2 Kronecker/Monarch
-  layers, H3 Cantor/Fibonacci stacks): branch `research/fractal-track`; pre-registration
+  layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`; pre-registration
   under `research/experiments/multiplexing-fractal/` comes before any claim.
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. Land `awen-spec/hardware_assumptions.yaml` v0 (cited low/typical/high) and make the noise
-   model and cost estimates read it.
+1. Make the noise model and cost estimates read `awen-spec/hardware_assumptions.yaml`, with no
+   hard-coded device energies.
 2. Pre-register H1-H4 with configs, then run H1 (accuracy per dB, ≥3 tasks, ≥5 fabrication-noise
    seeds) and H3 on CPU; draft PRs only.
 3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).
