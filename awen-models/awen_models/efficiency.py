@@ -294,11 +294,13 @@ def load_teacher(text: str) -> AwenMini:
 
 
 def train_variant(name: str, text: str, steps: int, seed: int, batch_size: int = 32,
-                  eval_batches: int = 20, teacher: Optional[AwenMini] = None) -> tuple[AwenMini, dict]:
+                  eval_batches: int = 20, teacher: Optional[AwenMini] = None,
+                  builder: Optional[Callable[[str, int], AwenMini]] = None) -> tuple[AwenMini, dict]:
+    """Train one variant. ``builder(name, vocab)`` overrides :func:`build` (used by research tracks)."""
     tok = CharTokenizer.from_text(text)
     splits = split_tokens(tok.encode(text), 0.1)
     torch.manual_seed(seed)
-    model = build(name, tok.vocab_size)
+    model = (builder or build)(name, tok.vocab_size)
     block = model.config.block_size
     params = list({id(p): p for p in model.parameters()}.values())
     opt = torch.optim.AdamW([{"params": [p for p in params if p.dim() >= 2], "weight_decay": 0.1},
