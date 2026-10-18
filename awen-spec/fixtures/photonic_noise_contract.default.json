@@ -1,0 +1,15 @@
+{
+  "version": "awen.photonic-noise-contract.v1",
+  "photons_per_mac": 1000.0,
+  "quantum_efficiency": 0.8,
+  "insertion_loss_db": 6.0,
+  "phase_sigma_rad": 0.002,
+  "drift_rad_per_sqrt_s": 0.0,
+  "seconds_since_calibration": 0.0,
+  "rin_db_per_hz": -150.0,
+  "detection_bandwidth_hz": 10000000000.0,
+  "thermal_noise_electrons": 100.0,
+  "crosstalk_db": -35.0,
+  "dac_bits": 8,
+  "adc_bits": 8
+}
