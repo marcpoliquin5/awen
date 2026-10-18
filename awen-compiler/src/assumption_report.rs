@@ -9,7 +9,7 @@
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::assumptions::{Corner, HardwareAssumptions};
+use crate::assumptions::{Corner, HardwareAssumptions, SourceType};
 use crate::cost::{CostModelInputs, ParameterProvenance, ParameterSource};
 use crate::noise::PhotonicNoiseContract;
 
@@ -27,6 +27,10 @@ pub struct AssumptionField {
     /// True when the assumption set supplied the value; false when it is null at this corner
     /// and the built-in value was kept.
     pub from_assumptions: bool,
+    /// Citation key and source type of the applied value; `None` when the built-in value was kept
+    /// (built-in values are listed in `awen-spec/hardcoded_device_defaults.yaml`).
+    pub source: Option<String>,
+    pub source_type: Option<SourceType>,
 }
 
 /// Which fields an assumption set changed, for one corner.
@@ -55,6 +59,20 @@ impl AssumptionReport {
         self.fields.iter().filter(|field| field.from_assumptions)
     }
 
+    /// Provenance class of the applied fields: the weakest of their source types (an unlabeled
+    /// value or an estimate counts as `Assumed`), and `Assumed` when nothing was applied.
+    pub fn provenance_source(&self) -> ParameterSource {
+        let rank = |source: Option<SourceType>| match source {
+            Some(SourceType::Measured) => (0, ParameterSource::Measured),
+            Some(SourceType::Vendor) => (1, ParameterSource::VendorSpecified),
+            Some(SourceType::Estimate) | None => (2, ParameterSource::Assumed),
+        };
+        self.applied()
+            .map(|field| rank(field.source_type))
+            .max_by_key(|(rank, _)| *rank)
+            .map_or(ParameterSource::Assumed, |(_, source)| source)
+    }
+
     /// Look up `name` (in `unit`), convert it with `scale` into the field's unit, and record it.
     fn resolve(
         &mut self,
@@ -69,12 +87,15 @@ impl AssumptionReport {
             .value(name, unit, self.corner)?
             .map(|value| value * scale);
         let value = found.unwrap_or(current);
+        let label = found.and(assumptions.parameters.get(name));
         self.fields.push(AssumptionField {
             field: field.to_string(),
             assumption: name.to_string(),
             unit: unit.to_string(),
             value,
             from_assumptions: found.is_some(),
+            source: label.and_then(|parameter| parameter.source.clone()),
+            source_type: label.and_then(|parameter| parameter.source_type),
         });
         Ok(value)
     }
@@ -145,7 +166,8 @@ impl PhotonicNoiseContract {
 
 impl CostModelInputs {
     /// This cost model with every mapped field taken from `assumptions` at `corner` where the
-    /// set has a value, plus a provenance entry naming the assumption-set version and corner.
+    /// set has a value, plus a provenance entry naming the assumption-set version and corner, whose
+    /// source is [`AssumptionReport::provenance_source`] of the applied fields.
     /// Mapped fields: `modulator_energy_pj_per_sample` (`modulator.energy_per_symbol`, fJ).
     /// The added provenance entry reuses the largest existing uncertainty, so the estimate's
     /// uncertainty is unchanged.
@@ -172,7 +194,7 @@ impl CostModelInputs {
         let applied: Vec<&str> = report.applied().map(|field| field.field.as_str()).collect();
         self.provenance.push(ParameterProvenance {
             parameter: "hardware assumption set".to_string(),
-            source: ParameterSource::Assumed,
+            source: report.provenance_source(),
             reference: format!(
                 "{} ({}, {:?} corner); applied: [{}]",
                 assumptions.version,

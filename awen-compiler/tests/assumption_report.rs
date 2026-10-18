@@ -1,5 +1,7 @@
 //! Opting in to the hardware assumption set never changes a default silently.
-use awen_compiler::assumptions::{Corner, HardwareAssumptions, HARDWARE_ASSUMPTIONS_VERSION};
+use awen_compiler::assumptions::{
+    Corner, HardwareAssumptions, SourceType, HARDWARE_ASSUMPTIONS_VERSION,
+};
 use awen_compiler::capability::DeviceCapabilities;
 use awen_compiler::cost::{CostModelInputs, ParameterSource};
 use awen_compiler::ir::GemmShape;
@@ -96,9 +98,53 @@ fn cost_model_records_the_assumption_set_and_keeps_numbers() {
     let mut without = opted.clone();
     without.provenance.pop();
     assert_eq!(without, model);
+    assert_eq!(last.source, ParameterSource::Assumed); // nothing applied
 
     let set = HardwareAssumptions::parse(&synthetic("-140", "6", "20", "GHz")).unwrap();
     let (opted, report) = model.with_assumptions(&set, Corner::Typical).unwrap();
     assert_eq!(opted.modulator_energy_pj_per_sample, 0.25); // 250 fJ
     assert_eq!(report.applied().count(), 1);
+}
+
+#[test]
+fn applied_fields_carry_their_source_and_unapplied_ones_none() {
+    let (_, report) = PhotonicNoiseContract::default()
+        .with_assumptions(&bundled(), Corner::Typical)
+        .unwrap();
+    for field in &report.fields {
+        let label = (field.source.as_deref(), field.source_type);
+        if field.field == "dac_bits" {
+            assert_eq!(label, (Some("hua2025"), Some(SourceType::Measured)));
+        } else {
+            assert_eq!(label, (None, None), "{}", field.field);
+        }
+    }
+}
+
+#[test]
+fn cost_provenance_source_is_derived_from_the_applied_fields() {
+    let model = CostModelInputs::from_capabilities(
+        &DeviceCapabilities::pace_like_128(),
+        ParameterSource::Assumed,
+    );
+    for (label, expected) in [
+        ("source: m1", ParameterSource::Measured),
+        ("source: v1", ParameterSource::VendorSpecified),
+        (
+            "source: m1, source_type: estimate",
+            ParameterSource::Assumed,
+        ),
+        ("source: null", ParameterSource::Assumed),
+    ] {
+        let set = HardwareAssumptions::parse(&format!(
+            "version: {HARDWARE_ASSUMPTIONS_VERSION}\ndate: \"2026-10-18\"\nsources:\n  m1: {{type: measured}}\n  v1: {{type: vendor}}\nparameters:\n  modulator:\n    energy_per_symbol: {{low: null, typical: 250, high: null, unit: fJ, {label}}}\n"
+        ))
+        .unwrap();
+        let (opted, report) = model
+            .clone()
+            .with_assumptions(&set, Corner::Typical)
+            .unwrap();
+        assert_eq!(report.provenance_source(), expected, "{label}");
+        assert_eq!(opted.provenance.last().unwrap().source, expected, "{label}");
+    }
 }
