@@ -272,6 +272,7 @@ enum Command {
         #[clap(long)]
         allow_unverified: bool,
     },
+    /// Execute a legacy node-graph IR (MZI/phase-shifter JSON) in the reference engine.
     Run {
         /// Path to IR JSON file
         ir: String,
@@ -279,6 +280,7 @@ enum Command {
         #[clap(long)]
         seed: Option<u64>,
     },
+    /// Estimate parameter gradients of a legacy node-graph IR (finite difference or parameter shift).
     Gradient {
         /// Path to IR JSON file
         ir: String,

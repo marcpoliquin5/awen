@@ -1,7 +1,7 @@
 # Reference Simulator v0.1: Realistic Photonic Simulation
 
 **Version:** 0.1  
-**Status:** Specification Draft  
+**Status:** Specification draft; only partially implemented (see section 8.1)  
 **Scope:** Phase 2.4 (Reference Simulator Expansion)  
 **Predecessors:** Phase 2.3 (HAL v0.2), Phase 1.4 (Device Model)  
 **Constitutional Directive:** Full-scope, frontier-first, measurement-conditioned
@@ -539,17 +539,13 @@ All measurements must satisfy:
 
 ## 8. Implementation Plan
 
-### 8.1 Files to Create/Modify
+### 8.1 Implementation status (October 2026)
 
-**New Files**:
-- `awen-runtime/src/simulator/mod.rs` (2000+ lines)
-- `awen-runtime/src/simulator/noise.rs` (1000+ lines)
-- `awen-runtime/src/simulator/measurement.rs` (800+ lines)
-- `awen-runtime/tests/simulator_integration.rs` (1200+ lines)
-
-**Modified Files**:
-- `awen-runtime/src/hal_v0.rs` (add SimulatorBackend impl)
-- `.github/workflows/simulator-conformance.yml` (new CI job)
+This plan was not carried out as written. A partial `awen-runtime/src/simulator/`
+module and a mock-only `tests/simulator_integration.rs` were never wired into the
+crate and were removed. The implemented, tested simulators are the calibrated
+transfer simulator in `awen-compiler/src/simulator.rs` and the Gaussian/Fock
+experiments in `awen-runtime/src/quantum.rs`. See `docs/IMPLEMENTATION-STATUS.md`.
 
 ### 8.2 Schedule
 
