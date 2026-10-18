@@ -1,10 +1,10 @@
 # AWEN status
 
-Updated 2026-10-18 13:16 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `c02eee9` (#131), after `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127),
-`840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at `0235668`; the inventory counts
-at `c02eee9` with this change. Gates passed on `0235668` (run 39140149777), `840f5c5` (run 39141006838) and
-`132d4d9` (run 39143781587); the gate on `c02eee9` (run 39147442569) was running at commit time.
+Updated 2026-10-18 13:36 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `c1086fc` (#132), after `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129),
+`ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at `0235668`; the
+inventory counts at `c1086fc`. Gates passed on `0235668` (run 39140149777), `840f5c5` (run 39141006838),
+`132d4d9` (run 39143781587) and `c02eee9` (run 39147442569); the gate on `c1086fc` (run 39150273629) was running at commit time.
 
 ## Current phase
 
@@ -72,7 +72,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | ONNX Runtime execution provider | 8 | ONNX import report (L0) | EP |
 | Adapters to Meep, SAX, gdsfactory, Perceval, MrMustard | 8, 11 | own reference solvers (L0) | adapters + oracle comparisons |
 | Reproduce ≥3 published photonic results | 11 | analytic checks only | 3 reproductions |
-| Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
+| Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
 | Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` (#127), `2026-10-18-02.md` | every session |
@@ -110,8 +110,8 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 ## In progress (draft, not merged)
 
 - Multiplexing/fractal pilots (H1 butterfly vs Clements meshes, H2 Kronecker/Monarch
-  layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`; pre-registration
-  under `research/experiments/multiplexing-fractal/` comes before any claim.
+  layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`, exploratory only.
+  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); full runs not started.
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
@@ -121,6 +121,6 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
    in `awen-compiler`, record the assumption-set version in cost estimates, and make the 3 literals that
    differ from it (reference descriptor ADC energy 4.0 pJ, DAC 10 bits, effective bits 8) either read the
    file or carry an explicit "illustrative" label, with compatibility notes.
-2. Pre-register H1-H4 with configs, then run H1 (accuracy per dB, ≥3 tasks, ≥5 fabrication-noise
-   seeds) and H3 on CPU; draft PRs only.
+2. Run H1 and H3 on CPU from the registered configs (`research/experiments/multiplexing-fractal/configs/`,
+   `PREREGISTRATION.md`; H1-H4 registered in #133): add the `--config` entry points first, draft PRs only.
 3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).
