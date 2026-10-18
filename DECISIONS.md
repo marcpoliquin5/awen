@@ -85,3 +85,16 @@ Decided by: agent, 2026-10-18.
 New multiplexing/fractal work goes under `research/experiments/multiplexing-fractal/`
 (v2 section 10) and is opened as draft pull requests only, with pilots labeled as pilots
 until the hypotheses are pre-registered.
+
+## D-015 · v0.1.0 GitHub release marked pre-release with an experimental notice
+Decided by: Marc, 2026-10-18 11:27 AM ET (approved; change made outside this repository's PRs).
+The v0.1.0 release page is marked pre-release and carries an experimental notice. The tag
+itself (D-007) still needs Marc's ratification, and it is unsigned (see STATUS.md blockers).
+
+## D-016 · awen-labs roadmap copy (awen-labs PR #21)
+Decided by: Marc, 2026-10-18 11:27 AM ET (approved; merged in `awen-labs`).
+
+## D-017 · awen-labs site copy and design
+Decided by: Marc, 2026-10-18 (his requests, earlier in the session).
+The awen-labs site is an interactive 3D storefront, and it uses the "Why we build with light"
+mission copy, which Marc approved. Marc declined an investor one-pager.
