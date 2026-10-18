@@ -47,7 +47,7 @@ impl PluginLoader {
 mod tests {
     use super::PluginLoader;
     use std::os::unix::fs::PermissionsExt;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     fn script(name: &str, body: &str) -> (tempfile::TempDir, PathBuf) {
         let dir = tempfile::tempdir().expect("temporary plugin directory");
@@ -59,6 +59,31 @@ mod tests {
         (dir, path)
     }
 
+    /// Invoke a freshly written script, retrying on `ETXTBSY`.
+    ///
+    /// Tests run in parallel threads. If another thread forks a child while
+    /// this script's write descriptor is still open, the child holds that
+    /// descriptor until it execs, and `execve` on the script fails with
+    /// "Text file busy". The window is short, so a bounded retry is enough.
+    fn invoke_fresh(path: &Path, input: &str) -> anyhow::Result<Option<String>> {
+        let mut attempt = 0;
+        loop {
+            match PluginLoader::invoke(path, input) {
+                Err(error)
+                    if attempt < 50
+                        && error
+                            .downcast_ref::<std::io::Error>()
+                            .map(std::io::Error::kind)
+                            == Some(std::io::ErrorKind::ExecutableFileBusy) =>
+                {
+                    attempt += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                other => return other,
+            }
+        }
+    }
+
     #[test]
     fn missing_plugin_returns_none() {
         let result = PluginLoader::invoke("/nonexistent/awen-plugin", "{}").expect("no error");
@@ -68,7 +93,7 @@ mod tests {
     #[test]
     fn plugin_receives_stdin_and_returns_stdout() {
         let (_dir, path) = script("echo-plugin", "cat");
-        let output = PluginLoader::invoke(&path, r#"{"op":"gemm"}"#)
+        let output = invoke_fresh(&path, r#"{"op":"gemm"}"#)
             .expect("plugin runs")
             .expect("successful plugin returns output");
         assert_eq!(output, r#"{"op":"gemm"}"#);
@@ -77,7 +102,7 @@ mod tests {
     #[test]
     fn failing_plugin_returns_none() {
         let (_dir, path) = script("failing-plugin", "cat >/dev/null; exit 3");
-        let result = PluginLoader::invoke(&path, "{}").expect("spawn succeeds");
+        let result = invoke_fresh(&path, "{}").expect("spawn succeeds");
         assert!(result.is_none());
     }
 }
