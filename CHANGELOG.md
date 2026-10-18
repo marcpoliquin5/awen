@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-No changes since 0.1.0.
+- CI: the release and hardware-benchmark workflows install `rustfmt` and
+  `clippy` with the pinned toolchain, matching `rust-toolchain.toml`, so
+  rustup no longer installs them mid-build where they conflicted with the
+  runner image's cargo shims (this broke the first `v0.1.0` release run).
 
 ## 0.1.0 (2026-10-18)
 
