@@ -6,7 +6,7 @@
   knowledge distillation into AWEN-Mini, with committed CPU smoke results on
   SmolLM2-135M. Added `awen_models.compute_plan` and `docs/COMPUTE_PLAN.md`,
   which estimate memory and FLOPs for Qwen3-0.6B/1.7B and SmolLM2 on a
-  12 GB GPU. Parameter counts are checked against instantiated models.
+  12 GB GPU. Parameter counts are checked against instantiated models (#91).
 - Added AWEN-Photon noise-injection training (`awen_models.photon_training`).
   An MNIST MLP is trained standard and noise-aware, then evaluated with its
   GEMMs on the Rust photonic noise model (simulated). It writes
