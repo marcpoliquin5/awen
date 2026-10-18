@@ -19,6 +19,17 @@ counts, measured and simulated results, and blocked items are in
   which results are measured on CPU, simulated, estimated or blocked.
   `docs/AUDIT.md`, `docs/IMPLEMENTATION-STATUS.md`, the README and the
   directive tracker were brought up to date for 0.1.0 (closes #120).
+- Release automation (X2): the manual `Verified release` workflow now builds
+  real artifacts with `scripts/build_release_artifacts.sh` (the `awenctl`
+  Linux x86_64 binary, built twice to record bit-for-bit reproducibility;
+  the `awen_native` wheel via maturin; wheels for every Python package, with
+  AWEN-Mini inside `awen_models` and the built frontend inside `awen_studio`;
+  the AWEN-Mini checkpoint tarball; CycloneDX SBOMs; the source archive;
+  `BUILD-INFO.json`; `SHA256SUMS`), verifies them in a fresh virtual
+  environment (`scripts/verify_release_artifacts.py`), attaches Sigstore
+  build-provenance attestations, and creates a draft release whose notes
+  state plainly that everything runs on CPUs and nothing is a hardware
+  measurement. `-rc.N` tags become pre-releases (closes #78).
 - Added AWEN Studio (`awen-studio`, S1): a local web app (FastAPI backend +
   React/Vite frontend, blue/black interference design) wired to the real
   backends: projects, AWEN-Mini generation on CPU or the photonic simulator,

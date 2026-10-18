@@ -86,7 +86,7 @@ their testable portion implemented and the blocked boundary written down.
 | S3 | Cloud architecture doc, marked not available | implemented (`docs/CLOUD_ARCHITECTURE.md`, design only) | #117 | doc states not available; every component mapped to an existing module or marked not built | no service; #116 |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
 | X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | implemented | #114 | `tests/plugin_signing.rs` (10), `scripts/tests` (6), cargo-deny + SBOM + safe-loading steps in the gate; release checksums land with X2 | #78 |
-| X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |
+| X2 | Release automation with real artifacts; v0.1.0 | implemented (`release.yml` + `scripts/build_release_artifacts.sh` + `scripts/verify_release_artifacts.py`; provenance attestations) | #119 | local rc build verified (17 assets, fresh-venv install, AWEN-Mini generate on CPU and photonic-sim, awenctl rebuild bit-identical); `scripts/tests/test_release_scripts.py` (4) | #78 |
 
 ## Remaining and blocked at 0.1.0
 
@@ -105,7 +105,7 @@ Open work (partial or proposed):
 | C4 | Backward pass and reductions on the PrivateUse1 `awen` device | #60 |
 | C6 | Executing the quantum VPISA domain (validated, not executed) | follow-up to #55 (closed) |
 | C7 | ONNX LayerNorm/Gather/attention fusions | #63 |
-| C9 | Causal masking in the attention kernel request | #65 |
+| C9 | Causal masking in the attention kernel request | follow-up to #65 (closed) |
 
 Blocked on things this project does not have:
 
