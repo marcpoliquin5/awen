@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added the operator library (`awen-compiler::ops`, `awen.op-table.v1`,
+  `awen-spec/specs/ops.md`): complex matmul, DFT, conv2d, 1-D correlation,
+  low-rank linear, attention with projections, FFN, spectral convolution, RNN
+  and reservoir steps, and a square-law detection layer. Each has a
+  four-level fidelity label (math reference / photonic sim /
+  hardware-lowerable / hardware-measured; none is measured), an f64
+  reference checked against NumPy oracles, and a simulated path through the
+  photonic noise model. Exposed as `awen_native.run_op` and
+  `awen_native.op_table` (#92, refs #62).
 - Added `awen_models.finetune`, covering LoRA, QLoRA (NF4, CUDA only) and
   knowledge distillation into AWEN-Mini, with committed CPU smoke results on
   SmolLM2-135M. Added `awen_models.compute_plan` and `docs/COMPUTE_PLAN.md`,

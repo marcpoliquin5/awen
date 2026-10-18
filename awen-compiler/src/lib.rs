@@ -17,6 +17,7 @@ pub mod ir;
 pub mod isa;
 pub mod lowering;
 pub mod noise;
+pub mod ops;
 pub mod partition;
 pub mod physical_design;
 pub mod precision;
