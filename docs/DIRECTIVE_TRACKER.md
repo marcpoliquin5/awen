@@ -36,7 +36,7 @@ their testable portion implemented and the blocked boundary written down.
 | M2 | AWEN-Mini ~1M-param char LM trained for real on Tiny Shakespeare (public domain), checkpoint, generate, int8, device=auto | implemented (val loss 1.4795 nats at step 5,750, measured on CPU) | this PR | bundled checkpoint reproduces recorded val loss | |
 | M3 | AWEN-Nonlinear candidates vs matched baseline, ≥2 seeds, Pareto plot | implemented (3 candidates, 2 seeds; low-rank is a negative result) | this PR | harness test; committed results.json | |
 | M4 | External HF adapter with capability report (trust_remote_code=False) | implemented (SmolLM2-135M report committed) | this PR | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
-| M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | implemented (simulated; ideal contract matches CPU exactly) | this PR | per-layer error vs CPU oracle within contract | needs #59 |
+| M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | implemented (simulated; ideal contract matches CPU exactly) | #85 | per-layer error vs CPU oracle within contract | |
 | M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | proposed | | CPU smoke run on SmolLM2-135M | GPU runs need the user's GPU |
 | M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | proposed | | toy MNIST/MLP run committed | #73 |
 | M8 | Cost/compute plan doc | proposed | | | |
@@ -47,9 +47,9 @@ their testable portion implemented and the blocked boundary written down.
 | --- | --- | --- | --- | --- | --- |
 | T1 | Physical-unit precision/noise contracts (schema, Rust types, docs) | numerically validated | #80 | round-trip + rejection tests | #56 |
 | T2 | Noise model: shot, thermal, RIN, phase, ADC/DAC, insertion loss, crosstalk, drift | numerically validated (Monte Carlo vs closed form) | #80 | Monte Carlo vs analytic variance | values need measured devices; #57 |
-| T3 | Notebook (a): slab waveguide TE modes vs analytic dispersion | proposed | | stated tolerance in pytest | #58 |
-| T4 | Notebook (b): MZI mesh vs Clements 2016 | proposed | | unitarity + reconstruction error | #58 |
-| T5 | Notebook (c): shot-noise-limited ENOB vs theory | proposed | | stated tolerance | #58 |
+| T3 | Notebook (a): slab waveguide TE modes vs analytic dispersion | numerically validated (\|Δn_eff\| 1.1e-6 / 4.7e-6 vs tolerance 1e-5; FD convergence order 2.00) | #86 | `awen-physics/tests/test_notebooks.py` runs every cell | |
+| T4 | Notebook (b): MZI mesh vs Clements 2016 | numerically validated (reconstruction/unitarity error ≈ 5e-16 for N ≤ 32, tolerance 1e-12) | #86 | `awen-physics/tests/test_notebooks.py` | |
+| T5 | Notebook (c): shot-noise-limited ENOB vs theory | numerically validated (Rust model within 0.05 bit of IEEE 1241 theory over 4 decades, tolerance 0.1 bit) | #86 | `awen-physics/tests/test_notebooks.py` | |
 | T6 | awen-physics: TMM/S-matrix, mode solver, 1D/2D FDTD + convergence, BPM, dispersion, ring/cavity, thermo/electro-optic, chi2 SHG, adjoint check, gdsfactory/Meep/Circulax adapters | proposed | | analytic comparisons | fabricated devices; #68 |
 | T7 | Quantum-photonic track (Fock/Gaussian, permanents, boson sampling, detection, resource model, small kernel vs classical baseline) | proposed | | permanent vs brute force | single-photon hardware; #69 |
 | T8 | Memory subsystem (cited parameters, simulator, KV-cache study) | proposed | | | #70 |
@@ -62,7 +62,7 @@ their testable portion implemented and the blocked boundary written down.
 | C1 | PyO3/maturin binding to compiler/simulator | implemented | #84 | wheel builds in CI; numeric match | #59 |
 | C2 | `awenctl execute` runs math with noise model | implemented | #82 | AWENEXE result vs NumPy | #59 |
 | C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | implemented | #84 | call assertion + numeric match | #59 |
-| C4 | PyTorch PrivateUse1 `awen` device | proposed | | op tests vs CPU | #60 |
+| C4 | PyTorch PrivateUse1 `awen` device | implemented (inference: mm/addmm/bmm on the Rust photonic model, add/relu electronic; simulated device, host memory) | #87 | 6 op tests vs CPU within 1e-5 under the ideal contract | backward/reductions not implemented; no hardware driver |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |
 | C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | proposed | | round-trip + negative tests | #55 |
 | C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | proposed | | per-op oracle tests | hardware levels; #62, #63 |

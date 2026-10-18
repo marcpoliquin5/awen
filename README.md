@@ -67,6 +67,26 @@ model = torch.compile(model, backend=awen, dynamic=True)
 
 The full build-and-verify procedure is in [Build and verify](#build-and-verify).
 
+### Run the AWEN-Mini model
+
+`awen-models` ships a small character-level language model (AWEN-Mini, 1.0M
+parameters) that was trained on CPU, with its checkpoint bundled:
+
+```bash
+python -m pip install ./awen-native ./awen-models   # awen-native needs the Rust toolchain
+python - <<'PY'
+import awen
+rt = awen.Runtime(device="auto")                # CPU/GPU, measured
+print(rt.load_model("awen-mini").generate("ROMEO:", max_new_tokens=80))
+sim = awen.Runtime(device="photonic-sim")       # every linear layer on the Rust noise model (simulated)
+print(sim.load_model("awen-mini").generate("ROMEO:", max_new_tokens=80))
+PY
+```
+
+At the default illustrative noise contract (1,000 photons per MAC, 8-bit
+converters) the simulated output is visibly degraded. The measured loss
+against optical power is in `awen-models/results/photonic-sim-demo.json`.
+
 ## Technical overview
 
 AWEN is an experimental heterogeneous compiler/runtime for programmable physical linear algebra. The repository contains a Rust runtime, a typed tensor-to-photonic compiler slice, specifications, simulator and calibration components, Python integrations, MLIR lowering, and reference ecosystem metadata.
@@ -146,6 +166,9 @@ measured product performance.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.
+- `awen-models`: AWEN-Mini (trained checkpoint, int8, evaluation), the `awen.Runtime` facade with `device="photonic-sim"`, AWEN-Nonlinear ablations, AWEN-Photon noise-aware training, and a safe Hugging Face adapter with an AWEN capability report.
+- `awen-native`: PyO3 binding to the Rust compiler and photonic GEMM noise model. It backs the `photonic` target of `awen_py` and the PrivateUse1 `awen` device.
+- `awen-physics`: reference physics (slab modes, Clements meshes, ENOB) and CI-executed validation notebooks (AEP-0023).
 - `awen-spec`: schemas, specifications, and AWEN Enhancement Proposals.
 - `awen-ecosystem`: in-process PyTorch/JAX/NumPy integration, a schema-valid open gdsfactory/Circulax physical-design reference, reference-only marketplace metadata, and plugin implementation guidance.
 
