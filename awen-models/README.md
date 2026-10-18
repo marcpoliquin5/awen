@@ -104,6 +104,48 @@ Caveats:
 - Latency was measured while other jobs shared the CPU, so treat it as a
   relative comparison only.
 
+## AWEN-Photon noise-injection training
+
+`python -m awen_models.photon_training --seeds 1 2` (`awen-photon-train`) trains
+a 784-128-10 MLP on MNIST (CC BY-SA 3.0, SHA-256 pinned) three ways: standard,
+and noise-aware with the photonic noise contract at 100 and 1,000 photons per
+MAC injected during training through a differentiable surrogate of the Rust
+tile model. Every trained network is then evaluated with both GEMMs executed by
+`awen_native.photonic_gemm` across 10 to 100,000 photons per MAC. Needs
+`awen-native`.
+
+Committed results (`results/photon-training/`, 3 epochs, seeds 1 and 2, CPU).
+Accuracy is on the 10,000-image test set and is the mean of the two seeds.
+Photonic accuracies are **simulated** (compact noise model, default contract with
+8-bit DAC/ADC, k = 64 tiles). Energy is **modeled** photon energy at 1550 nm
+only. It excludes laser, modulator, converter and memory energy.
+
+| photons/MAC | tile ENOB (analytic) | optical energy/MAC | standard | noise-aware-100 | noise-aware-1000 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| exact (ideal contract) | — | — | 97.06% | 87.00% | 95.53% |
+| 10 | −0.44 | 1.3 aJ | 9.9% | 10.5% | 10.0% |
+| 30 | 1.13 | 3.8 aJ | 10.2% | 14.7% | 10.4% |
+| 100 | 2.80 | 12.8 aJ | 13.9% | 51.0% | 18.2% |
+| 300 | 4.23 | 38.4 aJ | 35.7% | 80.9% | 57.0% |
+| 1,000 | 5.54 | 128 aJ | 82.4% | 85.9% | 90.9% |
+| 3,000 | 6.38 | 384 aJ | 94.5% | 86.7% | 94.6% |
+| 10,000 | 6.90 | 1.28 fJ | 96.4% | 86.9% | 95.1% |
+| 100,000 | 7.18 | 12.8 fJ | 96.8% | 86.9% | 95.4% |
+
+Noise-aware training moves the usable operating point to fewer photons.
+Training at 100 photons/MAC lifts accuracy at 100 photons from 13.9% to 51.0%
+and at 300 photons from 35.7% to 80.9%, but caps clean accuracy at about 87%.
+Training at 1,000 photons/MAC gains 8.5 points at 1,000 photons for a
+1.4-point loss at 100,000 photons. ENOB saturates near 7.2 bits because of
+the 8-bit ADC. With two seeds, the band in `accuracy_curves.png` is the seed
+min–max. Per-point 95% Wilson intervals (test-set sampling only) are in
+`results.json`.
+
+The surrogate omits phase error and crosstalk during training. Evaluation
+applies them through the Rust model. `tests/test_photon_training.py` checks
+that the surrogate's error standard deviation is within 5% of the Rust
+simulator's.
+
 ## Hugging Face adapter
 
 `python -m awen_models.hf_adapter HuggingFaceTB/SmolLM2-135M` loads a causal

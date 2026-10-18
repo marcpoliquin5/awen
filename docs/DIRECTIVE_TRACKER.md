@@ -38,7 +38,7 @@ their testable portion implemented and the blocked boundary written down.
 | M4 | External HF adapter with capability report (trust_remote_code=False) | implemented (SmolLM2-135M report committed) | this PR | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
 | M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | proposed | | per-layer error vs CPU oracle within contract | needs #59 |
 | M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | proposed | | CPU smoke run on SmolLM2-135M | GPU runs need the user's GPU |
-| M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | proposed | | toy MNIST/MLP run committed | #73 |
+| M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | implemented (MNIST MLP, 3 regimes × 2 seeds, evaluated on the Rust noise model; simulated) | this PR | `tests/test_photon_training.py`: surrogate vs Rust error std within 5%; harness end to end; committed `results/photon-training/results.json` | differentiable MZI-mesh layers (E2) still open; #73 |
 | M8 | Cost/compute plan doc | proposed | | | |
 
 ## Truth layer and physics
