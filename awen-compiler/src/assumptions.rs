@@ -39,6 +39,15 @@ impl Corner {
     }
 }
 
+/// Kind of source behind a value (the file's `source_type`, else its source's `type`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceType {
+    Measured,
+    Vendor,
+    Estimate,
+}
+
 /// One range parameter (`kind: sweep`, `by_device_length_mm` and `points` entries are kept out:
 /// they are not low / typical / high ranges).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -47,7 +56,9 @@ pub struct RangeParameter {
     pub low: Option<f64>,
     pub typical: Option<f64>,
     pub high: Option<f64>,
+    /// Citation key into the file's `sources` (for example `hua2025`).
     pub source: Option<String>,
+    pub source_type: Option<SourceType>,
 }
 
 impl RangeParameter {
@@ -96,6 +107,19 @@ fn corner_value(entry: &Yaml, corner: Corner, name: &str) -> Result<Option<f64>>
         .ok_or_else(|| anyhow!("{name}.{} is not a number or null", corner.key()))
 }
 
+fn source_type(entry: &Yaml, sources: &Yaml, name: &str) -> Result<Option<SourceType>> {
+    let own = text(&entry["source_type"]);
+    let kind =
+        own.or_else(|| text(&entry["source"]).and_then(|key| text(&sources[key.as_str()]["type"])));
+    match kind.as_deref() {
+        None => Ok(None),
+        Some("measured") => Ok(Some(SourceType::Measured)),
+        Some("vendor") => Ok(Some(SourceType::Vendor)),
+        Some("estimate") => Ok(Some(SourceType::Estimate)),
+        Some(other) => bail!("{name} has unknown source type '{other}'"),
+    }
+}
+
 impl HardwareAssumptions {
     /// Parse the YAML text of an assumption set.
     pub fn parse(source: &str) -> Result<Self> {
@@ -135,6 +159,7 @@ impl HardwareAssumptions {
                         typical: corner_value(entry, Corner::Typical, &name)?,
                         high: corner_value(entry, Corner::High, &name)?,
                         source: text(&entry["source"]),
+                        source_type: source_type(entry, &doc["sources"], &name)?,
                     },
                 );
             }

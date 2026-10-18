@@ -25,7 +25,7 @@ pub mod precision;
 pub mod simulator;
 
 pub use assumptions::{
-    Corner, HardwareAssumptions, RangeParameter, BUNDLED_HARDWARE_ASSUMPTIONS,
+    Corner, HardwareAssumptions, RangeParameter, SourceType, BUNDLED_HARDWARE_ASSUMPTIONS,
     HARDWARE_ASSUMPTIONS_VERSION,
 };
 pub use awenblas::kernels::{
