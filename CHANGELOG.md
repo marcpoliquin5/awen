@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
+  separate from the classical photonic domain (AEP-0020): permanents by
+  Ryser's formula, Fock-space linear optics, exact boson sampling for small
+  n, the Hong-Ou-Mandel dip with partial distinguishability, and photon
+  counting with detection efficiency, uniform loss and dark counts. Checked
+  against brute-force permutation sums, explicit creation-operator
+  expansion, closed-form HOM coincidence and an environment-mode loss
+  oracle. Simulation only (#97, refs #69).
 - Added minimal ONNX import (`awen_models.onnx_import`, `awen-onnx-report`,
   `awen.onnx-report.v1`). It maps constant-weight MatMul/Gemm and 2-D Conv
   onto the AWEN `gemm`/`conv2d` operators, keeps activation-activation

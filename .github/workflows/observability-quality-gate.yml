@@ -162,6 +162,11 @@ jobs:
           python -m pip install --disable-pip-version-check "./awen-physics[test]"
           python -m pytest awen-physics/tests -q
 
+      - name: Test quantum-photonic reference simulators
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-qphotonic[test]"
+          python -m pytest awen-qphotonic/tests -q
+
       - name: Audit Python dependencies
         run: python -m pip_audit --local --skip-editable
 
