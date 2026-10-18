@@ -1,0 +1,48 @@
+{
+  "version": "awen.distill.v1",
+  "teacher": "HuggingFaceTB/SmolLM2-135M",
+  "teacher_val_loss": 3.5923694893717766,
+  "student_config": {
+    "vocab_size": 49152,
+    "block_size": 128,
+    "n_layer": 4,
+    "n_head": 4,
+    "n_embd": 128,
+    "ffn": "gelu",
+    "ffn_hidden": 512,
+    "ffn_rank": 32,
+    "shared_layers": false,
+    "dropout": 0.0,
+    "bias": true,
+    "extra": {}
+  },
+  "student_parameters": 7101184,
+  "steps": 300,
+  "batch_size": 8,
+  "block_size": 128,
+  "lr": 0.001,
+  "temperature": 2.0,
+  "alpha": 0.5,
+  "seed": 1,
+  "results": {
+    "kd": {
+      "val_loss": 5.331172481179237,
+      "train_seconds": 301.28804187999776
+    },
+    "ce-only": {
+      "val_loss": 5.63746765255928,
+      "train_seconds": 55.901674499000364
+    }
+  },
+  "evidence": "measured validation cross-entropy (nats/token, teacher tokenizer) on fixed held-out windows",
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 6,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  }
+}
