@@ -4,8 +4,9 @@
 # from this file; no other file may hard-code them. Wiring the noise model and cost
 # estimates to this file is a separate change (see STATUS.md).
 #
-# Each parameter has low / typical / high values (or, where marked kind: sweep, values keyed by
-# a swept variable such as bit depth), a unit, and a source with a type:
+# Each parameter has low / typical / high values, or one of: `kind: sweep` (values keyed by a swept
+# variable such as bit depth), `kind: by_device_length_mm` (values keyed by device length),
+# `kind: points` (separate published designs, not a curve); plus a unit, and a source with a type:
 #   measured  - peer-reviewed measurement (citation)
 #   vendor    - manufacturer claim, not independently verified
 #   estimate  - derived by AWEN with the stated formula
@@ -60,16 +61,25 @@ parameters:
       {low: null, typical: 1.0, high: null, unit: dB, source: hua2025,
        notes: "average coupling efficiency about -1 dB near 1310 nm"}
   modulator:
+    # Wang 2018 values are keyed by the device's active length; never mix lengths in one figure.
     tfln_half_wave_voltage:
-      {type: tfln_mzm, low: null, typical: 1.4, high: 4.4, unit: V, source: wang2018,
-       notes: "1.4 V for a 20-mm device, 4.4 V for 5 mm"}
+      kind: by_device_length_mm
+      type: tfln_mzm
+      unit: V
+      source: wang2018
+      values: {5: 4.4, 10: 2.3, 20: 1.4}
+      notes: "Extended Data Fig. 1a-c: half-wave voltage of the 5-, 10- and 20-mm devices"
     tfln_electro_optic_bandwidth_3dB:
-      {type: tfln_mzm, low: 80.0, typical: null, high: 100.0, unit: GHz, source: wang2018,
-       notes: "3-dB electro-optic bandwidth, Fig. 4a-b: 80 GHz for the 10-mm device, 100 GHz for 5 mm"}
+      kind: by_device_length_mm
+      type: tfln_mzm
+      unit: GHz
+      source: wang2018
+      values: {5: 100.0, 10: 80.0, 20: null}
+      notes: "Fig. 4a-b: 3-dB electro-optic bandwidth of the 5- and 10-mm devices; the 20-mm value was not in the text read"
     tfln_on_chip_loss: {type: tfln_mzm, low: null, typical: null, high: 0.5, unit: dB, source: wang2018,
-                        notes: "reported as less than 0.5 dB"}
-    tfln_extinction_ratio: {type: tfln_mzm, low: null, typical: 30.0, high: null, unit: dB, source: wang2018, notes: "Fig. 1c / Extended Data Fig. 1, 20-mm device"}
-    tfln_data_rate: {type: tfln_mzm, low: null, typical: null, high: 210.0, unit: Gbit/s, source: wang2018, notes: "100 Gbaud, 210 Gbit/s; a data rate, not a bandwidth (see tfln_electro_optic_bandwidth_3dB)"}
+                        notes: "abstract: less than 0.5 dB on chip; device length not stated there"}
+    tfln_extinction_ratio: {type: tfln_mzm, low: null, typical: 30.0, high: null, unit: dB, source: wang2018, notes: "20-mm device only (Fig. 1c / Extended Data Fig. 1)"}
+    tfln_data_rate: {type: tfln_mzm, low: null, typical: null, high: 210.0, unit: Gbit/s, source: wang2018, notes: "100 Gbaud, 210 Gbit/s (Fig. 3; device length not in the text read); a data rate, not a bandwidth"}
     silicon_vector_modulator_rate: {type: silicon_unspecified, low: null, typical: 1.0, high: null, unit: GHz, source: hua2025, notes: "input-vector update rate of the PACE system; a modulation rate, not a 3-dB bandwidth"}
     silicon_weight_modulator_rate: {type: silicon_unspecified, low: null, typical: 0.01, high: null, unit: GHz, source: hua2025,
                                     notes: "10 MHz weight update with 8-bit design accuracy"}
@@ -91,19 +101,19 @@ parameters:
     dark_current: {low: null, typical: null, high: null, unit: nA, source: null, notes: "no checked source yet"}
     bandwidth: {low: null, typical: null, high: null, unit: GHz, source: null, notes: "no checked source yet"}
   adc:
-    energy_per_conversion:
-      low: 6.35
-      typical: null
-      high: 31.7
+    # Two published designs, NOT a curve of energy per conversion vs bits: energy also depends on
+    # sample rate, process node and architecture, so do not interpolate between them.
+    published_designs:
+      kind: points
       unit: pJ
       source: [lagos2021, ramkaj2020]
       source_type: estimate
-      notes: >-
-        low = Walden FOM x 2^ENOB = 6.2 fJ x 2^10.0 (500 MS/s);
-        high = power / sample rate = 158.6 mW / 5 GS/s (9.4 ENOB)
-    effective_bits:
-      {low: 9.4, typical: null, high: 10.0, unit: bits, source: [ramkaj2020, lagos2021],
-       notes: "ENOB of the two cited standalone CMOS ADCs (9.4 at 5 GS/s, 10.0 at 500 MS/s); not a photonic-system ENOB"}
+      points:
+        - {source: lagos2021, enob_bits: 10.0, sample_rate_GSps: 0.5, process_nm: 16,
+           energy_per_conversion_pJ: 6.35, derivation: "Walden FOM x 2^ENOB = 6.2 fJ x 2^10.0"}
+        - {source: ramkaj2020, enob_bits: 9.4, sample_rate_GSps: 5.0, process_nm: 28,
+           energy_per_conversion_pJ: 31.7, derivation: "power / sample rate = 158.6 mW / 5 GS/s"}
+      notes: "standalone CMOS ADCs; their ENOBs are ADC specs, not a photonic-system ENOB (see system.pace_enob)"
   dac:
     weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025, notes: "weight DAC resolution of the PACE system"}
     energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null, notes: "no checked source yet"}
