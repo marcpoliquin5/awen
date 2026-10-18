@@ -11,6 +11,7 @@ nothing here shows or claims a quantum advantage.
 | --- | --- | --- |
 | `permanent` | Matrix permanent by Ryser's formula (Gray code, O(2^n n)) | Sum over all n! permutations, n ≤ 6 |
 | `fock` | Fock-space transition amplitudes `<t|U|s>` for passive interferometers, exact output distributions, distinguishable-photon distributions, small-n boson sampling, HOM dip with partial distinguishability | Explicit creation-operator expansion; closed-form HOM coincidence `R² + T² − 2RTξ`; single-photon trajectory enumeration |
+| `gaussian` | Covariance formalism (ħ = 2, xxpp ordering): squeezers, two-mode squeezer, passive interferometers, displacement, pure loss, thermal and coherent states, purity, symplectic eigenvalues, vacuum probability, homodyne sampling and conditioning | Closed forms (e^{∓2r}, sinh²r, 1/cosh r, EPR variance 2e^{−2r}, conditional variance 1/cosh 2r); squeeze operator exponentiated in a 60-level Fock basis |
 | `detection` | Photon-number-resolving detection with efficiency and uniform loss (binomial thinning), threshold detectors with dark counts, post-selection success probability | 2m-mode unitary with environment modes traced out |
 
 Limits: exact enumeration grows as C(n+m−1, n) outcomes and 2^n n per
