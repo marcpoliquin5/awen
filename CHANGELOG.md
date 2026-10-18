@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `awenctl caps` explores capability documents (device capabilities, plugin
+  manifests, hardware descriptions, awenBLAS backend profiles) as text or
+  JSON; `awenctl profile` times one awenBLAS request on the CPU reference or
+  the simulator and writes a Chrome/Perfetto trace. Profile times are host
+  wall-clock, not device timings (refs #66).
 - `awen_runtime::devrt`: health-aware placement over simulated photonic
   devices (healthy / degraded / failed) that remaps past unavailable devices
   and falls back to the exact CPU reference, with the reason recorded;

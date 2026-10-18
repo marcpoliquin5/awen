@@ -288,6 +288,34 @@ enum Command {
         #[clap(long)]
         allow_unverified: bool,
     },
+    /// Explore a capability document: device capability, plugin manifest,
+    /// hardware description, or awenBLAS backend profiles.
+    Caps {
+        /// Path to the JSON document.
+        input: String,
+        /// Print JSON instead of `key: value` text.
+        #[clap(long)]
+        json: bool,
+    },
+    /// Profile one awenBLAS request (host wall-clock) and write a Chrome trace.
+    Profile {
+        /// Path to an awen.blas.v1 JSON request.
+        input: String,
+        /// reference (exact CPU) or simulator (photonic noise model).
+        #[clap(long, default_value = "reference")]
+        mode: String,
+        #[clap(long, default_value_t = 10)]
+        repeat: usize,
+        #[clap(long, default_value_t = 8)]
+        effective_bits: u8,
+        #[clap(long, default_value_t = 0.0)]
+        noise_fraction: f64,
+        #[clap(long, default_value_t = 0)]
+        seed: u64,
+        /// Chrome/Perfetto trace output path.
+        #[clap(long, default_value = "awen_profile.trace.json")]
+        trace: String,
+    },
     /// Execute a legacy node-graph IR (MZI/phase-shifter JSON) in the reference engine.
     Run {
         /// Path to IR JSON file
@@ -527,6 +555,38 @@ fn main() -> Result<()> {
             plugin_dir,
             allow_unverified,
         } => backends_command(&plugin_dir, allow_unverified)?,
+        Command::Caps { input, json } => {
+            let document: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(&input)?)?;
+            let summary = awen_runtime::cli_tools::explore_capabilities(&document)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&summary)?);
+            } else {
+                print!("{}", awen_runtime::cli_tools::render_text(&summary));
+            }
+        }
+        Command::Profile {
+            input,
+            mode,
+            repeat,
+            effective_bits,
+            noise_fraction,
+            seed,
+            trace,
+        } => {
+            let request: KernelRequest = serde_json::from_str(&std::fs::read_to_string(&input)?)?;
+            let simulator = awen_runtime::cli_tools::parse_simulator(
+                &mode,
+                effective_bits,
+                noise_fraction,
+                seed,
+            )?;
+            let (summary, chrome) =
+                awen_runtime::cli_tools::profile_kernel(&request, repeat, simulator)?;
+            std::fs::write(&trace, serde_json::to_string(&chrome)?)?;
+            println!("{}", serde_json::to_string_pretty(&summary)?);
+            eprintln!("trace written to {trace}");
+        }
         Command::Run { ir, seed } => run_command(&ir, seed)?,
         Command::Gradient {
             ir,
