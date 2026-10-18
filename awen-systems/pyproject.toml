@@ -1,0 +1,28 @@
+[project]
+name = "awen-systems"
+version = "0.1.0"
+description = "System-level models for AWEN: photonic/electronic memory technologies and optical/electrical fabrics. All outputs are modeled, not measured."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+awen-kvcache-study = "awen_systems.kvcache:main"
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+
+[tool.setuptools]
+packages = ["awen_systems"]
+
+[tool.setuptools.package-data]
+awen_systems = ["*.json"]
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"

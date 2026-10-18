@@ -34,6 +34,7 @@ awen-photon-train = "awen_models.photon_training:main"
 awen-photonic-demo = "awen_models.photonic_demo:main"
 awen-efficiency = "awen_models.efficiency:main"
 awen-onnx-report = "awen_models.onnx_import:main"
+awen-convert = "awen_models.convert:main"
 
 [tool.setuptools]
 packages = ["awen", "awen_models"]

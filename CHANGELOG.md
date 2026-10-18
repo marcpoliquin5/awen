@@ -8,6 +8,52 @@
   818k-parameter budget with two seeds on CPU, plus a Pareto plot of quality
   vs parameters, latency, memory and MACs (energy only estimated). Negative
   results (low-rank, sparsity, untied head) are reported (refs #72).
+- Added `awen-systems` with a memory-technology parameter schema
+  (`awen.memory_technologies.v1`: phase-change photonic, microring fading,
+  optical RRAM, delay line, HBM2 baseline). Every value carries a provenance;
+  only values checked against a cited source are bundled, the rest must be
+  supplied. Includes a behavioral memory simulator and a KV-cache workload
+  study (traffic, energy, attention fidelity), all labeled modeled (refs #70).
+- Added the model conversion utility `awen-convert` (`awen_models.convert`):
+  `to-onnx` exports an AWEN-Mini checkpoint to ONNX and verifies it against
+  PyTorch with `onnx.reference.ReferenceEvaluator` (max logit difference
+  1.0e-05 on the bundled checkpoint at sequence length 32), with the ONNX
+  compatibility analysis in the report; `to-program` turns constant-weight
+  MatMul/Gemm nodes into an `awen.tensor.v1` program that `awenctl compile`
+  plans, listing activation products and Gemm epilogues as electronic
+  (refs #66).
+- Added the vendor-neutral hardware description schema
+  (`awen.hardware-description.v1`) for MZI meshes, microring banks, WDM,
+  diffractive layers, detectors, ADCs, DACs, lasers, reservoirs, memory and
+  quantum-photonic resources, with mandatory provenance
+  (`reference_simulator`, `vendor_datasheet` or `measured`); a
+  reference-simulator fixture covering every class; reference simulator
+  drivers on the existing HAL `Device` trait (Clements MZI mesh, all-pass
+  microring bank, detector + ADC) checked against closed-form physics; and
+  `docs/VENDOR_INTEGRATION.md`. No vendor drivers are included (refs #67).
+- C SDK: `awen-runtime/include/awen/awen.h` adds the awenBLAS kernel ABI
+  (`awen.kernel-c.v1`) next to the existing dense GEMM ABI: kernel kind
+  listing, interleaved complex GEMM (`awen_cgemm_f64`) and
+  `awen_kernel_execute_json`, which runs any `awen.blas.v1` request on the
+  CPU reference or the photonic noise-model simulator and returns the result
+  JSON with size-query semantics. A C11 example
+  (`examples/awen_c_example.c`) is compiled with `-Werror -pedantic` and run
+  in CI (refs #66).
+- awenBLAS now has 25 kernel kinds: `batched_complex_gemm`,
+  `scaled_dot_product_attention` (two GEMMs plus an electronic softmax) and
+  `feed_forward` (`W2 gelu(W1 x + b1) + b2`, tanh GELU). New
+  `awen-compiler/tests/awenblas_oracles.rs` checks complex, batched and
+  batched-complex GEMM, FFT, low-rank GEMM, the reservoir update, attention
+  and the feed-forward block against independently written oracles
+  (real block embedding of complex GEMM, naive DFT with Parseval and inverse
+  round trip, explicit U·Vᵀ reconstruction, the op library's attention and
+  FFN), plus simulator error versus injected noise. Reference and simulator
+  only (refs #65).
+- `awenctl caps` explores capability documents (device capabilities, plugin
+  manifests, hardware descriptions, awenBLAS backend profiles) as text or
+  JSON; `awenctl profile` times one awenBLAS request on the CPU reference or
+  the simulator and writes a Chrome/Perfetto trace. Profile times are host
+  wall-clock, not device timings (refs #66).
 - `awen_runtime::devrt`: health-aware placement over simulated photonic
   devices (healthy / degraded / failed) that remaps past unavailable devices
   and falls back to the exact CPU reference, with the reason recorded;

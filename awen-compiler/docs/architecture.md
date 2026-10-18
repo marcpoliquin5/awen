@@ -11,7 +11,7 @@
 7. Tile selected GEMMs across M, N, and K using the winning plan. K tiles explicitly accumulate; edge tiles retain their actual sizes only when the backend permits partial tiles.
 8. For library calls, validate the `awen.blas.v1` descriptor and select among exact kind/dtype/structure/complex/size/precision/calibration capabilities using a provenance-bearing kernel cost hook with diagnosed CPU fallback.
 9. Emit classical Photonic IR and Device IR for the compiled GEMM path. Literal tensor values are not copied into compiler artifacts.
-10. Optionally execute compiled GEMM tiles or any of the 22 awenBLAS kinds in a CPU reference or deterministic calibrated simulator, compare outputs to the declared numerical contract, and attach measured software or external predicted-versus-observed evidence.
+10. Optionally execute compiled GEMM tiles or any of the 25 awenBLAS kinds in a CPU reference or deterministic calibrated simulator, compare outputs to the declared numerical contract, and attach measured software or external predicted-versus-observed evidence.
 
 ## Non-negotiable invariants
 

@@ -104,6 +104,18 @@ jobs:
           LD_LIBRARY_PATH="$PWD/target/debug" \
             /tmp/awen-framework-cpp | grep "19 22 43 50"
 
+      - name: Compile and execute the C SDK example (C11, awen.h)
+        working-directory: awen-runtime
+        run: |
+          cargo build --lib
+          gcc -std=c11 -Wall -Wextra -Werror -pedantic -Iinclude \
+            examples/awen_c_example.c -Ltarget/debug -lawen_runtime \
+            -Wl,-rpath,"$PWD/target/debug" -o /tmp/awen-c-example
+          LD_LIBRARY_PATH="$PWD/target/debug" /tmp/awen-c-example | tee /tmp/awen-c-example.out
+          grep -x "cgemm 5 5 -2 1" /tmp/awen-c-example.out
+          grep -x "kinds-has-fft 1" /tmp/awen-c-example.out
+          grep -x "reference-has-19-22-43-50 1 simulated-flag 1" /tmp/awen-c-example.out
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
@@ -166,6 +178,11 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check "./awen-qphotonic[test]"
           python -m pytest awen-qphotonic/tests -q
+
+      - name: Test system models (memory technologies, KV-cache study)
+        run: |
+          python -m pip install --disable-pip-version-check "./awen-systems[test]"
+          python -m pytest awen-systems/tests -q
 
       - name: Audit Python dependencies
         run: python -m pip_audit --local --skip-editable
