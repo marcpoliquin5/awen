@@ -6,6 +6,9 @@
   `clippy` with the pinned toolchain, matching `rust-toolchain.toml`, so
   rustup no longer installs them mid-build where they conflicted with the
   runner image's cargo shims (this broke the first `v0.1.0` release run).
+- Tests: the plugin-loader tests retry briefly on `ETXTBSY` ("Text file
+  busy"), a race where a parallel test thread forks while a freshly written
+  script is still open for writing. It intermittently failed the quality gate.
 
 ## 0.1.0 (2026-10-18)
 
