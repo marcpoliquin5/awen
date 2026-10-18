@@ -6,7 +6,7 @@
   An MNIST MLP is trained standard and noise-aware, then evaluated with its
   GEMMs on the Rust photonic noise model (simulated). It writes
   accuracy-vs-ENOB and accuracy-vs-modeled-optical-energy curves and commits
-  results for two seeds (#73).
+  results for two seeds (#88, refs #73).
 - Added `awen_py.device`, a PyTorch PrivateUse1 device named `awen`. It runs
   `mm`, `addmm` and `bmm` (so `matmul` and `nn.Linear`) on the Rust photonic
   GEMM model, and `add`/`relu` as the electronic stage. Other ops raise a clear
