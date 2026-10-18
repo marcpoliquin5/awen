@@ -39,13 +39,15 @@ def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
     assert INVENTORY["scope"] == ["awen-compiler/src"]
     assert any(item.startswith("awen-runtime/src") for item in INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 95
+    assert len(INVENTORY["entries"]) == 133
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 76,
-        "definitional": 15,
+        "unsourced": 88,
+        "numeric_guard": 21,
+        "definitional": 20,
         "differs_from_assumption": 3,
         "matches_assumption": 1,
     }
+    assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38
 
 
 def test_new_hard_coded_default_is_caught(tmp_path):
@@ -121,3 +123,44 @@ def test_literal_forms(line, expected):
 
 def test_formulas_are_not_literals():
     assert hd.LITERAL.match("            signal_to_noise_ratio_db: 6.02 * f64::from(bits) + 1.76,") is None
+
+
+def test_in_expression_fallbacks_are_found():
+    text = (
+        "impl CostModelInputs {\n    pub fn from_capabilities() -> Self {\n"
+        "        let u = profile\n            .map_or(0.05, calibration_error_fraction)\n            .max(0.001);\n"
+        "        let t = p.map_or(20.0, |p| p.t).min(1.0e2).clamp(-1.0, 1.0);\n"
+        "        let n = count.max(1);\n        let s = xs.fold(0.0, f64::max);\n"
+        "        // .max(0.5) in a comment\n    }\n}\n"
+    )
+    assert hd.literals(text) == {
+        ("impl CostModelInputs::from_capabilities", "expr:map_or"): 0.05,
+        ("impl CostModelInputs::from_capabilities", "expr:max"): 0.001,
+        ("impl CostModelInputs::from_capabilities", "expr:map_or#2"): 20.0,
+        ("impl CostModelInputs::from_capabilities", "expr:min"): 100.0,
+        ("impl CostModelInputs::from_capabilities", "expr:clamp"): -1.0,
+    }
+
+
+def test_known_fallbacks_are_inventoried():
+    entries = {(e["block"], e["field"]): e for e in INVENTORY["entries"]}
+    assert entries[("cost_inputs_from_capabilities", "expr:map_or")]["value"] == 0.05
+    assert entries[("cost_inputs_from_capabilities", "expr:max")]["value"] == 0.001
+    assert entries[("cost_inputs_from_snapshot", "expr:map_or")]["value"] == 0.05
+    assert entries[("offline_snapshot_health", "expr:map_or")]["value"] == 20.0
+    assert all(entries[k]["status"] == "unsourced" for k in [
+        ("cost_inputs_from_capabilities", "expr:map_or"), ("offline_snapshot_health", "expr:map_or")])
+
+
+def test_changed_fallback_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/capability.rs", ".map_or(20.0, |profile| profile.environment.temperature_c)",
+         ".map_or(25.0, |profile| profile.environment.temperature_c)")
+    assert any("expr:map_or" in p and "code has 25.0" in p for p in hd.check(root))
+
+
+def test_new_fallback_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/cost.rs", "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01);",
+         "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01).min(0.95);")
+    assert any("new hard-coded device default" in p and "expr:min" in p for p in hd.check(root))
