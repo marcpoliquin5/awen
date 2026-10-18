@@ -785,7 +785,7 @@ fn build_transfers(
     let mut transfers = Vec::new();
     for (tensor_index, tensor) in graph.tensors.iter().enumerate() {
         let source_device = index.producer[tensor_index]
-            .map(&device_for_node)
+            .map(device_for_node)
             .or(tensor.initial_device)
             .with_context(|| format!("tensor '{}' has no source residency", tensor.id))?;
         let mut targets: BTreeMap<TargetBackend, Vec<String>> = BTreeMap::new();
@@ -854,7 +854,7 @@ fn memory_peaks(
     let mut intervals: BTreeMap<TargetBackend, Vec<(usize, usize, u64)>> = BTreeMap::new();
     for (tensor_index, tensor) in graph.tensors.iter().enumerate() {
         let source_device = index.producer[tensor_index]
-            .map(&device_for_node)
+            .map(device_for_node)
             .or(tensor.initial_device)
             .with_context(|| format!("tensor '{}' has no source residency", tensor.id))?;
         let source_start = index.producer[tensor_index]
@@ -1158,7 +1158,7 @@ fn visualization_edges(
     for (tensor_index, tensor) in graph.tensors.iter().enumerate() {
         let producer = index.producer[tensor_index];
         let from = producer
-            .map(&device_for_node)
+            .map(device_for_node)
             .or(tensor.initial_device)
             .unwrap_or(TargetBackend::Cpu);
         for consumer in &index.consumers[tensor_index] {
