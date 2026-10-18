@@ -1,0 +1,32 @@
+# H1 full-run config (registered before any full run; see ../PREREGISTRATION.md).
+id: H1
+schema: awen.fractal-prereg-config.v1
+hypothesis: "At equal total insertion-loss budget, butterfly meshes beat Clements and low-rank meshes on task score per dB"
+status: registered
+pilot: {pr: 128, commit: 0974f38, files: [meshes_n8.json, meshes_n16.json], role: exploratory}
+modes: [8, 16]
+meshes:
+  butterfly: {depths_in_layers_of_log2N_stages: [1, 2, 3]}
+  clements: {depths: [2, 4, 8, 16]}
+  low_rank_svd: {ranks: [2, 4, 8]}
+tasks:
+  - {name: haar_unitary, targets: 16, score: fidelity}
+  - {name: mnist_pca16_linear, features: 16, score: test_accuracy}
+  - {name: dft_matrix, score: fidelity}
+metric: "score at the deepest configuration with loss_dB <= budget (primary); score / loss_dB is secondary"
+primary_point: {modes: 16, budget_db: 6.0, il_mzi_db: 0.25, il_crossing_db: 0.05, phase_sigma_rad: 0.02, splitter_imbalance: 0.02}
+analysis: {aggregate: "mean over fabrication_noise_seeds per init seed", test: "paired t across init seeds", n: 5, df: 4, threshold: "95% CI lower bound of (butterfly - baseline) > 0", secondary: "mixed model, init seed random effect"}
+loss_model: "loss_dB = mzis_per_path * il_mzi_db + crossings_per_path * il_crossing_db"
+# Free parameters: hardware_assumptions.yaml v0 has no checked value for mzi.insertion_loss,
+# crossing loss, phase error or splitter imbalance. Results are conditional on this grid.
+free_parameters:
+  il_mzi_db: [0.1, 0.25, 0.5]
+  il_crossing_db: [0.02, 0.05, 0.1]
+  loss_budgets_db: [3.0, 6.0, 10.0]
+  phase_sigma_rad: [0.005, 0.02]
+  splitter_imbalance: [0.0, 0.02]
+optimizer: {name: adam, lr: 0.05, steps: 800, restarts: 3}
+fabrication_noise_seeds: [201, 202, 203, 204, 205]  # nested in each init seed
+seeds: [101, 102, 103, 104, 105]  # initialization seeds; disjoint from pilot seeds 0-2
+falsification: "Killed if on any task butterfly does not beat both Clements and low-rank at the primary point (threshold in analysis)"
+command: "python research/experiments/multiplexing-fractal/h1_meshes.py --config research/experiments/multiplexing-fractal/configs/h1.yaml"
