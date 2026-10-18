@@ -164,13 +164,40 @@ fn every_kernel_request() -> Vec<KernelRequest> {
             KernelKind::Propagation,
             vec![complex_matrix(), complex_identity()],
         ),
+        request(
+            KernelKind::BatchedComplexGemm,
+            vec![
+                complex(
+                    &[1, 2, 2],
+                    &[(1.0, 0.0), (0.0, 1.0), (1.0, -1.0), (2.0, 0.0)],
+                ),
+                complex(
+                    &[1, 2, 2],
+                    &[(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (1.0, 0.0)],
+                ),
+            ],
+        ),
+        request(
+            KernelKind::ScaledDotProductAttention,
+            vec![matrix(), identity(), matrix()],
+        ),
+        request(
+            KernelKind::FeedForward,
+            vec![
+                matrix(),
+                identity(),
+                real(&[2], &[0.5, -0.5]),
+                identity(),
+                real(&[2], &[0.0, 1.0]),
+            ],
+        ),
     ]
 }
 
 #[test]
 fn every_kernel_has_reference_simulator_and_measured_benchmark_execution() {
     let requests = every_kernel_request();
-    assert_eq!(requests.len(), 22);
+    assert_eq!(requests.len(), 25);
     for request in requests {
         let reference = execute_kernel_reference(&request).expect("reference kernel");
         let options = KernelSimulatorOptions {

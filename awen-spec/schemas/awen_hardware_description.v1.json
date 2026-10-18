@@ -1,0 +1,755 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_hardware_description.v1.json",
+  "title": "AWEN Hardware Description v1",
+  "description": "Vendor-neutral description of the physical components behind a photonic backend. Values are only as trustworthy as provenance.source says: reference_simulator values are illustrative simulator parameters, not a product.",
+  "type": "object",
+  "required": [
+    "version",
+    "device_id",
+    "provenance",
+    "components"
+  ],
+  "properties": {
+    "version": {
+      "const": "awen.hardware-description.v1"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/mzi_mesh"
+          },
+          {
+            "$ref": "#/$defs/microring_bank"
+          },
+          {
+            "$ref": "#/$defs/wdm"
+          },
+          {
+            "$ref": "#/$defs/diffractive"
+          },
+          {
+            "$ref": "#/$defs/detector"
+          },
+          {
+            "$ref": "#/$defs/adc"
+          },
+          {
+            "$ref": "#/$defs/dac"
+          },
+          {
+            "$ref": "#/$defs/laser"
+          },
+          {
+            "$ref": "#/$defs/reservoir"
+          },
+          {
+            "$ref": "#/$defs/memory"
+          },
+          {
+            "$ref": "#/$defs/quantum"
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "band": {
+      "type": "object",
+      "required": [
+        "minimum_nm",
+        "maximum_nm"
+      ],
+      "properties": {
+        "minimum_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "phase_shifter": {
+      "type": "object",
+      "required": [
+        "mechanism",
+        "v_pi_v",
+        "bandwidth_mhz"
+      ],
+      "properties": {
+        "mechanism": {
+          "enum": [
+            "thermo_optic",
+            "electro_optic",
+            "plasma_dispersion",
+            "mems",
+            "phase_change",
+            "other"
+          ]
+        },
+        "v_pi_v": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "bandwidth_mhz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "power_per_pi_mw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "phase_resolution_bits": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "reference_simulator",
+            "vendor_datasheet",
+            "measured"
+          ]
+        },
+        "reference": {
+          "type": "string"
+        },
+        "measured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mzi_mesh": {
+      "type": "object",
+      "description": "Programmable Mach-Zehnder interferometer mesh implementing an N-mode linear transform.",
+      "required": [
+        "class",
+        "id",
+        "modes",
+        "topology",
+        "phase_shifter",
+        "insertion_loss_db_per_mzi",
+        "extinction_ratio_db"
+      ],
+      "properties": {
+        "class": {
+          "const": "mzi_mesh"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modes": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "topology": {
+          "enum": [
+            "clements",
+            "reck",
+            "diamond",
+            "custom"
+          ]
+        },
+        "phase_shifter": {
+          "$ref": "#/$defs/phase_shifter"
+        },
+        "insertion_loss_db_per_mzi": {
+          "type": "number",
+          "minimum": 0
+        },
+        "extinction_ratio_db": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "splitter_imbalance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "band": {
+          "$ref": "#/$defs/band"
+        },
+        "programmable": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "microring_bank": {
+      "type": "object",
+      "description": "Bank of microring resonators used as wavelength-selective weights or filters.",
+      "required": [
+        "class",
+        "id",
+        "rings",
+        "fsr_nm",
+        "self_coupling_r",
+        "round_trip_amplitude_a",
+        "configuration"
+      ],
+      "properties": {
+        "class": {
+          "const": "microring_bank"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rings": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "radius_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fsr_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "q_loaded": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "self_coupling_r": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "round_trip_amplitude_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "tuning": {
+          "$ref": "#/$defs/phase_shifter"
+        },
+        "configuration": {
+          "enum": [
+            "all_pass",
+            "add_drop"
+          ]
+        },
+        "weight_resolution_bits": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "wdm": {
+      "type": "object",
+      "description": "Wavelength-division multiplexer/demultiplexer.",
+      "required": [
+        "class",
+        "id",
+        "channels",
+        "channel_spacing_ghz",
+        "center_wavelength_nm",
+        "crosstalk_db"
+      ],
+      "properties": {
+        "class": {
+          "const": "wdm"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channel_spacing_ghz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "center_wavelength_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "crosstalk_db": {
+          "type": "number",
+          "maximum": 0
+        },
+        "insertion_loss_db": {
+          "type": "number",
+          "minimum": 0
+        },
+        "device": {
+          "enum": [
+            "awg",
+            "ring_filter",
+            "echelle",
+            "mzi_lattice",
+            "other"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "diffractive": {
+      "type": "object",
+      "description": "Free-space or on-chip diffractive network.",
+      "required": [
+        "class",
+        "id",
+        "layers",
+        "pixels_per_layer",
+        "pixel_pitch_um",
+        "layer_spacing_um",
+        "wavelength_nm",
+        "modulation",
+        "reconfigurable"
+      ],
+      "properties": {
+        "class": {
+          "const": "diffractive"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pixels_per_layer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pixel_pitch_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "layer_spacing_um": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "wavelength_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "modulation": {
+          "enum": [
+            "phase",
+            "amplitude",
+            "complex"
+          ]
+        },
+        "reconfigurable": {
+          "type": "boolean"
+        },
+        "phase_levels": {
+          "type": "integer",
+          "minimum": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "detector": {
+      "type": "object",
+      "description": "Photodetector array.",
+      "required": [
+        "class",
+        "id",
+        "count",
+        "responsivity_a_per_w",
+        "dark_current_na",
+        "bandwidth_ghz"
+      ],
+      "properties": {
+        "class": {
+          "const": "detector"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "responsivity_a_per_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dark_current_na": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bandwidth_ghz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "quantum_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "balanced": {
+          "type": "boolean"
+        },
+        "noise_equivalent_power_pw_per_rthz": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "adc": {
+      "type": "object",
+      "description": "Analog-to-digital converters.",
+      "required": [
+        "class",
+        "id",
+        "channels",
+        "bits",
+        "sample_rate_gsps",
+        "full_scale_v"
+      ],
+      "properties": {
+        "class": {
+          "const": "adc"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_rate_gsps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "enob": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "full_scale_v": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "energy_pj_per_sample": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "dac": {
+      "type": "object",
+      "description": "Digital-to-analog converters.",
+      "required": [
+        "class",
+        "id",
+        "channels",
+        "bits",
+        "sample_rate_gsps",
+        "full_scale_v"
+      ],
+      "properties": {
+        "class": {
+          "const": "dac"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_rate_gsps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "enob": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "full_scale_v": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "energy_pj_per_sample": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "laser": {
+      "type": "object",
+      "description": "Optical source(s).",
+      "required": [
+        "class",
+        "id",
+        "wavelengths_nm",
+        "power_mw_per_line",
+        "kind"
+      ],
+      "properties": {
+        "class": {
+          "const": "laser"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wavelengths_nm": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "power_mw_per_line": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "linewidth_khz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rin_db_per_hz": {
+          "type": "number",
+          "maximum": 0
+        },
+        "wall_plug_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "kind": {
+          "enum": [
+            "dfb",
+            "external_cavity",
+            "comb",
+            "vcsel",
+            "other"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "reservoir": {
+      "type": "object",
+      "description": "Physical reservoir computing substrate.",
+      "required": [
+        "class",
+        "id",
+        "nodes",
+        "nonlinearity",
+        "physical_form"
+      ],
+      "properties": {
+        "class": {
+          "const": "reservoir"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "delay_ns": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nonlinearity": {
+          "enum": [
+            "saturable_absorption",
+            "kerr",
+            "detection",
+            "modulator_transfer",
+            "other"
+          ]
+        },
+        "input_scaling": {
+          "type": "number",
+          "minimum": 0
+        },
+        "feedback_gain": {
+          "type": "number",
+          "minimum": 0
+        },
+        "physical_form": {
+          "enum": [
+            "delay_loop",
+            "spatial",
+            "on_chip_network",
+            "other"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "description": "Memory attached to or inside the optical datapath.",
+      "required": [
+        "class",
+        "id",
+        "kind",
+        "capacity_bytes",
+        "bandwidth_gb_per_s",
+        "latency_ns"
+      ],
+      "properties": {
+        "class": {
+          "const": "memory"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "electronic_sram",
+            "electronic_dram",
+            "hbm",
+            "optical_delay_line",
+            "resonator_storage",
+            "phase_change"
+          ]
+        },
+        "capacity_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bandwidth_gb_per_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "latency_ns": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retention_ns": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "volatile": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "quantum": {
+      "type": "object",
+      "description": "Quantum-photonic resources (sources, interferometer modes, detectors).",
+      "required": [
+        "class",
+        "id",
+        "modes",
+        "sources",
+        "detector",
+        "detection_efficiency"
+      ],
+      "properties": {
+        "class": {
+          "const": "quantum"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sources": {
+          "enum": [
+            "spdc",
+            "sfwm",
+            "quantum_dot",
+            "squeezed_light",
+            "none"
+          ]
+        },
+        "source_indistinguishability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "heralding_efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "squeezing_db": {
+          "type": "number",
+          "minimum": 0
+        },
+        "detector": {
+          "enum": [
+            "snspd",
+            "tes",
+            "apd",
+            "homodyne",
+            "none"
+          ]
+        },
+        "detection_efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "dark_count_hz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "photon_number_resolving": {
+          "type": "boolean"
+        },
+        "feed_forward_latency_ns": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

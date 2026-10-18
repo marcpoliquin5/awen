@@ -2,6 +2,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+pub mod hardware;
+
 /// Device capability categories. Backends declare which capabilities they provide.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChannelType {
