@@ -5,7 +5,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::ArtifactBundle;
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use walkdir::WalkDir;
 
@@ -98,11 +97,7 @@ fn export_to_directory(bundle: &ArtifactBundle, output_dir: &Path) -> Result<Pat
                 if rel == std::path::Path::new("checksums.json") {
                     continue;
                 }
-                let mut file = std::fs::File::open(path)?;
-                let mut hasher = Sha256::new();
-                std::io::copy(&mut file, &mut hasher)?;
-                let digest = hasher.finalize();
-                let hex = hex::encode(digest);
+                let hex = super::sha256_file_hex(path)?;
                 checksums.insert(rel.to_string_lossy().to_string(), hex);
             }
         }
