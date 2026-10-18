@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added the vendor-neutral hardware description schema
+  (`awen.hardware-description.v1`) for MZI meshes, microring banks, WDM,
+  diffractive layers, detectors, ADCs, DACs, lasers, reservoirs, memory and
+  quantum-photonic resources, with mandatory provenance
+  (`reference_simulator`, `vendor_datasheet` or `measured`); a
+  reference-simulator fixture covering every class; reference simulator
+  drivers on the existing HAL `Device` trait (Clements MZI mesh, all-pass
+  microring bank, detector + ADC) checked against closed-form physics; and
+  `docs/VENDOR_INTEGRATION.md`. No vendor drivers are included (refs #67).
 - C SDK: `awen-runtime/include/awen/awen.h` adds the awenBLAS kernel ABI
   (`awen.kernel-c.v1`) next to the existing dense GEMM ABI: kernel kind
   listing, interleaved complex GEMM (`awen_cgemm_f64`) and
