@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Docs: Master Prompt v2 state files `STATUS.md` (truth table, gap list, Phase 1 plan),
+  `DECISIONS.md` and `EXPERIMENTS.md`; `research/ledger/schema.yaml` with the v2 entry fields.
+- Research: the 15 agent-written, Crossref-checked directions moved from
+  `research/ledger/ledger.json` to `research/reference/agent-sourced.json` and are labeled as
+  agent-sourced. `research/ledger/ledger.json` is now an empty index for Marc's 72-paper export.
 - CI: the release and hardware-benchmark workflows install `rustfmt` and
   `clippy` with the pinned toolchain, matching `rust-toolchain.toml`, so
   rustup no longer installs them mid-build where they conflicted with the

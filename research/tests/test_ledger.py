@@ -1,4 +1,4 @@
-"""Research ledger: schema, seed entries and the import script."""
+"""Research ledger: schema, empty index, agent-sourced reference list and the import script."""
 
 import importlib.util
 import json
@@ -14,12 +14,22 @@ imp = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(imp)
 
 
+REFERENCE = Path(__file__).resolve().parents[1] / "reference" / "agent-sourced.json"
+
+
 def load():
-    return json.loads((LEDGER_DIR / "ledger.json").read_text())
+    return json.loads(REFERENCE.read_text())
 
 
-def test_seed_ledger_is_valid_and_has_fifteen_verified_directions():
+def test_ledger_index_is_empty_until_marc_exports_it():
+    index = json.loads((LEDGER_DIR / "ledger.json").read_text())
+    imp.validate(index)
+    assert index["entries"] == []
+
+
+def test_agent_sourced_reference_is_valid_labeled_and_has_fifteen_verified_directions():
     ledger = load()
+    assert ledger["source_note"].startswith("AGENT-SOURCED")
     imp.validate(ledger)
     assert len(ledger["entries"]) == 15
     for entry in ledger["entries"]:

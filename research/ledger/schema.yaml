@@ -1,0 +1,41 @@
+# AWEN research ledger entry fields (Master Prompt v2, section 5).
+# The machine-checked schema for ledger.json is ledger.schema.json (awen.research-ledger.v1);
+# this file lists the fields every imported entry of the 72-paper ledger must carry.
+version: awen.research-ledger-fields.v0
+status: the 72-paper ledger file has not been provided; no entries are invented
+fields:
+  title: {type: string, required: true}
+  authors: {type: list of strings, required: true}
+  date: {type: date (YYYY-MM-DD), required: true}
+  url: {type: https URL or DOI, required: true}
+  code_url: {type: https URL, required: false}
+  type: {enum: [experimental, theoretical, numerical, survey], required: true}
+  review_status: {enum: [peer-reviewed, preprint, vendor, other], required: true}
+  contribution: {type: string, required: true}
+  assumptions: {type: string, required: true}
+  limitations: {type: string, required: true}
+  awen_relevance: {type: string, required: true}
+  existing_support: {type: string, description: what AWEN already implements, required: true}
+  required_work: {type: string, required: true}
+  validation_benchmark: {type: string, required: true}
+  hardware_dependency: {enum: [none, gpu, photonic-device, quantum-device], required: true}
+  priority: {enum: [implement-now, later, reference-only, reject], required: true}
+  priority_reason: {type: string, description: one line, required: true}
+  linked_issue: {type: GitHub issue number, required: false}
+  status: {enum: [citation-pending, verified, mapped, implemented], required: true}
+map_first:
+  - TorchFDTD
+  - BRAHMS
+  - PhoQuS
+  - MeshKV
+  - microring reservoir computing
+  - programmable nanophotonic nonlinearity
+  - photonic quantum-assisted low-rank compression
+  - white-box calibration of linear optical processors
+  - programmable optics cloud labs
+  - frequency-dependent photodetection
+  - signed photonic matrix computation
+  - optical datacenter interconnect simulation
+  - fast local field calculation
+  - optoelectronic resistive memory
+  - memory simulator validation
