@@ -179,6 +179,9 @@ jobs:
           python -m pip install --disable-pip-version-check "./awen-qphotonic[test]"
           python -m pytest awen-qphotonic/tests -q
 
+      - name: Test research ledger and frontier-physics checks
+        run: python -m pytest research/tests -q
+
       - name: Test system models (memory technologies, KV-cache study)
         run: |
           python -m pip install --disable-pip-version-check "./awen-systems[test]"
