@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added the Virtual Photonic ISA (VPISA v1, AEP-0024, `awen-spec/specs/isa.md`).
+  It has 24 typed instructions across classical, quantum and interop domains,
+  a JSON schema, a deterministic binary codec (`AWENISA\0`), a validator with
+  typed errors, version negotiation and target checks, a GEMM lowering, and a
+  reference interpreter that runs photonic instructions on the noise model
+  (simulated). `awen-compiler` now parses JSON floats with exact round-trip
+  (#55).
 - Added `awen-native`, a PyO3/maturin binding to the Rust compiler and the
   photonic GEMM model. `awen_py` operations that target `photonic`, including
   `torch.compile(backend=awen)` with `target="photonic"`, now run their matrix
