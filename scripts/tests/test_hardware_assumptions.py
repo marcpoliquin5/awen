@@ -3,8 +3,7 @@
 from pathlib import Path
 
 import pytest
-
-yaml = pytest.importorskip("yaml")
+import yaml  # required: CI pins pyyaml==6.0.3; a missing yaml must fail, not skip
 
 PATH = Path(__file__).resolve().parents[2] / "awen-spec" / "hardware_assumptions.yaml"
 DATA = yaml.safe_load(PATH.read_text())
