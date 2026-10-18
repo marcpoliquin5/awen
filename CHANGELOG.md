@@ -19,6 +19,10 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
+  (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
+  entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
+  (38 in-expression: 12 unsourced device or modeling fallbacks, 21 numeric guards, 5 definitional). No default changed.
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
