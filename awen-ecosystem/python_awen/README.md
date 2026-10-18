@@ -13,7 +13,7 @@ pip install .[jax]
 pip install .[frameworks]
 ```
 
-Supported ranges are Python 3.10+, NumPy 1.26–2.x, PyTorch 2.10–2.13, and JAX
+Supported ranges are Python 3.10+, NumPy 1.26–2.x, PyTorch 2.10–2.14, and JAX
 0.9–0.11. The JAX extra requires Python 3.12 or later.
 
 ## PyTorch
