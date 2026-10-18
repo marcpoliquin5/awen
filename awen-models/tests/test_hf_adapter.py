@@ -5,25 +5,6 @@ transformers = pytest.importorskip("transformers")
 from awen_models.hf_adapter import analyze_model, format_report, generate_text, load_causal_lm
 
 
-@pytest.fixture
-def tiny_llama_dir(tmp_path):
-    from transformers import LlamaConfig, LlamaForCausalLM, PreTrainedTokenizerFast
-    from tokenizers import Tokenizer, models, pre_tokenizers
-
-    config = LlamaConfig(vocab_size=64, hidden_size=32, intermediate_size=64, num_hidden_layers=2,
-                         num_attention_heads=4, num_key_value_heads=2, max_position_embeddings=64,
-                         tie_word_embeddings=False)
-    model = LlamaForCausalLM(config)
-    model.save_pretrained(tmp_path, safe_serialization=True)
-    vocab = {chr(97 + i): i for i in range(26)}
-    vocab.update({"<unk>": 26, "<s>": 27, "</s>": 28, " ": 29})
-    backend = Tokenizer(models.WordLevel(vocab=vocab, unk_token="<unk>"))
-    backend.pre_tokenizer = pre_tokenizers.Split("", "isolated")
-    tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="<unk>", bos_token="<s>", eos_token="</s>")
-    tokenizer.save_pretrained(tmp_path)
-    return tmp_path
-
-
 def test_safe_load_generate_and_report(tiny_llama_dir):
     model, tokenizer = load_causal_lm(str(tiny_llama_dir))
     text = generate_text(model, tokenizer, "abc", max_new_tokens=4)
