@@ -27,7 +27,7 @@ pub mod simulator;
 
 pub use assumption_report::{AssumptionField, AssumptionReport, ASSUMPTION_REPORT_VERSION};
 pub use assumptions::{
-    Corner, HardwareAssumptions, RangeParameter, BUNDLED_HARDWARE_ASSUMPTIONS,
+    Corner, HardwareAssumptions, RangeParameter, SourceType, BUNDLED_HARDWARE_ASSUMPTIONS,
     HARDWARE_ASSUMPTIONS_VERSION,
 };
 pub use awenblas::kernels::{

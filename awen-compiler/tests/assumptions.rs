@@ -1,5 +1,7 @@
 //! Loader for awen-spec/hardware_assumptions.yaml: versions, units and nulls are checked.
-use awen_compiler::assumptions::{Corner, HardwareAssumptions, HARDWARE_ASSUMPTIONS_VERSION};
+use awen_compiler::assumptions::{
+    Corner, HardwareAssumptions, SourceType, HARDWARE_ASSUMPTIONS_VERSION,
+};
 
 fn bundled() -> HardwareAssumptions {
     HardwareAssumptions::bundled().expect("bundled assumption set parses")
@@ -28,6 +30,12 @@ fn bundled_set_parses_ranges_only() {
             .unwrap(),
         Some(7.61)
     );
+    let dac = &set.parameters["dac.weight_dac_bits"];
+    assert_eq!(
+        (dac.source.as_deref(), dac.source_type),
+        (Some("hua2025"), Some(SourceType::Measured))
+    );
+    assert_eq!(set.parameters["laser.rin"].source_type, None);
     // sweeps, keyed and point entries and the channel rule are not ranges
     for name in [
         "shot_noise.shot_noise_energy_per_detection_J",
@@ -68,4 +76,19 @@ fn units_versions_and_values_are_checked() {
     assert!(HardwareAssumptions::parse(&doc("awen.hardware-assumptions.v9", "-140")).is_err());
     assert!(HardwareAssumptions::parse(&doc(HARDWARE_ASSUMPTIONS_VERSION, "loud")).is_err());
     assert!(HardwareAssumptions::parse("version: [").is_err());
+}
+
+#[test]
+fn source_type_comes_from_the_entry_else_its_source() {
+    let doc = |rin_extra: &str| {
+        format!("version: {HARDWARE_ASSUMPTIONS_VERSION}\ndate: \"2026-10-18\"\nsources:\n  v1: {{type: vendor}}\nparameters:\n  laser:\n    rin: {{low: null, typical: -140, high: null, unit: dB/Hz, source: v1{rin_extra}}}\n")
+    };
+    let rin = |set: HardwareAssumptions| set.parameters["laser.rin"].source_type;
+    assert_eq!(
+        rin(HardwareAssumptions::parse(&doc("")).unwrap()),
+        Some(SourceType::Vendor)
+    );
+    let own = HardwareAssumptions::parse(&doc(", source_type: estimate")).unwrap();
+    assert_eq!(rin(own), Some(SourceType::Estimate));
+    assert!(HardwareAssumptions::parse(&doc(", source_type: rumor")).is_err());
 }

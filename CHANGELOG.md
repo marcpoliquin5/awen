@@ -21,11 +21,15 @@
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
 - Compiler: `awen_compiler::assumptions` parses `awen-spec/hardware_assumptions.yaml` (bundled at build time
   or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
-  nulls kept as `None`. No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
+  nulls kept as `None`, plus each value's citation key and source type (measured, vendor or estimate). No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
   (MIT OR Apache-2.0, pure Rust).
 - Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
   `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
   identical before and after (`awen-compiler/results/assumptions-wiring/`).
+- Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
+  (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
+  entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
+  (38 in-expression: 12 unsourced device or modeling fallbacks, 21 numeric guards, 5 definitional). No default changed.
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
