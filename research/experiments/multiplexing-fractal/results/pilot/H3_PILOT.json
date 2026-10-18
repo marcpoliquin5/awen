@@ -1,0 +1,8 @@
+{
+ "note": "H3 PILOT run before pre-registration (Master Prompt v2 section 10); exploratory, not evidence for H3. Split from draft PR #128 at 0974f38.",
+ "source": {"pr": 128, "commit": "0974f38", "git_sha_of_code": "2c3e38a9c4337c15d56ccd0fb249e6e749a265dc"},
+ "host": {"cpu": "Intel Xeon, 8 vCPU", "ram_gib": 15, "gpu": null, "os": "Linux-6.12.94+-x86_64-with-glibc2.41", "python": "3.13.5"},
+ "command": "OMP_NUM_THREADS=1 python stacks.py  (module now h3_stacks.py)",
+ "started_et": "2026-10-18 10:58-11:01 ET",
+ "sha256": {"stacks.json": "194434cd512d4f5c248cb5d0a2c25650fc823dd6626f13fc9a01a7772a52054c"}
+}
