@@ -188,6 +188,29 @@ jobs:
             -o /tmp/stablehlo_gemm.awenx
           cargo run --manifest-path awen-runtime/Cargo.toml \
             --bin awenctl -- execute /tmp/stablehlo_gemm.awenx
+          python - <<'PY'
+          import json, random
+          rng = random.Random(0)
+          def matrix(rows, cols):
+              return {"shape": [rows, cols], "data": [rng.uniform(-1, 1) for _ in range(rows * cols)]}
+          inputs = {"version": "awen.execution-inputs.v1", "dispatches": [{"lhs": matrix(256, 128), "rhs": matrix(128, 64)}]}
+          json.dump(inputs, open("/tmp/gemm_inputs.json", "w"))
+          PY
+          cargo run --manifest-path awen-runtime/Cargo.toml \
+            --bin awenctl -- execute /tmp/stablehlo_gemm.awenx \
+            --inputs /tmp/gemm_inputs.json --ideal --output /tmp/gemm_ideal.json
+          cargo run --manifest-path awen-runtime/Cargo.toml \
+            --bin awenctl -- execute /tmp/stablehlo_gemm.awenx \
+            --inputs /tmp/gemm_inputs.json --seed 1 --output /tmp/gemm_noisy.json
+          python - <<'PY'
+          import json
+          ideal = json.load(open("/tmp/gemm_ideal.json"))["dispatches"][0]
+          noisy = json.load(open("/tmp/gemm_noisy.json"))["dispatches"][0]
+          assert ideal["result"]["shape"] == [256, 64], ideal["result"]["shape"]
+          assert ideal["max_abs_error"] < 1e-9, ideal["max_abs_error"]
+          assert noisy["rms_error"] > 0, noisy["rms_error"]
+          print("ideal max error", ideal["max_abs_error"], "noisy relative rms", noisy["relative_rms_error"])
+          PY
           awen-mlir/build/tools/awen-compile/awen-compile \
             awen-mlir/test/batched_gemm.mlir \
             -o /tmp/batched_gemm.awenx

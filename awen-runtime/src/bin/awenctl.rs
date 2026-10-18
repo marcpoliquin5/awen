@@ -259,10 +259,26 @@ enum Command {
         #[clap(long, default_value = "latency")]
         optimize_for: String,
     },
-    /// Load a binary AWEN executable and prepare its device dispatches.
+    /// Load a binary AWEN executable, prepare its dispatches and, with
+    /// --inputs, run their arithmetic on the simulated photonic noise model.
     Execute {
         /// Path to an AWENEXE binary emitted by awen-compile.
         artifact: String,
+        /// awen.execution-inputs.v1 JSON with lhs/rhs tensors per dispatch.
+        #[clap(long)]
+        inputs: Option<String>,
+        /// awen.photonic-noise-contract.v1 JSON; defaults to the illustrative contract.
+        #[clap(long)]
+        noise: Option<String>,
+        /// Disable every noise term (bit-accurate float64 arithmetic).
+        #[clap(long, conflicts_with = "noise")]
+        ideal: bool,
+        /// Seed for the noise model.
+        #[clap(long, default_value_t = 0)]
+        seed: u64,
+        /// Write the awen.execution-result.v1 JSON here.
+        #[clap(long)]
+        output: Option<String>,
     },
     /// Discover typed backend plugins and query their current health sources.
     Backends {
@@ -490,7 +506,23 @@ fn main() -> Result<()> {
             output,
             optimize_for,
         } => kernel_plan_command(&input, &profiles, &output, &optimize_for)?,
-        Command::Execute { artifact } => execute_command(&artifact)?,
+        Command::Execute {
+            artifact,
+            inputs,
+            noise,
+            ideal,
+            seed,
+            output,
+        } => execute_command(
+            &artifact,
+            ExecuteControls {
+                inputs: inputs.as_deref(),
+                noise: noise.as_deref(),
+                ideal,
+                seed,
+                output: output.as_deref(),
+            },
+        )?,
         Command::Backends {
             plugin_dir,
             allow_unverified,
@@ -721,7 +753,15 @@ fn concrete_kernel_target(value: &str) -> Result<TargetBackend> {
     Ok(target)
 }
 
-fn execute_command(artifact_path: &str) -> Result<()> {
+struct ExecuteControls<'a> {
+    inputs: Option<&'a str>,
+    noise: Option<&'a str>,
+    ideal: bool,
+    seed: u64,
+    output: Option<&'a str>,
+}
+
+fn execute_command(artifact_path: &str, controls: ExecuteControls<'_>) -> Result<()> {
     let bytes = std::fs::read(artifact_path)?;
     let executable = awen_runtime::executable::prepare_executable(&bytes)?;
     println!(
@@ -743,6 +783,41 @@ fn execute_command(artifact_path: &str) -> Result<()> {
             dispatch.layout,
             dispatch.result_shape
         );
+    }
+    let Some(inputs_path) = controls.inputs else {
+        println!("No --inputs given: dispatches prepared, no arithmetic performed.");
+        return Ok(());
+    };
+    let inputs: awen_runtime::executable::ExecutionInputs =
+        serde_json::from_str(&std::fs::read_to_string(inputs_path)?)?;
+    let contract = if controls.ideal {
+        awen_compiler::noise::PhotonicNoiseContract::ideal()
+    } else if let Some(path) = controls.noise {
+        serde_json::from_str(&std::fs::read_to_string(path)?)?
+    } else {
+        awen_compiler::noise::PhotonicNoiseContract::default()
+    };
+    let result =
+        awen_runtime::executable::execute_prepared(&executable, &inputs, &contract, controls.seed)?;
+    println!("Executed on the simulated photonic noise model (compact model; not hardware).");
+    for dispatch in &result.dispatches {
+        let bits = dispatch
+            .measured_effective_bits
+            .map_or("exact".to_string(), |b| format!("{b:.2}"));
+        println!(
+            "  dispatch[{}] result_shape={:?} max_abs_error={:.3e} relative_rms_error={:.3e} effective_bits={} (contract {}: {})",
+            dispatch.index,
+            dispatch.result.shape,
+            dispatch.max_abs_error,
+            dispatch.relative_rms_error,
+            bits,
+            dispatch.minimum_effective_bits,
+            if dispatch.meets_precision_contract { "met" } else { "NOT met" }
+        );
+    }
+    if let Some(path) = controls.output {
+        std::fs::write(path, serde_json::to_string_pretty(&result)?)?;
+        println!("Result: {path}");
     }
     Ok(())
 }
