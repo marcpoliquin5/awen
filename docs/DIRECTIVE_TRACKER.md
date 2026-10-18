@@ -78,7 +78,7 @@ their testable portion implemented and the blocked boundary written down.
 | R1 | Research ledger schema + import script; 15 directions as unverified stubs | proposed | | schema validation | 72-paper ledger file unavailable; #77 |
 | R2 | Research-to-code pipeline | proposed | | | #77 |
 | R3 | Frontier-physics hypotheses (Casimir, toroidal/fractal optics, information capacity) with falsification criteria | proposed | | | #77 |
-| E1 | Efficiency program ablations + Pareto (energy estimated) | proposed | | | #72 |
+| E1 | Efficiency program ablations + Pareto (energy estimated) | implemented (measured on CPU): 10 variants at 818,048 ± 3% stored params, 1500 steps, seeds 1,2: baseline 1.718, untied head 1.725, low-rank 1.974, tensor-train 1.706, MoE top-1 1.696, 50% sparse 1.741, QAT int4 1.730, PTQ int4 1.744, KD 1.698, recursive 1.611 (3.7x MACs, 2.5x latency); Pareto plot over params/latency/memory/MACs; energy only as MACs relative to baseline (`awen-models/results/efficiency/`) | #110 | `awen-models/tests/test_efficiency.py` (16: TT forward = core contraction and rank bound, MoE output = gated expert, int4 levels and STE gradient, budget within 3%, every variant trains, summary/plot) | larger models need GPU; no measured energy; #72 |
 | E2 | AWEN-Photon differentiable MZI layers vs independent reference; six nonlinearity categories | proposed | | | #73 |
 | B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | proposed | | | #74 |
 | S1 | Studio local web app wired to real backends | proposed | | | #75 |
