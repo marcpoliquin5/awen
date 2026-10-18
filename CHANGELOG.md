@@ -19,6 +19,34 @@
   and FWHM (`rings`). Checked against Fresnel, quarter-wave-mirror and
   Beer–Lambert closed forms (fidelity: analytic / numerical propagation;
   #94, refs #68).
+- Added minimal ONNX import (`awen_models.onnx_import`, `awen-onnx-report`,
+  `awen.onnx-report.v1`). It maps constant-weight MatMul/Gemm and 2-D Conv
+  onto the AWEN `gemm`/`conv2d` operators, keeps activation-activation
+  MatMul and elementwise/shape ops electronic, refuses unmapped ops, reports
+  photonic MAC fraction (static analysis), and runs supported graphs on the
+  f64 reference or the photonic noise model (simulated). Checked against
+  `onnx.reference.ReferenceEvaluator` (#93, refs #63).
+- Added the operator library (`awen-compiler::ops`, `awen.op-table.v1`,
+  `awen-spec/specs/ops.md`): complex matmul, DFT, conv2d, 1-D correlation,
+  low-rank linear, attention with projections, FFN, spectral convolution, RNN
+  and reservoir steps, and a square-law detection layer. Each has a
+  four-level fidelity label (math reference / photonic sim /
+  hardware-lowerable / hardware-measured; none is measured), an f64
+  reference checked against NumPy oracles, and a simulated path through the
+  photonic noise model. Exposed as `awen_native.run_op` and
+  `awen_native.op_table` (#92, refs #62).
+- Added `awen_models.finetune`, covering LoRA, QLoRA (NF4, CUDA only) and
+  knowledge distillation into AWEN-Mini, with committed CPU smoke results on
+  SmolLM2-135M. Added `awen_models.compute_plan` and `docs/COMPUTE_PLAN.md`,
+  which estimate memory and FLOPs for Qwen3-0.6B/1.7B and SmolLM2 on a
+  12 GB GPU. Parameter counts are checked against instantiated models (#91).
+- Added the Virtual Photonic ISA (VPISA v1, AEP-0024, `awen-spec/specs/isa.md`).
+  It has 24 typed instructions across classical, quantum and interop domains,
+  a JSON schema, a deterministic binary codec (`AWENISA\0`), a validator with
+  typed errors, version negotiation and target checks, a GEMM lowering, and a
+  reference interpreter that runs photonic instructions on the noise model
+  (simulated). `awen-compiler` now parses JSON floats with exact round-trip
+  (#89, closes #55).
 - Added AWEN-Photon noise-injection training (`awen_models.photon_training`).
   An MNIST MLP is trained standard and noise-aware, then evaluated with its
   GEMMs on the Rust photonic noise model (simulated). It writes

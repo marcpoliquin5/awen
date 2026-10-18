@@ -147,6 +147,30 @@ Caveats:
 - Latency was measured while other jobs shared the CPU, so treat it as a
   relative comparison only.
 
+## Fine-tuning, QLoRA and distillation
+
+`python -m awen_models.finetune lora|distill` (`awen-finetune`):
+
+- **LoRA**: pure-PyTorch `LoRALinear` adapters on any Hugging Face causal LM.
+  Loading always uses `trust_remote_code=False` and safetensors.
+- **QLoRA** (`--qlora`): the same adapters on an NF4 4-bit base through
+  `bitsandbytes` (`pip install ./awen-models[qlora]`). It needs a CUDA GPU
+  and refuses to start without one.
+- **Distillation**: a Hugging Face teacher into an AWEN-Mini student that uses
+  the teacher's tokenizer (Hinton et al. 2015 loss, T = 2, α = 0.5). It is
+  compared against the same student trained without the teacher, at equal
+  steps and seed.
+
+Committed CPU smoke results (`results/finetune/`, measured on an 8-vCPU Xeon):
+
+| Run | Result |
+| --- | --- |
+| LoRA r=8 on q/v of SmolLM2-135M, 200 steps | held-out loss 3.592 → 3.353 nats/token (121 s) |
+| KD into a 7.10M AWEN-Mini student, 300 steps, seed 0 / 1 | 5.209 / 5.331 with KD vs 5.426 / 5.637 CE-only |
+
+Memory and compute sizing for larger runs on the user's 12 GB GPU is in
+`docs/COMPUTE_PLAN.md` (`python -m awen_models.compute_plan`). Its numbers are
+estimates.
 ## AWEN-Photon noise-injection training
 
 `python -m awen_models.photon_training --seeds 1 2` (`awen-photon-train`) trains
@@ -196,6 +220,30 @@ LM with `trust_remote_code=False` and safetensors only, generates text, and
 prints a capability report. The report lists which linear layers can lower to
 an AWEN GEMM and which stay on the CPU, and why. Needs `pip install
 "./awen-models[hf]"`.
+
+## ONNX import
+
+`pip install "awen-models[onnx]"`, then:
+
+```bash
+awen-onnx-report model.onnx --json report.json
+```
+
+```python
+from awen_models import onnx_import
+report = onnx_import.analyze("model.onnx")          # per-node placement and level
+outputs, info = onnx_import.run("model.onnx", {"x": x})                  # f64 reference
+outputs, info = onnx_import.run("model.onnx", {"x": x}, contract=c)      # simulated
+```
+
+Constant-weight `MatMul`/`Gemm` and 2-D `Conv` (group 1, no dilation) map to
+the AWEN `gemm` and `conv2d` operators and are placed `photonic`.
+Activation-activation `MatMul`, elementwise ops (`Add`, `Sub`, `Mul`, `Div`,
+`Relu`, `Sigmoid`, `Tanh`, `Gelu`, `Softmax`) and shape ops stay
+`electronic`. Everything else is `unsupported`: the report lists it and `run`
+refuses the graph. The photonic MAC fraction is static analysis, not a
+measurement. Not mapped yet: `Gather`, `LayerNormalization`, pooling, grouped
+and dilated convolution, and fused attention ops.
 
 ## Tests
 

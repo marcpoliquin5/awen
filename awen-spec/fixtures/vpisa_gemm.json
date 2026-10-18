@@ -1,0 +1,159 @@
+{
+  "version": "awen.vpisa.v1",
+  "abi": {
+    "major": 1,
+    "minor": 0
+  },
+  "program_id": "gemm-4x8x96",
+  "requirements": {
+    "min_effective_bits": 4,
+    "max_tile_k": 64,
+    "quantum": false,
+    "feed_forward": false
+  },
+  "buffers": [
+    {
+      "id": 0,
+      "space": "host",
+      "dtype": "f64",
+      "shape": [
+        4,
+        96
+      ]
+    },
+    {
+      "id": 1,
+      "space": "host",
+      "dtype": "f64",
+      "shape": [
+        8,
+        96
+      ]
+    },
+    {
+      "id": 2,
+      "space": "host",
+      "dtype": "f64",
+      "shape": [
+        4,
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "space": "device",
+      "dtype": "f64",
+      "shape": [
+        4,
+        96
+      ]
+    },
+    {
+      "id": 11,
+      "space": "device",
+      "dtype": "f64",
+      "shape": [
+        8,
+        96
+      ]
+    },
+    {
+      "id": 12,
+      "space": "device",
+      "dtype": "f64",
+      "shape": [
+        4,
+        8
+      ]
+    }
+  ],
+  "events": 1,
+  "fields": 2,
+  "meshes": 1,
+  "modes": 0,
+  "registers": 0,
+  "instructions": [
+    {
+      "op": "alloc",
+      "buffer": 10
+    },
+    {
+      "op": "alloc",
+      "buffer": 11
+    },
+    {
+      "op": "alloc",
+      "buffer": 12
+    },
+    {
+      "op": "copy_to_device",
+      "src": 0,
+      "dst": 10
+    },
+    {
+      "op": "copy_to_device",
+      "src": 1,
+      "dst": 11
+    },
+    {
+      "op": "set_calibration",
+      "handle": "cal-0",
+      "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "op": "program_weights",
+      "weights": 11,
+      "mesh": 0,
+      "dac_bits": 8
+    },
+    {
+      "op": "modulate",
+      "src": 10,
+      "field": 0,
+      "encoding": "amplitude",
+      "wavelength": 0,
+      "spatial_mode": 0,
+      "polarization": "te",
+      "dac_bits": 8
+    },
+    {
+      "op": "mvm",
+      "field_in": 0,
+      "mesh": 0,
+      "field_out": 1,
+      "tile_k": 64
+    },
+    {
+      "op": "detect",
+      "field": 1,
+      "dst": 12,
+      "scheme": "balanced",
+      "adc_bits": 8
+    },
+    {
+      "op": "signal",
+      "event": 0
+    },
+    {
+      "op": "wait",
+      "event": 0
+    },
+    {
+      "op": "copy_to_host",
+      "src": 12,
+      "dst": 2
+    },
+    {
+      "op": "free",
+      "buffer": 10
+    },
+    {
+      "op": "free",
+      "buffer": 11
+    },
+    {
+      "op": "free",
+      "buffer": 12
+    }
+  ]
+}
