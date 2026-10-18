@@ -13,7 +13,9 @@ tasks:
   - {name: haar_unitary, targets: 16, score: fidelity}
   - {name: mnist_pca16_linear, features: 16, score: test_accuracy}
   - {name: dft_matrix, score: fidelity}
-metric: "score at the deepest configuration with loss_dB <= budget; also score / loss_dB"
+metric: "score at the deepest configuration with loss_dB <= budget (primary); score / loss_dB is secondary"
+primary_point: {modes: 16, budget_db: 6.0, il_mzi_db: 0.25, il_crossing_db: 0.05, phase_sigma_rad: 0.02, splitter_imbalance: 0.02}
+analysis: {aggregate: "mean over fabrication_noise_seeds per init seed", test: "paired t across init seeds", n: 5, df: 4, threshold: "95% CI lower bound of (butterfly - baseline) > 0", secondary: "mixed model, init seed random effect"}
 loss_model: "loss_dB = mzis_per_path * il_mzi_db + crossings_per_path * il_crossing_db"
 # Free parameters: hardware_assumptions.yaml v0 has no checked value for mzi.insertion_loss,
 # crossing loss, phase error or splitter imbalance. Results are conditional on this grid.
@@ -24,7 +26,7 @@ free_parameters:
   phase_sigma_rad: [0.005, 0.02]
   splitter_imbalance: [0.0, 0.02]
 optimizer: {name: adam, lr: 0.05, steps: 800, restarts: 3}
-fabrication_noise_seeds: [101, 102, 103, 104, 105]
-seeds: [1, 2, 3]
-falsification: "Killed if on any task butterfly does not beat both Clements and low-rank at the registered budgets (95% paired-t interval over seeds entirely > 0)"
+fabrication_noise_seeds: [201, 202, 203, 204, 205]  # nested in each init seed
+seeds: [101, 102, 103, 104, 105]  # initialization seeds; disjoint from pilot seeds 0-2
+falsification: "Killed if on any task butterfly does not beat both Clements and low-rank at the primary point (threshold in analysis)"
 command: "python research/experiments/multiplexing-fractal/h1_meshes.py --config research/experiments/multiplexing-fractal/configs/h1.yaml"

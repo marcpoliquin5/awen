@@ -11,6 +11,6 @@ tasks:
   - {name: multiscale_denoise_1d, generator: "sum of 3 chirps + white noise SNR 10 dB, length 512, 5000 train / 1000 test", score: relative_l2_error}
   - {name: mnist_28x28, score: test_accuracy}
 training: {optimizer: adam, lr: 0.001, epochs: 20, batch_size: 64}
-seeds: [1, 2, 3]
+seeds: [101, 102, 103]
 falsification: "Killed if on any task neither FNO nor wavelet beats dense at matched compute (95% paired-t interval over seeds)"
 command: "python research/experiments/multiplexing-fractal/h4_multiscale.py --config research/experiments/multiplexing-fractal/configs/h4.yaml"

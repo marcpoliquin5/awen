@@ -15,6 +15,6 @@ footprint_match: "equal total physical thickness and equal layer count"
 frequency_grid: {min: 0.5, max: 1.5, points: 20001, unit: "normalized to the quarter-wave design frequency"}
 usable_channel: {passband_T_min: 0.5, isolation_db_min: 15.0}
 metrics: [usable_channels, worst_adjacent_crosstalk_db, channels_per_unit_normalized_frequency]
-seeds: [1, 2, 3, 4, 5]
+seeds: [101, 102, 103, 104, 105]
 falsification: "Killed if the Cantor plan is worse than the uniform grid on both crosstalk and channel density at equal footprint; better on one only is reported as not kept"
 command: "python research/experiments/multiplexing-fractal/h3_stacks.py --config research/experiments/multiplexing-fractal/configs/h3.yaml"
