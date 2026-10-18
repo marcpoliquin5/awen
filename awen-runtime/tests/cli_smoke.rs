@@ -148,3 +148,95 @@ fn backends_reports_an_empty_plugin_directory() {
     let output = awenctl(dir.path(), &["backends", plugins.to_str().unwrap()]);
     ok(&output);
 }
+
+fn write_gemm_executable(dir: &Path) -> PathBuf {
+    use awen_compiler::executable::{EXECUTABLE_ABI_MAJOR, EXECUTABLE_ABI_MINOR};
+    use awen_compiler::{ExecutableCommand, ExecutablePackage};
+    let package = ExecutablePackage {
+        abi_major: EXECUTABLE_ABI_MAJOR,
+        abi_minor: EXECUTABLE_ABI_MINOR,
+        backend_id: "awen.reference.v1".to_string(),
+        commands: vec![ExecutableCommand::ExecuteGemm {
+            tile_m: 4,
+            tile_n: 4,
+            tile_k: 2,
+            minimum_effective_bits: 4,
+            calibration: "required".to_string(),
+            layout: "row_major".to_string(),
+            result_shape: vec![2, 2],
+        }],
+        mlir_bytecode: b"ML\xefRtest".to_vec(),
+    };
+    let path = dir.join("gemm.awenx");
+    std::fs::write(&path, package.encode().unwrap()).unwrap();
+    path
+}
+
+#[test]
+fn execute_runs_gemm_arithmetic_on_the_noise_model() {
+    let dir = tempfile::tempdir().unwrap();
+    let artifact = write_gemm_executable(dir.path());
+    std::fs::write(
+        dir.path().join("inputs.json"),
+        r#"{"version":"awen.execution-inputs.v1","dispatches":[
+            {"lhs":{"shape":[2,3],"data":[1,2,3,4,5,6]},
+             "rhs":{"shape":[3,2],"data":[1,0,0,1,1,1]}}]}"#,
+    )
+    .unwrap();
+    let artifact = artifact.to_str().unwrap();
+
+    let prepared = ok(&awenctl(dir.path(), &["execute", artifact]));
+    assert!(prepared.contains("no arithmetic performed"));
+
+    let ideal = ok(&awenctl(
+        dir.path(),
+        &[
+            "execute",
+            artifact,
+            "--inputs",
+            "inputs.json",
+            "--ideal",
+            "--output",
+            "ideal.json",
+        ],
+    ));
+    assert!(ideal.contains("not hardware"));
+    let result: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("ideal.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["fidelity"], "compact_model");
+    let values: Vec<f64> = result["dispatches"][0]["result"]["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_f64().unwrap())
+        .collect();
+    for (got, want) in values.iter().zip([4.0, 5.0, 10.0, 11.0]) {
+        assert!((got - want).abs() < 1e-12, "{got} vs {want}");
+    }
+
+    let noisy = ok(&awenctl(
+        dir.path(),
+        &[
+            "execute",
+            artifact,
+            "--inputs",
+            "inputs.json",
+            "--seed",
+            "3",
+            "--output",
+            "noisy.json",
+        ],
+    ));
+    assert!(noisy.contains("relative_rms_error"));
+    let result: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("noisy.json")).unwrap())
+            .unwrap();
+    assert!(result["dispatches"][0]["rms_error"].as_f64().unwrap() > 0.0);
+
+    let missing = awenctl(
+        dir.path(),
+        &["execute", artifact, "--inputs", "absent.json"],
+    );
+    assert!(!missing.status.success());
+}

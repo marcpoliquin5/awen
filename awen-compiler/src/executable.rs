@@ -29,6 +29,56 @@ pub struct ExecutablePackage {
 }
 
 impl ExecutablePackage {
+    /// Serialize to the AWENEXE binary format accepted by [`ExecutablePackage::decode`].
+    pub fn encode(&self) -> Result<Vec<u8>> {
+        fn put_string(bytes: &mut Vec<u8>, value: &str, field: &str) -> Result<()> {
+            let length = u16::try_from(value.len())
+                .with_context(|| format!("{field} is longer than 65535 bytes"))?;
+            bytes.extend_from_slice(&length.to_le_bytes());
+            bytes.extend_from_slice(value.as_bytes());
+            Ok(())
+        }
+        if self.commands.is_empty() {
+            bail!("AWEN executable contains no device commands");
+        }
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(EXECUTABLE_MAGIC);
+        bytes.extend_from_slice(&self.abi_major.to_le_bytes());
+        bytes.extend_from_slice(&self.abi_minor.to_le_bytes());
+        put_string(&mut bytes, &self.backend_id, "backend identifier")?;
+        bytes.extend_from_slice(&u32::try_from(self.commands.len())?.to_le_bytes());
+        for command in &self.commands {
+            match command {
+                ExecutableCommand::ExecuteGemm {
+                    tile_m,
+                    tile_n,
+                    tile_k,
+                    minimum_effective_bits,
+                    calibration,
+                    layout,
+                    result_shape,
+                } => {
+                    bytes.push(EXECUTE_GEMM_KIND);
+                    bytes.extend_from_slice(&tile_m.to_le_bytes());
+                    bytes.extend_from_slice(&tile_n.to_le_bytes());
+                    bytes.extend_from_slice(&tile_k.to_le_bytes());
+                    bytes.extend_from_slice(&minimum_effective_bits.to_le_bytes());
+                    put_string(&mut bytes, calibration, "calibration handle")?;
+                    put_string(&mut bytes, layout, "tensor layout")?;
+                    bytes.push(u8::try_from(result_shape.len())?);
+                    for dimension in result_shape {
+                        bytes.extend_from_slice(&dimension.to_le_bytes());
+                    }
+                }
+            }
+        }
+        bytes.extend_from_slice(&u32::try_from(self.mlir_bytecode.len())?.to_le_bytes());
+        bytes.extend_from_slice(&self.mlir_bytecode);
+        // Validate by decoding, so encode never emits an artifact decode rejects.
+        Self::decode(&bytes)?;
+        Ok(bytes)
+    }
+
     pub fn decode(bytes: &[u8]) -> Result<Self> {
         let mut reader = Reader::new(bytes);
         let magic = reader.read_exact(EXECUTABLE_MAGIC.len())?;
@@ -279,5 +329,15 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("unsupported tensor layout"));
+    }
+
+    #[test]
+    fn encode_round_trips_through_decode() {
+        let bytes = valid_package_with_result_shape(&[2, 4, 8]);
+        let package = ExecutablePackage::decode(&bytes).unwrap();
+        assert_eq!(package.encode().unwrap(), bytes);
+        let mut empty = package.clone();
+        empty.commands.clear();
+        assert!(empty.encode().is_err());
     }
 }
