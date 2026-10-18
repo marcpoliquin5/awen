@@ -64,7 +64,7 @@ their testable portion implemented and the blocked boundary written down.
 | C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | implemented | #84 | call assertion + numeric match | #59 |
 | C4 | PyTorch PrivateUse1 `awen` device | implemented (inference: mm/addmm/bmm on the Rust photonic model, add/relu electronic; simulated device, host memory) | #87 | 6 op tests vs CPU within 1e-5 under the ideal contract | backward/reductions not implemented; no hardware driver |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |
-| C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | proposed | | round-trip + negative tests | #55 |
+| C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | implemented (VPISA v1; classical domain executes on the noise model, quantum domain validated but not executed) | #89 | `awen-compiler/tests/isa.rs`: 2,000-program byte round trip, all truncations rejected, per-rule negative tests, domain separation, decomposed = fused GEMM | quantum execution needs the T7 simulator; #55 |
 | C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | proposed | | per-op oracle tests | hardware levels; #62, #63 |
 | C8 | Runtime extensions (discovery, streams/events, multi-device, residency, leases, remap, fallback, deterministic mode, recording, profiling, plugin isolation) | proposed | | | #64 |
 | C9 | awenBLAS extensions | proposed | | per-kernel oracle | #65 |

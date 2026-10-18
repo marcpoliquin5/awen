@@ -1,0 +1,925 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_vpisa.v1.json",
+  "title": "AWEN Virtual Photonic ISA program v1",
+  "description": "Canonical JSON form of a VPISA program (AEP-0024). The binary form is specified in awen-spec/specs/isa.md. Static rules beyond this schema are enforced by awen_compiler::isa::validate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "abi",
+    "program_id",
+    "requirements",
+    "buffers",
+    "events",
+    "fields",
+    "meshes",
+    "modes",
+    "registers",
+    "instructions"
+  ],
+  "properties": {
+    "version": {
+      "const": "awen.vpisa.v1"
+    },
+    "abi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "major",
+        "minor"
+      ],
+      "properties": {
+        "major": {
+          "const": 1
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "program_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_effective_bits",
+        "max_tile_k",
+        "quantum",
+        "feed_forward"
+      ],
+      "properties": {
+        "min_effective_bits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "max_tile_k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "quantum": {
+          "type": "boolean"
+        },
+        "feed_forward": {
+          "type": "boolean"
+        }
+      }
+    },
+    "buffers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "space",
+          "dtype",
+          "shape"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "space": {
+            "enum": [
+              "host",
+              "device"
+            ]
+          },
+          "dtype": {
+            "enum": [
+              "f64",
+              "f32",
+              "bf16",
+              "f16",
+              "i8",
+              "c64"
+            ]
+          },
+          "shape": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "fields": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "meshes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "modes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "registers": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "instructions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/op_alloc"
+          },
+          {
+            "$ref": "#/$defs/op_free"
+          },
+          {
+            "$ref": "#/$defs/op_copy_to_device"
+          },
+          {
+            "$ref": "#/$defs/op_copy_to_host"
+          },
+          {
+            "$ref": "#/$defs/op_set_calibration"
+          },
+          {
+            "$ref": "#/$defs/op_signal"
+          },
+          {
+            "$ref": "#/$defs/op_wait"
+          },
+          {
+            "$ref": "#/$defs/op_barrier"
+          },
+          {
+            "$ref": "#/$defs/op_program_weights"
+          },
+          {
+            "$ref": "#/$defs/op_modulate"
+          },
+          {
+            "$ref": "#/$defs/op_mvm"
+          },
+          {
+            "$ref": "#/$defs/op_detect"
+          },
+          {
+            "$ref": "#/$defs/op_gemm"
+          },
+          {
+            "$ref": "#/$defs/op_elementwise"
+          },
+          {
+            "$ref": "#/$defs/op_dft"
+          },
+          {
+            "$ref": "#/$defs/op_prepare_fock"
+          },
+          {
+            "$ref": "#/$defs/op_prepare_coherent"
+          },
+          {
+            "$ref": "#/$defs/op_prepare_squeezed"
+          },
+          {
+            "$ref": "#/$defs/op_beamsplitter"
+          },
+          {
+            "$ref": "#/$defs/op_phase_shift"
+          },
+          {
+            "$ref": "#/$defs/op_measure_pnr"
+          },
+          {
+            "$ref": "#/$defs/op_measure_homodyne"
+          },
+          {
+            "$ref": "#/$defs/op_conditional_phase"
+          },
+          {
+            "$ref": "#/$defs/op_read_register"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "op_alloc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "buffer"
+      ],
+      "properties": {
+        "op": {
+          "const": "alloc"
+        },
+        "buffer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_free": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "buffer"
+      ],
+      "properties": {
+        "op": {
+          "const": "free"
+        },
+        "buffer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_copy_to_device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "src",
+        "dst"
+      ],
+      "properties": {
+        "op": {
+          "const": "copy_to_device"
+        },
+        "src": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_copy_to_host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "src",
+        "dst"
+      ],
+      "properties": {
+        "op": {
+          "const": "copy_to_host"
+        },
+        "src": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_set_calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "handle",
+        "fingerprint"
+      ],
+      "properties": {
+        "op": {
+          "const": "set_calibration"
+        },
+        "handle": {
+          "type": "string",
+          "maxLength": 65535
+        },
+        "fingerprint": {
+          "type": "string",
+          "maxLength": 65535
+        }
+      }
+    },
+    "op_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "event"
+      ],
+      "properties": {
+        "op": {
+          "const": "signal"
+        },
+        "event": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_wait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "event"
+      ],
+      "properties": {
+        "op": {
+          "const": "wait"
+        },
+        "event": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_barrier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "const": "barrier"
+        }
+      }
+    },
+    "op_program_weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "weights",
+        "mesh",
+        "dac_bits"
+      ],
+      "properties": {
+        "op": {
+          "const": "program_weights"
+        },
+        "weights": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mesh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dac_bits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "op_modulate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "src",
+        "field",
+        "encoding",
+        "wavelength",
+        "spatial_mode",
+        "polarization",
+        "dac_bits"
+      ],
+      "properties": {
+        "op": {
+          "const": "modulate"
+        },
+        "src": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "encoding": {
+          "enum": [
+            "amplitude",
+            "phase",
+            "intensity"
+          ]
+        },
+        "wavelength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "spatial_mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "polarization": {
+          "enum": [
+            "te",
+            "tm"
+          ]
+        },
+        "dac_bits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "op_mvm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "field_in",
+        "mesh",
+        "field_out",
+        "tile_k"
+      ],
+      "properties": {
+        "op": {
+          "const": "mvm"
+        },
+        "field_in": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mesh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field_out": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "tile_k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_detect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "field",
+        "dst",
+        "scheme",
+        "adc_bits"
+      ],
+      "properties": {
+        "op": {
+          "const": "detect"
+        },
+        "field": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "scheme": {
+          "enum": [
+            "direct",
+            "balanced",
+            "coherent"
+          ]
+        },
+        "adc_bits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "op_gemm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "a",
+        "b",
+        "c",
+        "m",
+        "n",
+        "k",
+        "transpose_b",
+        "tile_k",
+        "min_effective_bits",
+        "placement",
+        "fallback_reason"
+      ],
+      "properties": {
+        "op": {
+          "const": "gemm"
+        },
+        "a": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "b": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "c": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "m": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "transpose_b": {
+          "type": "boolean"
+        },
+        "tile_k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "min_effective_bits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "placement": {
+          "enum": [
+            "photonic",
+            "cpu",
+            "gpu"
+          ]
+        },
+        "fallback_reason": {
+          "type": "string",
+          "maxLength": 65535
+        }
+      }
+    },
+    "op_elementwise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "kind",
+        "inputs",
+        "dst"
+      ],
+      "properties": {
+        "op": {
+          "const": "elementwise"
+        },
+        "kind": {
+          "enum": [
+            "add",
+            "mul",
+            "relu",
+            "gelu",
+            "copy"
+          ]
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "maxItems": 65535
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_dft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "src",
+        "dst",
+        "inverse"
+      ],
+      "properties": {
+        "op": {
+          "const": "dft"
+        },
+        "src": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "inverse": {
+          "type": "boolean"
+        }
+      }
+    },
+    "op_prepare_fock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "photons"
+      ],
+      "properties": {
+        "op": {
+          "const": "prepare_fock"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "photons": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "op_prepare_coherent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "re",
+        "im"
+      ],
+      "properties": {
+        "op": {
+          "const": "prepare_coherent"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "re": {
+          "type": "number"
+        },
+        "im": {
+          "type": "number"
+        }
+      }
+    },
+    "op_prepare_squeezed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "r",
+        "phi"
+      ],
+      "properties": {
+        "op": {
+          "const": "prepare_squeezed"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "r": {
+          "type": "number"
+        },
+        "phi": {
+          "type": "number"
+        }
+      }
+    },
+    "op_beamsplitter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode_a",
+        "mode_b",
+        "theta",
+        "phi"
+      ],
+      "properties": {
+        "op": {
+          "const": "beamsplitter"
+        },
+        "mode_a": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mode_b": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "theta": {
+          "type": "number"
+        },
+        "phi": {
+          "type": "number"
+        }
+      }
+    },
+    "op_phase_shift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "phi"
+      ],
+      "properties": {
+        "op": {
+          "const": "phase_shift"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "phi": {
+          "type": "number"
+        }
+      }
+    },
+    "op_measure_pnr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "register"
+      ],
+      "properties": {
+        "op": {
+          "const": "measure_pnr"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "register": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_measure_homodyne": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mode",
+        "phi",
+        "register"
+      ],
+      "properties": {
+        "op": {
+          "const": "measure_homodyne"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "phi": {
+          "type": "number"
+        },
+        "register": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "op_conditional_phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "register",
+        "mode",
+        "scale",
+        "offset"
+      ],
+      "properties": {
+        "op": {
+          "const": "conditional_phase"
+        },
+        "register": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "scale": {
+          "type": "number"
+        },
+        "offset": {
+          "type": "number"
+        }
+      }
+    },
+    "op_read_register": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "register",
+        "dst"
+      ],
+      "properties": {
+        "op": {
+          "const": "read_register"
+        },
+        "register": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dst": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    }
+  }
+}

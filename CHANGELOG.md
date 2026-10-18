@@ -7,6 +7,13 @@
   SmolLM2-135M. Added `awen_models.compute_plan` and `docs/COMPUTE_PLAN.md`,
   which estimate memory and FLOPs for Qwen3-0.6B/1.7B and SmolLM2 on a
   12 GB GPU. Parameter counts are checked against instantiated models (#91).
+- Added the Virtual Photonic ISA (VPISA v1, AEP-0024, `awen-spec/specs/isa.md`).
+  It has 24 typed instructions across classical, quantum and interop domains,
+  a JSON schema, a deterministic binary codec (`AWENISA\0`), a validator with
+  typed errors, version negotiation and target checks, a GEMM lowering, and a
+  reference interpreter that runs photonic instructions on the noise model
+  (simulated). `awen-compiler` now parses JSON floats with exact round-trip
+  (#89, closes #55).
 - Added AWEN-Photon noise-injection training (`awen_models.photon_training`).
   An MNIST MLP is trained standard and noise-aware, then evaluated with its
   GEMMs on the Rust photonic noise model (simulated). It writes
