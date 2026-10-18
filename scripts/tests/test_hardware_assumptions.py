@@ -12,6 +12,8 @@ DATA = yaml.safe_load(PATH.read_text())
 
 def leaves(node, prefix=""):
     for key, value in node.items():
+        if isinstance(value, dict) and value.get("kind") == "sweep":
+            continue  # sweeps are checked separately
         if isinstance(value, dict) and "unit" in value:
             yield prefix + key, value
         elif isinstance(value, dict):
@@ -47,12 +49,25 @@ def test_channel_counts_are_not_assumed():
     assert ch["wavelengths"] is None and ch["modes"] is None and ch["polarizations"] is None
 
 
-def test_shot_noise_estimate_matches_formula():
+def test_shot_noise_is_a_per_detection_sweep_by_bit_depth():
     h, c = 6.62607015e-34, 299792458.0
     photon = h * c / 1550e-9
-    p = DATA["parameters"]["optical_energy_per_mac"]["shot_noise_bound"]
-    for key, bits in (("low", 4), ("typical", 6), ("high", 8)):
-        assert p[key] == pytest.approx(photon * 4 ** bits, rel=2e-3)
+    p = DATA["parameters"]["shot_noise"]["shot_noise_energy_per_detection_J"]
+    assert p["kind"] == "sweep" and p["sweep_over"] == "effective_bits" and p["unit"] == "J"
+    assert not {"low", "typical", "high"} & set(p), "a sweep is not an uncertainty range"
+    assert set(p["values"]) == {4, 6, 8}
+    for bits, energy in p["values"].items():
+        assert energy == pytest.approx(photon * 4 ** bits, rel=2e-3)
+    assert "/ N" in p["per_mac_formula"]
+    assert "optical_energy_per_mac" not in DATA["parameters"]
+
+
+def test_system_enob_is_not_an_adc_spec():
+    assert DATA["parameters"]["system"]["pace_enob"]["typical"] == 7.61
+    assert DATA["parameters"]["system"]["pace_enob"]["source"] == "hua2025"
+    adc = DATA["parameters"]["adc"]["effective_bits"]
+    assert 7.61 not in (adc["low"], adc["typical"], adc["high"])
+    assert set(adc["source"]) == {"ramkaj2020", "lagos2021"}
 
 
 def test_adc_estimate_matches_formula():

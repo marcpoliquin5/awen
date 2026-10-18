@@ -4,7 +4,8 @@
 # from this file; no other file may hard-code them. Wiring the noise model and cost
 # estimates to this file is a separate change (see STATUS.md).
 #
-# Each parameter has low / typical / high values, a unit, and a source with a type:
+# Each parameter has low / typical / high values (or, where marked kind: sweep, values keyed by
+# a swept variable such as bit depth), a unit, and a source with a type:
 #   measured  - peer-reviewed measurement (citation)
 #   vendor    - manufacturer claim, not independently verified
 #   estimate  - derived by AWEN with the stated formula
@@ -95,24 +96,27 @@ parameters:
         low = Walden FOM x 2^ENOB = 6.2 fJ x 2^10.0 (500 MS/s);
         high = power / sample rate = 158.6 mW / 5 GS/s (9.4 ENOB)
     effective_bits:
-      {low: null, typical: 7.61, high: null, unit: bits, source: hua2025,
-       notes: "average channel ENOB of the full optical MAC system, 25 MHz, no active feedback"}
+      {low: 9.4, typical: null, high: 10.0, unit: bits, source: [ramkaj2020, lagos2021],
+       notes: "ENOB of the two cited standalone CMOS ADCs (9.4 at 5 GS/s, 10.0 at 500 MS/s); not a photonic-system ENOB"}
   dac:
     weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025}
     energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null}
-  optical_energy_per_mac:
-    shot_noise_bound:
-      low: 3.28e-17
-      typical: 5.25e-16
-      high: 8.39e-15
+  shot_noise:
+    # A keyed sweep by bit depth, NOT an uncertainty range: each entry is the shot-noise floor
+    # for one target precision.
+    shot_noise_energy_per_detection_J:
+      kind: sweep
+      sweep_over: effective_bits
       unit: J
       source: null
       type: estimate
+      values: {4: 3.28e-17, 6: 5.25e-16, 8: 8.39e-15}
+      per_mac_formula: "E_per_MAC = E_per_detection / N for an N-input dot product (one detection per output)"
       notes: >-
-        E = N h c / lambda at lambda = 1550 nm (1.282e-19 J per photon), with N = 4^b detected
-        photons for b effective bits (SNR = sqrt(N), one bit per factor 2 in SNR):
-        low b = 4 (N = 256), typical b = 6 (N = 4096), high b = 8 (N = 65536).
-        Optics only; not a system energy.
+        Optical energy per detected output: E = n h c / lambda at lambda = 1550 nm
+        (1.282e-19 J per photon), with n = 4^b detected photons for b effective bits
+        (SNR = sqrt(n), one bit per factor 2 in SNR). Per detection, not per MAC; divide by
+        the dot-product length N for a per-MAC figure. Optics only; not a system energy.
   channels:
     rule: "channel counts are device capabilities, read from the device descriptor; never assumed here"
     wavelengths: null
@@ -120,6 +124,9 @@ parameters:
     polarizations: null
     inter_channel_crosstalk: {low: null, typical: null, high: null, unit: dB, source: null}
   system:
+    pace_enob:
+      {low: null, typical: 7.61, high: null, unit: bits, source: hua2025,
+       notes: "average channel ENOB of the whole PACE optical MAC system (25 MHz, no active feedback); a system figure, not an ADC spec"}
     efficiency_including_lasers:
       {low: null, typical: 2.38, high: null, unit: TOPS/W, source: hua2025,
        notes: "4.21 TOPS/W excluding lasers; about 8.19 TOPS throughput"}
