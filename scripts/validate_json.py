@@ -60,6 +60,8 @@ instances = {
     "awen-spec/fixtures/quantum_photonic_result.json": "awen_qphotonic_result.v1.json",
     "benchmarks/reference_hil_suite.json": "awen_hil_suite.v1.json",
     "awen-spec/fixtures/photonic_noise_contract.default.json": "awen_photonic_noise_contract.v1.json",
+    "awen-spec/fixtures/vpisa_gemm.json": "awen_vpisa.v1.json",
+    "awen-spec/fixtures/vpisa_quantum_feed_forward.json": "awen_vpisa.v1.json",
 }
 
 for instance_name, schema_file in instances.items():
