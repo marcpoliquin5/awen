@@ -14,7 +14,7 @@ on photonic hardware, and no GPU was used.
 | Item | Value |
 | --- | --- |
 | Date | October 18, 2026 (times in ET) |
-| Tree | `main` plus the open pull requests #114, #115, #118 and #119 merged together at `7bbf779` (the same content that landed on `main` through those pull requests) |
+| Tree | local integration commit `7bbf779`: `main` after #113 plus the then-open pull requests #114, #115, #118 and #119 merged together. Those pull requests later landed on `main` unchanged in code (only main merges and changelog/tracker rows); the required CI gate re-ran every suite on each merged commit |
 | CPU | Intel Xeon (8 vCPU), 15 GiB RAM, Linux 6.12 x86-64 |
 | GPU | none |
 | Photonic hardware | none |

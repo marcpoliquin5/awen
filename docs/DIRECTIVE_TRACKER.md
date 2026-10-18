@@ -26,7 +26,7 @@ their testable portion implemented and the blocked boundary written down.
 | P0.1 | `docs/AUDIT.md` truth table and baseline | implemented | #81, #90 | doc lists every component with evidence | |
 | P0.2 | `docs/ROADMAP.md` dependency-aware with acceptance tests and hardware needs | implemented | #81 | every milestone has a CI acceptance test | |
 | P0.3 | Labeled issues for missing modules | implemented | issues #55–#79 | one open issue per missing module | |
-| P0.4 | `docs/EVIDENCE.md` with exact commands and results | proposed | | | |
+| P0.4 | `docs/EVIDENCE.md` with exact commands and results | implemented | #PRNUM | every command in the file was run on the stated host; counts match the CI gate suites | |
 
 ## Models
 
@@ -87,3 +87,34 @@ their testable portion implemented and the blocked boundary written down.
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
 | X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | implemented | #114 | `tests/plugin_signing.rs` (10), `scripts/tests` (6), cargo-deny + SBOM + safe-loading steps in the gate; release checksums land with X2 | #78 |
 | X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |
+
+## Remaining and blocked at 0.1.0
+
+Everything marked implemented or numerically validated above runs on CPUs
+and simulators only. Nothing is experimentally or hardware validated.
+
+Open work (partial or proposed):
+
+| # | What remains | Issue |
+| --- | --- | --- |
+| E2 | Differentiable MZI-mesh layers checked against an independent reference; the six nonlinearity categories | #73 |
+| T6 | 2-D FDTD, dispersion models, thermo-optic and electro-optic models, gdsfactory/Meep/Circulax adapters | #68 |
+| C5 | A real OpenXLA PJRT C API plugin (needs StableHLO bytecode deserialization) | #61 |
+| C8 | Out-of-process plugin isolation; device-side timing and real multi-device | #64 |
+| C10 | Debugger output (step-through of executed ops) and a C++ wrapper header | #66 |
+| C4 | Backward pass and reductions on the PrivateUse1 `awen` device | #60 |
+| C6 | Executing the quantum VPISA domain (validated, not executed) | follow-up to #55 (closed) |
+| C7 | ONNX LayerNorm/Gather/attention fusions | #63 |
+| C9 | Causal masking in the attention kernel request | #65 |
+
+Blocked on things this project does not have:
+
+| Boundary | Blocked items | What exists instead |
+| --- | --- | --- |
+| Photonic hardware | every "hardware validated" or "experimentally validated" status; vendor drivers (C11); measured energy/latency (B1, E1, T8, T9); hardware levels in the ops library (C7) | noise-model simulator, simulated HAL devices, hardware description schemas, vendor integration guide |
+| Single-photon sources and detectors | quantum-photonic experiments on devices (T7) | `awen-qphotonic` simulators |
+| GPU | CUDA benchmark rows (B1), QLoRA and Qwen3 fine-tunes (M6), memory model check (M8), larger efficiency models (E1) | CPU runs; CUDA rows skipped with a recorded reason |
+| 72-paper research ledger file | importing the historical ledger (R1) | schema, importer, 15 seed directions with checked citations |
+| Paid compute | GPU-scale training | `docs/COMPUTE_PLAN.md` estimates |
+| Hosted service | cloud (S3) | design document only |
+
