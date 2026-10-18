@@ -24,6 +24,7 @@
 //! the mean count); the effective-number-of-bits relation is the IEEE 1241
 //! definition `ENOB = (SINAD_dB - 1.76) / 6.02` for a full-scale sine.
 
+use crate::ir::GemmShape;
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
@@ -333,25 +334,8 @@ fn row_scales(values: &[f64], rows: usize, cols: usize) -> Vec<f64> {
         .collect()
 }
 
-/// Shape of `Y[rows, outputs] = X[rows, inner] · W[outputs, inner]ᵀ`.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub struct GemmShape {
-    pub rows: usize,
-    pub inner: usize,
-    pub outputs: usize,
-}
-
-impl GemmShape {
-    pub fn new(rows: usize, inner: usize, outputs: usize) -> Self {
-        Self {
-            rows,
-            inner,
-            outputs,
-        }
-    }
-}
-
-/// Simulate `Y = X Wᵀ` with row-major `X: [rows, inner]` and `W: [outputs, inner]`
+/// Simulate `Y = X Wᵀ` with row-major `X: [m, k]` and `W: [n, k]` (`shape` uses the IR
+/// convention: `m` rows, `k` contraction length, `n` outputs)
 /// on a photonic core with contraction tiles of `tile_k`, applying `contract`.
 pub fn photonic_gemm(
     x: &[f64],
@@ -362,9 +346,9 @@ pub fn photonic_gemm(
     seed: u64,
 ) -> Result<(Vec<f64>, GemmSimulationReport)> {
     let GemmShape {
-        rows,
-        inner,
-        outputs,
+        m: rows,
+        k: inner,
+        n: outputs,
     } = shape;
     contract.validate()?;
     if rows == 0 || inner == 0 || outputs == 0 || tile_k == 0 {
@@ -522,7 +506,19 @@ mod tests {
     ) -> Vec<f64> {
         let x = vec![1.0; samples * k];
         let w = vec![weight; k];
-        let (y, _) = photonic_gemm(&x, &w, GemmShape::new(samples, k, 1), c, k, seed).unwrap();
+        let (y, _) = photonic_gemm(
+            &x,
+            &w,
+            GemmShape {
+                m: samples,
+                k,
+                n: 1,
+            },
+            c,
+            k,
+            seed,
+        )
+        .unwrap();
         // Undo the digital rescale (k * sx * sw) to recover the normalized output.
         let scale = k as f64 * 1.0 * weight.abs().max(f64::MIN_POSITIVE);
         y.iter().map(|v| v / scale).collect()
@@ -535,7 +531,7 @@ mod tests {
         let (y, report) = photonic_gemm(
             &x,
             &w,
-            GemmShape::new(2, 3, 2),
+            GemmShape { m: 2, k: 3, n: 2 },
             &PhotonicNoiseContract::ideal(),
             2,
             1,
@@ -605,7 +601,19 @@ mod tests {
         let samples = 20_000;
         let x = vec![1.0; samples * k];
         let w = vec![1.0, 1.0, 0.0, 0.0]; // z = 0.5
-        let (y, _) = photonic_gemm(&x, &w, GemmShape::new(samples, k, 1), &c, k, 11).unwrap();
+        let (y, _) = photonic_gemm(
+            &x,
+            &w,
+            GemmShape {
+                m: samples,
+                k,
+                n: 1,
+            },
+            &c,
+            k,
+            11,
+        )
+        .unwrap();
         let z: Vec<f64> = y.iter().map(|v| v / k as f64).collect();
         let predicted = c.predicted_sigmas(k, 0.5).rin;
         assert!((predicted - 0.5 * (1e-12f64 * 1e10).sqrt()).abs() < 1e-15);
@@ -622,7 +630,7 @@ mod tests {
             let (y, _) = photonic_gemm(
                 &[0.0, 1.0],
                 &[1.0, 0.6],
-                GemmShape::new(1, 2, 1),
+                GemmShape { m: 1, k: 2, n: 1 },
                 &c,
                 2,
                 seed,
@@ -652,13 +660,27 @@ mod tests {
     fn crosstalk_couples_adjacent_channels_exactly() {
         let c = only(|c| c.crosstalk_db = Some(-20.0));
         // Three outputs; only the middle weight row is nonzero.
-        let (y, _) =
-            photonic_gemm(&[1.0], &[0.0, 1.0, 0.0], GemmShape::new(1, 1, 3), &c, 1, 0).unwrap();
+        let (y, _) = photonic_gemm(
+            &[1.0],
+            &[0.0, 1.0, 0.0],
+            GemmShape { m: 1, k: 1, n: 3 },
+            &c,
+            1,
+            0,
+        )
+        .unwrap();
         // Rows with zero weights have zero scale, so leakage is invisible there; check
         // with all rows equal instead.
         assert!((y[1] - 1.0).abs() < 1e-12);
-        let (y, _) =
-            photonic_gemm(&[1.0], &[1.0, 1.0, 1.0], GemmShape::new(1, 1, 3), &c, 1, 0).unwrap();
+        let (y, _) = photonic_gemm(
+            &[1.0],
+            &[1.0, 1.0, 1.0],
+            GemmShape { m: 1, k: 1, n: 3 },
+            &c,
+            1,
+            0,
+        )
+        .unwrap();
         assert!(
             (y[0] - 1.01).abs() < 1e-12
                 && (y[1] - 1.02).abs() < 1e-12
@@ -697,9 +719,9 @@ mod tests {
         let c = PhotonicNoiseContract::default();
         let x: Vec<f64> = (0..64).map(|i| (i as f64 * 0.37).sin()).collect();
         let w: Vec<f64> = (0..128).map(|i| (i as f64 * 0.11).cos()).collect();
-        let a = photonic_gemm(&x, &w, GemmShape::new(2, 32, 4), &c, 16, 42).unwrap();
-        let b = photonic_gemm(&x, &w, GemmShape::new(2, 32, 4), &c, 16, 42).unwrap();
-        let other = photonic_gemm(&x, &w, GemmShape::new(2, 32, 4), &c, 16, 43).unwrap();
+        let a = photonic_gemm(&x, &w, GemmShape { m: 2, k: 32, n: 4 }, &c, 16, 42).unwrap();
+        let b = photonic_gemm(&x, &w, GemmShape { m: 2, k: 32, n: 4 }, &c, 16, 42).unwrap();
+        let other = photonic_gemm(&x, &w, GemmShape { m: 2, k: 32, n: 4 }, &c, 16, 43).unwrap();
         assert_eq!(a, b);
         assert_ne!(a.0, other.0);
         assert!(a.1.rms_error_vs_exact > 0.0);
