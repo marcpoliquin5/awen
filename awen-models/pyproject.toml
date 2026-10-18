@@ -27,6 +27,7 @@ awen-nonlinear = "awen_models.nonlinear:main"
 awen-hf-report = "awen_models.hf_adapter:main"
 awen-mini-eval = "awen_models.evaluate:main"
 awen-photon-train = "awen_models.photon_training:main"
+awen-photonic-demo = "awen_models.photonic_demo:main"
 
 [tool.setuptools]
 packages = ["awen", "awen_models"]
