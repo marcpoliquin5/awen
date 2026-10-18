@@ -15,7 +15,8 @@ dependencies = [
 [project.optional-dependencies]
 hf = ["transformers>=4.50,<6"]
 plot = ["matplotlib>=3.8,<4"]
-test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6"]
+onnx = ["onnx>=1.17,<2"]
+test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6", "onnx>=1.17,<2"]
 
 [project.urls]
 Repository = "https://github.com/marcpoliquin5/awen"
@@ -28,6 +29,7 @@ awen-hf-report = "awen_models.hf_adapter:main"
 awen-mini-eval = "awen_models.evaluate:main"
 awen-photon-train = "awen_models.photon_training:main"
 awen-photonic-demo = "awen_models.photonic_demo:main"
+awen-onnx-report = "awen_models.onnx_import:main"
 
 [tool.setuptools]
 packages = ["awen", "awen_models"]

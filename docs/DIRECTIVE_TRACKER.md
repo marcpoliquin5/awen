@@ -65,7 +65,7 @@ their testable portion implemented and the blocked boundary written down.
 | C4 | PyTorch PrivateUse1 `awen` device | proposed | | op tests vs CPU | #60 |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |
 | C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | proposed | | round-trip + negative tests | #55 |
-| C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | partial: 12-op library with levels (gemm hardware_lowerable, 11 photonic_sim, none measured); ONNX import pending | #92 | `awen-compiler/tests/ops.rs` (7), `awen-native/tests/test_ops.py` (15, NumPy oracles) | hardware levels; #63 |
+| C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | implemented (12-op library: gemm hardware_lowerable, 11 photonic_sim, none measured; minimal ONNX import: MatMul/Gemm/Conv + 13 electronic ops, report + execution) | #92, #93 | `awen-compiler/tests/ops.rs` (7), `awen-native/tests/test_ops.py` (15, NumPy oracles), `awen-models/tests/test_onnx_import.py` (7, onnx ReferenceEvaluator oracle) | hardware levels need a device; ONNX LayerNorm/Gather/attention fusions not mapped yet |
 | C8 | Runtime extensions (discovery, streams/events, multi-device, residency, leases, remap, fallback, deterministic mode, recording, profiling, plugin isolation) | proposed | | | #64 |
 | C9 | awenBLAS extensions | proposed | | per-kernel oracle | #65 |
 | C10 | SDKs: Python, C/C++ header + example, CLI tools, conversion utility, compatibility metadata | proposed | | | #66 |

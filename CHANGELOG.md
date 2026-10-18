@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added minimal ONNX import (`awen_models.onnx_import`, `awen-onnx-report`,
+  `awen.onnx-report.v1`). It maps constant-weight MatMul/Gemm and 2-D Conv
+  onto the AWEN `gemm`/`conv2d` operators, keeps activation-activation
+  MatMul and elementwise/shape ops electronic, refuses unmapped ops, reports
+  photonic MAC fraction (static analysis), and runs supported graphs on the
+  f64 reference or the photonic noise model (simulated). Checked against
+  `onnx.reference.ReferenceEvaluator` (#93, refs #63).
 - Added the operator library (`awen-compiler::ops`, `awen.op-table.v1`,
   `awen-spec/specs/ops.md`): complex matmul, DFT, conv2d, 1-D correlation,
   low-rank linear, attention with projections, FFN, spectral convolution, RNN
