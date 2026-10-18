@@ -1,7 +1,8 @@
 # AWEN status
 
-Updated 2026-10-18 11:15 ET. Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-Main is `e6d4224`; the required quality gate is green on it (run of 2026-10-18 09:21 ET).
+Updated 2026-10-18 11:30 ET. Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Main is `0235668` (#125). Its required quality gate is CI run 39140149777 (started 11:22 ET); the
+last green gate on main is run 39131215603 on `e6d4224`.
 
 ## Current phase
 
@@ -18,29 +19,34 @@ generated, no device), L3 measured on hardware. **Nothing in AWEN is L3.**
 
 ## Truth table (summary)
 
+Source labels: **measured @ 0235668** = run by the agent on the build box at commit `0235668`
+(Linux 6.12, Intel Xeon 8 vCPU, no GPU, rustc 1.99.1, Python 3.13.5) with the command shown;
+**stored result** = read from the named committed file; **agent count** = counted by the agent in an
+earlier session and not re-run for this table.
+
 | Capability | Where | Level | Evidence |
 | --- | --- | --- | --- |
-| Tensor IR → photonic GEMM plan (tiling, partitioning, calibration-aware compile) | `awen-compiler` | L1 | compiler tests; `docs/EVIDENCE.md` |
+| Tensor IR → photonic GEMM plan (tiling, partitioning, calibration-aware compile) | `awen-compiler` | L1 | compiler tests; `docs/EVIDENCE.md` (no count stated) |
 | StableHLO GEMM lowering (rank 2, equal-batch rank 3) | `awen-mlir` | L1 | MLIR ctest |
 | Virtual photonic ISA v1 (encode, validate, interpret) | `awen-compiler/src/isa` | L2 (virtual ISA only, no vendor command set) | `tests/isa.rs` |
 | Photonic GEMM noise model (shot, thermal, RIN, phase, DAC/ADC, crosstalk) | `awen-compiler/src/noise.rs` | L1 | AEP-0022, noise tests |
-| Ops beyond GEMM (12 ops, each labeled) | `awen-compiler/src/ops.rs` | L0/L1 per op | ops tests, `awen-spec/specs/ops.md` |
-| awenBLAS kernels (22 + extensions) | `awen-runtime` | L0/L1 | runtime tests |
-| Runtime, HAL, scheduler, streams, fallback, replay, profiler | `awen-runtime` | L1 (simulated device) | 305 runtime tests |
+| Ops beyond GEMM (12 ops, agent count, each labeled) | `awen-compiler/src/ops.rs` | L0/L1 per op | ops tests, `awen-spec/specs/ops.md` |
+| awenBLAS kernels (22 + extensions, agent count) | `awen-runtime` | L0/L1 | runtime tests |
+| Runtime, HAL, scheduler, streams, fallback, replay, profiler | `awen-runtime` | L1 (simulated device) | 305 tests, measured @ 0235668: `cd awen-runtime && cargo test -q` |
 | C SDK, `awenctl` CLI, model conversion | `awen-runtime`, `awen-models` | L0/L1 | CI C example, CLI tests |
-| Python SDK `Runtime(device="photonic-sim")`, PyO3 binding | `awen-ecosystem`, `awen-native` | L1 | 48 + 23 tests |
+| Python SDK `Runtime(device="photonic-sim")`, PyO3 binding | `awen-ecosystem`, `awen-native` | L1 | 48 + 23 tests, measured @ 0235668: `pytest -q` in `awen-ecosystem/python_awen` and `awen-native/tests` |
 | PyTorch PrivateUse1 "awen" device (eager GEMM) | `awen-ecosystem` | L1 | tests; no torch.compile backend yet |
 | JAX StableHLO `dot_general` on AWEN | `awen-ecosystem` | L1 | `docs/PJRT_BOUNDARY.md`; no PJRT plugin |
-| ONNX import with support report | `awen-models` | L0 (report) / L1 (GEMMs) | 7 tests |
-| AWEN-Mini (1.0M-param char model, trained on CPU) | `awen-models` | L0 on CPU, L1 on photonic-sim | checkpoint + eval JSON |
+| ONNX import with support report | `awen-models` | L0 (report) / L1 (GEMMs) | 7 tests, measured @ 0235668: `pytest -q awen-models/tests/test_onnx*.py` |
+| AWEN-Mini (1,016,320-param char model, trained on CPU; stored result `awen-models/results/awen-mini-eval.json`) | `awen-models` | L0 on CPU, L1 on photonic-sim | checkpoint + eval JSON |
 | AWEN-Photon noise-aware MNIST MLP | `awen-models` | L1 | `awen-models/results/photon-training/` |
-| Physics solvers (TMM, S-matrix, rings, 1-D FDTD, BPM, SHG, adjoint, slab modes, Clements) | `awen-physics` | L0 (validated against analytic results) | 51 tests |
-| Quantum-photonic simulators (Fock, boson sampling, Gaussian, kernel) | `awen-qphotonic` | L0/L1, no advantage claimed | 61 tests |
-| Memory and fabric models | `awen-systems` | L1 (modeled) | 26 tests |
-| Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests |
-| Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 14 tests |
+| Physics solvers (TMM, S-matrix, rings, 1-D FDTD, BPM, SHG, adjoint, slab modes, Clements) | `awen-physics` | L0 (validated against analytic results) | 51 tests, measured @ 0235668: `cd awen-physics && pytest -q` |
+| Quantum-photonic simulators (Fock, boson sampling, Gaussian, kernel) | `awen-qphotonic` | L0/L1, no advantage claimed | 61 tests, measured @ 0235668: `cd awen-qphotonic && pytest -q` |
+| Memory and fabric models | `awen-systems` | L1 (modeled) | 26 tests, measured @ 0235668: `cd awen-systems && pytest -q` |
+| Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests, measured @ 0235668: `cd awen-lab && pytest -q` |
+| Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
-| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | missing | PR in progress (v2 section 9) |
+| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | missing on main | PR #126 in review (v2 section 9) |
 
 ## Gap list against Master Prompt v2
 
@@ -56,7 +62,7 @@ generated, no device), L3 measured on hardware. **Nothing in AWEN is L3.**
 | Adapters to Meep, SAX, gdsfactory, Perceval, MrMustard | 8, 11 | own reference solvers (L0) | adapters + oracle comparisons |
 | Reproduce ≥3 published photonic results | 11 | analytic checks only | 3 reproductions |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
-| ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008) | rerun with a third seed |
+| ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
 | Session reports in `docs/sessions/` | 3, 17 | starts with 2026-10-18-01 | every session |
 
