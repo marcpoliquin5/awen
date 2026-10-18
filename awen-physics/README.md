@@ -13,7 +13,18 @@ every number the AWEN simulator produces can be traced to a validated model.
 | --- | --- | --- |
 | `slab` | Symmetric slab TE modes: analytic dispersion relation, and an independent 1-D finite-difference eigen-solver | analytic / full-wave (1-D) |
 | `clements` | Clements (2016) rectangular MZI-mesh decomposition, reconstruction, phase-error sensitivity | analytic |
+| `tmm` | Planar multilayers: characteristic (transfer) matrices and an independent Redheffer S-matrix composition; s/p polarization, oblique incidence, absorbing layers | analytic |
+| `rings` | Microring all-pass and add-drop transmission (closed form), explicit round-trip field propagation, FSR, FWHM, loss conversion | analytic / numerical propagation |
 | `enob` | Sine-test ENOB of the Rust photonic GEMM model (`awen_native`) vs theory | compact model |
+
+Checks for `tmm` and `rings` (`tests/test_tmm_rings.py`): bare interfaces vs
+Fresnel at three angles (|ΔR| < 1e-12), Brewster zero, quarter-wave mirrors vs
+the closed form for 1, 4 and 10 pairs, half-wave absentee layer, S-matrix vs
+transfer matrix on 40 random lossy stacks (|Δr| < 1e-12), Beer–Lambert for a
+weak index-matched absorber, S-matrix stability where the transfer matrix
+overflows; round-trip propagation vs the analytic ring (|ΔT| < 1e-11),
+critical coupling, lossless add-drop power conservation, and FSR (rel. 1e-4)
+and FWHM (rel. 1e-2) measured from a sampled dispersive spectrum vs formula.
 
 ## Validation notebooks
 

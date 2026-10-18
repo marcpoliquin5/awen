@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `awen-physics`: planar multilayer optics by transfer matrices and an
+  independent Redheffer S-matrix composition (`tmm`), and microring
+  all-pass/add-drop transmission with explicit round-trip propagation, FSR
+  and FWHM (`rings`). Checked against Fresnel, quarter-wave-mirror and
+  Beer–Lambert closed forms (fidelity: analytic / numerical propagation;
+  #94, refs #68).
 - Added AWEN-Photon noise-injection training (`awen_models.photon_training`).
   An MNIST MLP is trained standard and noise-aware, then evaluated with its
   GEMMs on the Rust photonic noise model (simulated). It writes
