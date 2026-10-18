@@ -19,7 +19,6 @@ counts, measured and simulated results, and blocked items are in
   which results are measured on CPU, simulated, estimated or blocked.
   `docs/AUDIT.md`, `docs/IMPLEMENTATION-STATUS.md`, the README and the
   directive tracker were brought up to date for 0.1.0 (closes #120).
-
 - Added AWEN Studio (`awen-studio`, S1): a local web app (FastAPI backend +
   React/Vite frontend, blue/black interference design) wired to the real
   backends: projects, AWEN-Mini generation on CPU or the photonic simulator,
