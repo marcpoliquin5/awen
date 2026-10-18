@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "awen-native"
+version = "0.1.0"
+description = "Python bindings for the AWEN compiler and photonic GEMM simulator (simulation only)."
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "awen_native._native"
+features = ["pyo3/extension-module"]

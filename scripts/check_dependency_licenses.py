@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFESTS = ("awen-compiler/Cargo.toml", "awen-runtime/Cargo.toml")
+MANIFESTS = ("awen-compiler/Cargo.toml", "awen-runtime/Cargo.toml", "awen-native/Cargo.toml")
 PROHIBITED = ("AGPL", "BUSL", "COMMONS-CLAUSE", "SSPL")
 packages: dict[tuple[str, str], dict[str, object]] = {}
 

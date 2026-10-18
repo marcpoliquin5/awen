@@ -133,6 +133,8 @@ metadata_checks = {
     "awen-compiler/Cargo.toml": ('license = "MIT"', "repository = "),
     "awen-runtime/Cargo.toml": ('license = "MIT"', "repository = "),
     "awen-models/pyproject.toml": ('license = "MIT"', "Repository = "),
+    "awen-native/Cargo.toml": ('license = "MIT"', "repository = "),
+    "awen-native/pyproject.toml": ('license = "MIT"',),
     "awen-ecosystem/python_awen/pyproject.toml": ('license = "MIT"', "Repository = "),
 }
 for name, needles in metadata_checks.items():
@@ -180,7 +182,7 @@ for name in ("observability-quality-gate.yml", "hardware-benchmark.yml"):
     if f'toolchain: "{pinned_toolchain}"' not in content:
         fail(f"{name} does not install the pinned toolchain {pinned_toolchain}")
 msrv_values = set()
-for name in ("awen-compiler/Cargo.toml", "awen-runtime/Cargo.toml"):
+for name in ("awen-compiler/Cargo.toml", "awen-runtime/Cargo.toml", "awen-native/Cargo.toml"):
     msrv = re.search(r'(?m)^rust-version\s*=\s*"([^"]+)"', (ROOT / name).read_text(encoding="utf-8"))
     if not msrv:
         fail(f"{name} must declare rust-version")

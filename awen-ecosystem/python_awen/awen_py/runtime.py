@@ -20,6 +20,7 @@ import time
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 from .errors import ContractError, DeviceError, ExecutionError, SerializationError
+from .photonic import dispatch_photonic
 
 
 FRAMEWORK_RUNTIME_VERSION = "awen.framework-runtime.v1"
@@ -107,8 +108,14 @@ class ExecutionOptions:
     seed: int = 0
     profile: bool = True
     allow_fallback: bool = True
+    # Noise contract (awen.photonic-noise-contract.v1) for the photonic target;
+    # None uses the simulator's illustrative default.
+    photonic_noise: Optional[Mapping[str, Any]] = field(default=None, compare=False, hash=False)
+    photonic_tile_k: int = 64
 
     def validate(self) -> None:
+        if self.photonic_tile_k <= 0:
+            raise ContractError("photonic_tile_k must be positive")
         if self.target not in {"auto", "cpu", "gpu", "photonic", "framework"}:
             raise ContractError("target must be auto, cpu, gpu, photonic, or framework")
         if self.seed < 0:
@@ -504,7 +511,19 @@ class InProcessRuntime:
         started = time.perf_counter_ns()
         try:
             with _stream_context(buffers[0].framework, options.stream):
-                output = _dispatch(plan.operation, tuple(buffer.value for buffer in buffers), plan.attributes)
+                values = tuple(buffer.value for buffer in buffers)
+                if plan.target == "simulated:photonic":
+                    output = dispatch_photonic(
+                        plan.operation,
+                        values,
+                        plan.attributes,
+                        buffers[0].framework,
+                        noise=options.photonic_noise,
+                        tile_k=options.photonic_tile_k,
+                        seed=options.seed,
+                    )
+                else:
+                    output = _dispatch(plan.operation, values, plan.attributes)
         except Exception as error:
             if isinstance(error, (ContractError, DeviceError, ExecutionError)):
                 raise
