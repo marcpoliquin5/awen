@@ -153,7 +153,7 @@ The MLIR path currently accepts normalized rank-two and equal-batch rank-three
 StableHLO `dot_general`. The Python integration separately provides a real
 `torch.compile` backend for matrix/linear regions, JAX portable StableHLO
 export/import, an in-process NumPy runtime, and analytic framework gradients.
-The separate awenBLAS semantic library covers 22 executable kernel kinds.
+The separate awenBLAS semantic library covers 25 executable kernel kinds (batched complex GEMM, fused scaled-dot-product attention and the GELU feed-forward block were added on top of the original 22, each checked against an independent oracle in `awen-compiler/tests/awenblas_oracles.rs`).
 Framework execution is currently a semantic reference and dispatch boundary;
 it does not yet connect every captured framework region to generated photonic
 device commands or demonstrate validated hardware speedups.
@@ -162,7 +162,7 @@ measured product performance.
 
 ## Repository layout
 
-- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration and physical-design validation, measured channel/cell routing, fault remapping, PDK/process-corner/drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 22-kind `awenBLAS` reference/simulator/dispatch/conformance library.
+- `awen-compiler`: typed Tensor IR, explicit mixed-precision/scaling/error contracts, immutable calibration and physical-design validation, measured channel/cell routing, fault remapping, PDK/process-corner/drift-triggered artifact refresh, validated capability/health negotiation, full-system cost/autotuning, crossing-aware whole-graph CPU/GPU/photonic partitioning, GEMM tiling, Photonic IR, Device IR, and an executable 25-kind `awenBLAS` reference/simulator/dispatch/conformance library.
 - `awen-mlir`: MLIR 20 ODS/TableGen dialects, StableHLO GEMM import passes,
   Device IR bytecode, and the `AWENEXE` emitter.
 - `awen-runtime`: CLI, engine, HAL, scheduler, calibration, observability, independent typed classical/quantum-photonic execution and V5 migration, content-addressed HIL benchmark evidence and claims, artifacts, plugins, legacy node IR, quantum experiments, and a compiled C/C++ framework ABI.

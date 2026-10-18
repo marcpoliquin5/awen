@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- awenBLAS now has 25 kernel kinds: `batched_complex_gemm`,
+  `scaled_dot_product_attention` (two GEMMs plus an electronic softmax) and
+  `feed_forward` (`W2 gelu(W1 x + b1) + b2`, tanh GELU). New
+  `awen-compiler/tests/awenblas_oracles.rs` checks complex, batched and
+  batched-complex GEMM, FFT, low-rank GEMM, the reservoir update, attention
+  and the feed-forward block against independently written oracles
+  (real block embedding of complex GEMM, naive DFT with Parseval and inverse
+  round trip, explicit U·Vᵀ reconstruction, the op library's attention and
+  FFN), plus simulator error versus injected noise. Reference and simulator
+  only (refs #65).
 - Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
   formalism with hbar = 2): squeezing, two-mode squeezing, passive
   interferometers, displacement, pure loss, thermal states, purity,
