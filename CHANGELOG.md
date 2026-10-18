@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
+  formalism with hbar = 2): squeezing, two-mode squeezing, passive
+  interferometers, displacement, pure loss, thermal states, purity,
+  symplectic eigenvalues, vacuum probability, homodyne sampling and
+  conditioning. Checked against closed forms and a truncated-Fock-space
+  squeeze operator. Simulation only (#98, refs #69).
 - Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
   separate from the classical photonic domain (AEP-0020): permanents by
   Ryser's formula, Fock-space linear optics, exact boson sampling for small
