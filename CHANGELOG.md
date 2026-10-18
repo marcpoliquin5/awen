@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added `awen-systems` with a memory-technology parameter schema
+  (`awen.memory_technologies.v1`: phase-change photonic, microring fading,
+  optical RRAM, delay line, HBM2 baseline). Every value carries a provenance;
+  only values checked against a cited source are bundled, the rest must be
+  supplied. Includes a behavioral memory simulator and a KV-cache workload
+  study (traffic, energy, attention fidelity), all labeled modeled (refs #70).
 - Added the model conversion utility `awen-convert` (`awen_models.convert`):
   `to-onnx` exports an AWEN-Mini checkpoint to ONNX and verifies it against
   PyTorch with `onnx.reference.ReferenceEvaluator` (max logit difference
