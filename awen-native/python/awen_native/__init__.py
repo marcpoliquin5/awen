@@ -23,7 +23,9 @@ __all__ = [
     "effective_bits_from_sigma",
     "ideal_contract",
     "photonic_gemm",
+    "op_table",
     "predicted_noise",
+    "run_op",
     "shot_limited_effective_bits",
     "validate_contract",
 ]
@@ -90,3 +92,44 @@ def compile_program(
             None if options is None else json.dumps(dict(options)),
         )
     )
+
+
+def op_table() -> list:
+    """Operator support table with each operator's highest verified level.
+
+    Levels: ``math_reference`` < ``photonic_sim`` < ``hardware_lowerable`` <
+    ``hardware_measured``. No operator is ``hardware_measured``.
+    """
+    return json.loads(_native.op_table_json())
+
+
+def run_op(
+    op: str,
+    inputs: Mapping[str, Any],
+    params: Optional[Mapping[str, Any]] = None,
+    contract: Optional[Mapping[str, Any]] = None,
+    tile_k: int = 64,
+    seed: int = 0,
+) -> Tuple[dict, dict]:
+    """Run a table operator; returns ``(outputs, report)``.
+
+    ``contract=None`` runs the f64 math reference. With a contract every matrix
+    product runs on the Rust compact noise model, so outputs are simulated.
+    """
+    request = {
+        "op": op,
+        "inputs": {
+            name: {"shape": list(a.shape), "data": a.ravel().tolist()}
+            for name, a in ((k, np.asarray(v, dtype=np.float64)) for k, v in inputs.items())
+        },
+        "params": dict(params or {}),
+        "contract": None if contract is None else dict(contract),
+        "tile_k": int(tile_k),
+        "seed": int(seed),
+    }
+    response = json.loads(_native.run_op_json(json.dumps(request)))
+    outputs = {
+        name: np.asarray(a["data"], dtype=np.float64).reshape(a["shape"])
+        for name, a in response.pop("outputs").items()
+    }
+    return outputs, response
