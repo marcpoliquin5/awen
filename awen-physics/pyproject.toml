@@ -1,0 +1,23 @@
+[project]
+name = "awen-physics"
+version = "0.1.0"
+description = "Reference physics models and validation notebooks for AWEN (analytic and numerical; simulation only)."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3", "scipy>=1.11,<2"]
+
+[project.optional-dependencies]
+native = ["awen-native"]
+test = ["pytest>=8,<10", "matplotlib>=3.8,<4"]
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+
+[tool.setuptools]
+packages = ["awen_physics"]
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
