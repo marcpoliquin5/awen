@@ -19,6 +19,12 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Compiler: `awen_compiler::assumptions` loads `awen-spec/hardware_assumptions.yaml` (bundled at build time
+  or from a path; version and units checked) and adds opt-in `PhotonicNoiseContract::with_assumptions` and
+  `CostModelInputs::with_assumptions` for a low/typical/high corner. They return a report of which fields came
+  from the file and which kept the built-in value. Defaults are unchanged; with the v0 set the fixed-config
+  outputs are identical (`awen-compiler/results/assumptions-wiring/`). New dependency: `yaml-rust2` 0.13
+  (MIT OR Apache-2.0).
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
