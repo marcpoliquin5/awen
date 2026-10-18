@@ -1,8 +1,8 @@
 # AWEN status
 
-Updated 2026-10-18 11:38 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-Main is `840f5c5` (#126), after `0235668` (#125). Truth-table counts were measured at `0235668`; the
-gate on `0235668` passed (CI run 39140149777); the gate on `840f5c5` (run 39141006838) was running at this commit.
+Updated 2026-10-18 11:50 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Main is `ee2e8cf` (#127), after `840f5c5` (#126) and `0235668` (#125). Truth-table counts were measured at
+`0235668`. Gates passed on `0235668` (run 39140149777) and `840f5c5` (run 39141006838); the gate on `ee2e8cf` (run 39142255032) was running at this commit.
 
 ## Current phase
 
@@ -71,7 +71,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | 2026-10-18-01 in review (#127) | every session |
+| Session reports in `docs/sessions/` | 3, 17 | 2026-10-18-01 merged #127 (`ee2e8cf`) | every session |
 
 ## Phase 1 plan (one task per session)
 
