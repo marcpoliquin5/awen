@@ -12,6 +12,39 @@
   round trip, explicit U·Vᵀ reconstruction, the op library's attention and
   FFN), plus simulator error versus injected noise. Reference and simulator
   only (refs #65).
+- `awenctl caps` explores capability documents (device capabilities, plugin
+  manifests, hardware descriptions, awenBLAS backend profiles) as text or
+  JSON; `awenctl profile` times one awenBLAS request on the CPU reference or
+  the simulator and writes a Chrome/Perfetto trace. Profile times are host
+  wall-clock, not device timings (refs #66).
+- `awen_runtime::devrt`: health-aware placement over simulated photonic
+  devices (healthy / degraded / failed) that remaps past unavailable devices
+  and falls back to the exact CPU reference, with the reason recorded;
+  deterministic mode (SplitMix64 seed stream from one root seed); experiment
+  records (`awen.experiment-record.v1`) holding SHA-256 digests of each
+  request and of the output bits, with a bit-exact replay check; and a host
+  wall-clock profiler with per-kernel summaries and Chrome trace export.
+  Profiler times are host timings of the simulator or CPU, not device
+  timings (refs #64).
+- Added `awen_runtime::devrt`, runtime services layered on the existing HAL
+  and scheduler: ordered asynchronous streams (one worker thread each) with
+  events for cross-stream and cross-device dependencies and sticky error
+  propagation; memory residency tracking with per-device capacity, LRU
+  eviction, pinning and transfer byte accounting; and device leases
+  (exclusive/shared, logical-clock expiry) with operation, energy and wall-time
+  budgets. Budgets enforce caller-reported or simulator-estimated usage; they
+  are not hardware measurements (refs #64).
+- Added `awen_py.stablehlo_exec`: runs the StableHLO that JAX lowers
+  (`dot_general` on the f64 reference or the photonic noise model,
+  simulated; a few shape and elementwise ops electronically) and refuses
+  other operations by name. Checked against JAX CPU. This is not yet a PJRT
+  plugin; `docs/PJRT_BOUNDARY.md` records what remains (#100, refs #61).
+- Added the quantum-photonic resource model (`awen_qphotonic.resources`) and
+  a small quantum-kernel experiment (`awen_qphotonic.kernel`,
+  `awen-qkernel`) compared with RBF and linear baselines on the same
+  splits. Committed results (simulation, three seeds): the photonic kernel
+  scores below RBF on both toy datasets; no advantage is claimed (#99,
+  closes #69).
 - Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
   formalism with hbar = 2): squeezing, two-mode squeezing, passive
   interferometers, displacement, pure loss, thermal states, purity,
