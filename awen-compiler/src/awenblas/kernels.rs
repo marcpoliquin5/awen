@@ -37,6 +37,14 @@ pub enum KernelKind {
     RfFir,
     ReservoirStep,
     Propagation,
+    /// Equal-batch rank-3 complex GEMM: C[b] = A[b] B[b].
+    BatchedComplexGemm,
+    /// softmax(scale * Q K^T) V over rank-2 Q[m,d], K[n,d], V[n,dv]. The two
+    /// GEMMs are photonic candidates; the softmax is electronic.
+    ScaledDotProductAttention,
+    /// Transformer feed-forward block W2 * gelu(W1 x + b1) + b2 with the tanh
+    /// GELU approximation. GEMMs photonic candidates; GELU electronic.
+    FeedForward,
 }
 
 impl KernelKind {
@@ -44,6 +52,7 @@ impl KernelKind {
         matches!(
             self,
             Self::ComplexGemm
+                | Self::BatchedComplexGemm
                 | Self::Dft
                 | Self::Fft
                 | Self::FourierFilter
@@ -557,6 +566,9 @@ impl KernelRequest {
             KernelKind::Dft | KernelKind::Fft | KernelKind::RandomProjection => 1,
             KernelKind::LowRankGemm => 3,
             KernelKind::Toeplitz | KernelKind::ReservoirStep => 3,
+            KernelKind::BatchedComplexGemm => 2,
+            KernelKind::ScaledDotProductAttention => 3,
+            KernelKind::FeedForward => 5,
         };
         if self.inputs.len() != expected_inputs
             && !matches!(self.kind, KernelKind::Linear | KernelKind::MlpProjection)
@@ -807,6 +819,9 @@ fn reference_outputs(request: &KernelRequest) -> Result<Vec<KernelTensor>> {
             real_gemm_outputs(request, request.kind == KernelKind::BatchedGemm)
         }
         KernelKind::ComplexGemm => complex_gemm_outputs(request),
+        KernelKind::BatchedComplexGemm => batched_complex_gemm_outputs(request),
+        KernelKind::ScaledDotProductAttention => sdpa_outputs(request),
+        KernelKind::FeedForward => feed_forward_outputs(request),
         KernelKind::Linear | KernelKind::MlpProjection => linear_outputs(request),
         KernelKind::TransformerQkv => transformer_qkv_outputs(request),
         KernelKind::AttentionScores => attention_scores_outputs(request),
@@ -1001,6 +1016,166 @@ fn attention_scores_outputs(request: &KernelRequest) -> Result<Vec<KernelTensor>
         }
     }
     Ok(outputs)
+}
+
+fn batched_complex_gemm_outputs(request: &KernelRequest) -> Result<Vec<KernelTensor>> {
+    require_rank(&request.inputs[0], 3)?;
+    require_rank(&request.inputs[1], 3)?;
+    let (lhs_shape, rhs_shape) = (&request.inputs[0].shape, &request.inputs[1].shape);
+    if lhs_shape[0] != rhs_shape[0] {
+        bail!("batched complex GEMM requires equal batch dimensions");
+    }
+    if request
+        .inputs
+        .iter()
+        .any(|input| input.layout != Layout::RowMajor)
+    {
+        bail!("batched complex GEMM requires row-major batches");
+    }
+    let lhs = complex_values(&request.inputs[0])?;
+    let rhs = complex_values(&request.inputs[1])?;
+    let lhs_stride = lhs_shape[1] * lhs_shape[2];
+    let rhs_stride = rhs_shape[1] * rhs_shape[2];
+    let mut data = Vec::new();
+    let mut matrix_shape = Vec::new();
+    for batch in 0..lhs_shape[0] {
+        let mut sub = request.clone();
+        sub.kind = KernelKind::ComplexGemm;
+        sub.inputs = vec![
+            KernelTensor::complex(
+                "lhs",
+                lhs_shape[1..].to_vec(),
+                lhs[batch * lhs_stride..(batch + 1) * lhs_stride].to_vec(),
+            ),
+            KernelTensor::complex(
+                "rhs",
+                rhs_shape[1..].to_vec(),
+                rhs[batch * rhs_stride..(batch + 1) * rhs_stride].to_vec(),
+            ),
+        ];
+        let output = complex_gemm_outputs(&sub)?.remove(0);
+        matrix_shape = output.shape.clone();
+        if let KernelData::Complex(values) = output.data {
+            data.extend(values);
+        }
+    }
+    let mut shape = vec![lhs_shape[0]];
+    shape.extend(matrix_shape);
+    Ok(vec![KernelTensor::complex(
+        format!("{}.output", request.id),
+        shape,
+        data,
+    )])
+}
+
+fn row_major_real(request: &KernelRequest, rank: &[usize]) -> Result<()> {
+    for (input, expected) in request.inputs.iter().zip(rank) {
+        require_rank(input, *expected)?;
+        if input.layout != Layout::RowMajor {
+            bail!("kernel {:?} requires row-major inputs", request.kind);
+        }
+    }
+    Ok(())
+}
+
+fn dense(lhs: &[f64], rhs: &[f64], m: usize, k: usize, n: usize, rhs_transposed: bool) -> Vec<f64> {
+    let mut out = vec![0.0; m * n];
+    for row in 0..m {
+        for column in 0..n {
+            let mut sum = 0.0;
+            for inner in 0..k {
+                let right = if rhs_transposed {
+                    rhs[column * k + inner]
+                } else {
+                    rhs[inner * n + column]
+                };
+                sum += lhs[row * k + inner] * right;
+            }
+            out[row * n + column] = sum;
+        }
+    }
+    out
+}
+
+fn sdpa_outputs(request: &KernelRequest) -> Result<Vec<KernelTensor>> {
+    row_major_real(request, &[2, 2, 2])?;
+    let (q, k, v) = (
+        real_values(&request.inputs[0])?,
+        real_values(&request.inputs[1])?,
+        real_values(&request.inputs[2])?,
+    );
+    let (m, d) = (request.inputs[0].shape[0], request.inputs[0].shape[1]);
+    let n = request.inputs[1].shape[0];
+    let dv = request.inputs[2].shape[1];
+    if request.inputs[1].shape[1] != d || request.inputs[2].shape[0] != n {
+        bail!("attention requires Q[m,d], K[n,d], V[n,dv]");
+    }
+    let mut scores = dense(q, k, m, d, n, true);
+    for row in scores.chunks_exact_mut(n) {
+        let peak = row
+            .iter()
+            .map(|value| value * request.attributes.scale)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let mut total = 0.0;
+        for value in row.iter_mut() {
+            *value = (*value * request.attributes.scale - peak).exp();
+            total += *value;
+        }
+        for value in row.iter_mut() {
+            *value /= total;
+        }
+    }
+    Ok(vec![KernelTensor::real(
+        format!("{}.output", request.id),
+        vec![m, dv],
+        dense(&scores, v, m, n, dv, false),
+    )])
+}
+
+/// GELU, tanh approximation (Hendrycks & Gimpel, 2016).
+pub fn gelu_tanh(x: f64) -> f64 {
+    0.5 * x * (1.0 + ((2.0 / PI).sqrt() * (x + 0.044715 * x * x * x)).tanh())
+}
+
+fn feed_forward_outputs(request: &KernelRequest) -> Result<Vec<KernelTensor>> {
+    row_major_real(request, &[2, 2, 1, 2, 1])?;
+    let (m, d) = (request.inputs[0].shape[0], request.inputs[0].shape[1]);
+    let hidden = request.inputs[1].shape[1];
+    let out_dim = request.inputs[3].shape[1];
+    if request.inputs[1].shape[0] != d
+        || request.inputs[2].shape[0] != hidden
+        || request.inputs[3].shape[0] != hidden
+        || request.inputs[4].shape[0] != out_dim
+    {
+        bail!("feed-forward requires x[m,d], W1[d,h], b1[h], W2[h,o], b2[o]");
+    }
+    let x = real_values(&request.inputs[0])?;
+    let b1 = real_values(&request.inputs[2])?;
+    let b2 = real_values(&request.inputs[4])?;
+    let mut hidden_values = dense(x, real_values(&request.inputs[1])?, m, d, hidden, false);
+    for row in hidden_values.chunks_exact_mut(hidden) {
+        for (value, bias) in row.iter_mut().zip(b1) {
+            *value = gelu_tanh(*value + bias);
+        }
+    }
+    let mut output = dense(
+        &hidden_values,
+        real_values(&request.inputs[3])?,
+        m,
+        hidden,
+        out_dim,
+        false,
+    );
+    for row in output.chunks_exact_mut(out_dim) {
+        for (value, bias) in row.iter_mut().zip(b2) {
+            *value += bias;
+        }
+    }
+    Ok(vec![KernelTensor::real(
+        format!("{}.output", request.id),
+        vec![m, out_dim],
+        output,
+    )])
 }
 
 fn convolution_outputs(request: &KernelRequest, correlation: bool) -> Result<Vec<KernelTensor>> {
@@ -1496,6 +1671,20 @@ fn estimate_operations(request: &KernelRequest, outputs: &[KernelTensor]) -> f64
             2.0 * output_elements * output_elements
         }
         KernelKind::ReservoirStep => 2.0 * output_elements * output_elements + output_elements,
+        KernelKind::BatchedComplexGemm => {
+            let inner = request.inputs[0].shape[2] as f64;
+            2.0 * output_elements * inner
+        }
+        KernelKind::ScaledDotProductAttention => {
+            let (m, d) = (request.inputs[0].shape[0], request.inputs[0].shape[1]);
+            let n = request.inputs[1].shape[0] as f64;
+            2.0 * m as f64 * n * d as f64 + 2.0 * output_elements * n
+        }
+        KernelKind::FeedForward => {
+            let (m, d) = (request.inputs[0].shape[0], request.inputs[0].shape[1]);
+            let hidden = request.inputs[1].shape[1] as f64;
+            2.0 * m as f64 * d as f64 * hidden + 2.0 * output_elements * hidden
+        }
     }
 }
 
@@ -1723,6 +1912,9 @@ pub fn all_kernel_kinds() -> BTreeSet<KernelKind> {
         KernelKind::RfFir,
         KernelKind::ReservoirStep,
         KernelKind::Propagation,
+        KernelKind::BatchedComplexGemm,
+        KernelKind::ScaledDotProductAttention,
+        KernelKind::FeedForward,
     ]
     .into_iter()
     .collect()
