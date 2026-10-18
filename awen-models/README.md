@@ -301,6 +301,15 @@ refuses the graph. The photonic MAC fraction is static analysis, not a
 measurement. Not mapped yet: `Gather`, `LayerNormalization`, pooling, grouped
 and dilated convolution, and fused attention ops.
 
+## Benchmarks
+
+`awen-bench --runs 5 --out-dir benchmarks/results` times CPU, CUDA (skipped
+when absent), the AWEN software reference, the photonic simulator and a
+hybrid placement on GEMM and AWEN-Mini inference, and writes a write-once,
+self-hashed evidence record. Simulator wall-clock is the cost of simulation
+on the host, not photonic device speed. Method and the committed run:
+[`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md).
+
 ## Model conversion (`awen-convert`)
 
 ```bash

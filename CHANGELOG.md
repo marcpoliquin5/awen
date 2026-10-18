@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
+  when no GPU is visible), the AWEN software reference, the photonic
+  simulator and a hybrid placement on GEMM and AWEN-Mini inference, with
+  p50/p95/p99 latency, throughput, memory, compile time, time to first token,
+  tokens/s and perplexity, bootstrap 95% CIs over multiple runs, and a
+  write-once, self-hashed evidence record (`awen.benchmark-evidence.v1`,
+  git SHA, hardware, environment). One measured run on the build host's CPU
+  is committed; see `docs/BENCHMARKS.md` (refs #74).
 - Added the efficiency program (`awen-efficiency`): low-rank, tensor-train,
   untied head, MoE top-1, 50% magnitude pruning, int4 QAT vs PTQ,
   distillation from AWEN-Mini and recursive reuse, all at a matched
