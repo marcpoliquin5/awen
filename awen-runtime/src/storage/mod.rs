@@ -66,3 +66,23 @@ pub fn load_artifact_for_replay(artifact_path: &Path) -> Result<ReplayComponents
         environment: bundle.environment,
     })
 }
+
+/// Stream a file through SHA-256 and return the lowercase hex digest.
+///
+/// `sha2` 0.11 no longer implements `std::io::Write` for its hashers, so the
+/// file is read in fixed-size chunks instead of using `std::io::copy`.
+pub(crate) fn sha256_file_hex(path: &Path) -> Result<String> {
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+    let mut file = std::fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
