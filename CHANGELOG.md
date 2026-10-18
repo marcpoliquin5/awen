@@ -23,11 +23,9 @@
   or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
   nulls kept as `None`. No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
   (MIT OR Apache-2.0, pure Rust).
-- Compiler: opt-in `PhotonicNoiseContract::with_assumptions` and `CostModelInputs::with_assumptions`
-  apply `hardware_assumptions.yaml` at a low/typical/high corner, with unit conversion. They return an
-  `AssumptionReport` saying which fields came from the file and which kept the built-in value; the cost model
-  also gets a provenance entry naming the set and corner. Defaults are unchanged. With v0 the fixed-config outputs
-  are identical before and after (`awen-compiler/results/assumptions-wiring/`).
+- Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
+  `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
+  identical before and after (`awen-compiler/results/assumptions-wiring/`).
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
