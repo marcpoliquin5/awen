@@ -334,6 +334,38 @@ fn row_scales(values: &[f64], rows: usize, cols: usize) -> Vec<f64> {
         .collect()
 }
 
+/// Work (multiply-adds) below which [`parallel_rows`] stays on the calling thread.
+const PARALLEL_MIN_MACS: usize = 1 << 18;
+
+/// `zrow[o] = sum_i xrow[i] * wt[i * outputs + o]`, accumulated in index order `i = 0, 1, ...`
+/// from `0.0` for every `o` (the same rounding sequence as a scalar dot product).
+#[inline]
+fn row_times_kmajor(xrow: &[f64], wt: &[f64], zrow: &mut [f64]) {
+    let outputs = zrow.len();
+    zrow.fill(0.0);
+    for (i, &xv) in xrow.iter().enumerate() {
+        let wrow = &wt[i * outputs..(i + 1) * outputs];
+        for (z, &wv) in zrow.iter_mut().zip(wrow) {
+            *z += wv * xv;
+        }
+    }
+}
+
+/// Run `f(row, row_slice)` over the rows of `out` (row length `width`), in parallel with rayon
+/// when `macs` is large enough. Rows are independent, so the result does not depend on the
+/// thread count.
+fn parallel_rows<F>(out: &mut [f64], width: usize, macs: usize, f: F)
+where
+    F: Fn(usize, &mut [f64]) + Sync,
+{
+    if macs < PARALLEL_MIN_MACS {
+        out.chunks_mut(width).enumerate().for_each(|(r, z)| f(r, z));
+    } else {
+        use rayon::prelude::*;
+        out.par_chunks_mut(width).enumerate().for_each(|(r, z)| f(r, z));
+    }
+}
+
 /// Simulate `Y = X Wᵀ` with row-major `X: [m, k]` and `W: [n, k]` (`shape` uses the IR
 /// convention: `m` rows, `k` contraction length, `n` outputs)
 /// on a photonic core with contraction tiles of `tile_k`, applying `contract`.
@@ -410,16 +442,24 @@ pub fn photonic_gemm(
         let n_fs = contract.full_scale_photoelectrons(k);
         let shot_sigma = n_fs.map(|n| 1.0 / n.sqrt());
         let thermal_sigma = n_fs.map(|n| contract.thermal_noise_electrons / n);
+        // Ideal tile products for every row. Weights are laid out k-major so the inner loop
+        // runs over outputs (SIMD lanes); each output still accumulates its k products in
+        // index order from 0.0, so results are bit-identical to the scalar dot product.
+        let mut wnt = vec![0.0; k * outputs];
+        for o in 0..outputs {
+            for i in 0..k {
+                wnt[i * outputs + o] = wn[o * k + i];
+            }
+        }
+        let mut ideal = vec![0.0; rows * outputs];
+        parallel_rows(&mut ideal, outputs, rows * outputs * k, |r, zrow| {
+            row_times_kmajor(&xn[r * k..(r + 1) * k], &wnt, zrow);
+            for z in zrow.iter_mut() {
+                *z /= k as f64;
+            }
+        });
         for r in 0..rows {
-            let mut z: Vec<f64> = (0..outputs)
-                .map(|o| {
-                    let mut acc = 0.0;
-                    for i in 0..k {
-                        acc += wn[o * k + i] * xn[r * k + i];
-                    }
-                    acc / k as f64
-                })
-                .collect();
+            let mut z: Vec<f64> = ideal[r * outputs..(r + 1) * outputs].to_vec();
             if let Some(c) = crosstalk {
                 let clean = z.clone();
                 for o in 0..outputs {
@@ -451,11 +491,19 @@ pub fn photonic_gemm(
 
     let mut max_abs: f64 = 0.0;
     let mut sq = 0.0;
+    let mut wt_full = vec![0.0; inner * outputs];
+    for o in 0..outputs {
+        for i in 0..inner {
+            wt_full[i * outputs + o] = w[o * inner + i];
+        }
+    }
+    let mut exact_all = vec![0.0; rows * outputs];
+    parallel_rows(&mut exact_all, outputs, rows * outputs * inner, |r, zrow| {
+        row_times_kmajor(&x[r * inner..(r + 1) * inner], &wt_full, zrow);
+    });
     for r in 0..rows {
         for o in 0..outputs {
-            let exact: f64 = (0..inner)
-                .map(|i| x[r * inner + i] * w[o * inner + i])
-                .sum();
+            let exact = exact_all[r * outputs + o];
             let e = y[r * outputs + o] - exact;
             max_abs = max_abs.max(e.abs());
             sq += e * e;
