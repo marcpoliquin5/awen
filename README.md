@@ -84,8 +84,8 @@ PY
 ```
 
 At the default illustrative noise contract (1,000 photons per MAC, 8-bit
-converters) the simulated output is visibly degraded. The measured loss
-against optical power is in `awen-models/results/photonic-sim-demo.json`.
+converters) the simulated output is visibly degraded. Validation loss
+against simulated optical power is in `awen-models/results/photonic-sim-demo.json`.
 
 ## Technical overview
 
