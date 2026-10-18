@@ -14,6 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 hf = ["transformers>=4.50,<6"]
+qlora = ["transformers>=4.50,<6", "bitsandbytes>=0.45"]
 plot = ["matplotlib>=3.8,<4"]
 test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6"]
 
@@ -26,6 +27,8 @@ awen-mini-train = "awen_models.train:main"
 awen-nonlinear = "awen_models.nonlinear:main"
 awen-hf-report = "awen_models.hf_adapter:main"
 awen-mini-eval = "awen_models.evaluate:main"
+awen-finetune = "awen_models.finetune:main"
+awen-compute-plan = "awen_models.compute_plan:main"
 awen-photonic-demo = "awen_models.photonic_demo:main"
 
 [tool.setuptools]

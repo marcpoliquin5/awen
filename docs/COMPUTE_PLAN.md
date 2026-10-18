@@ -22,7 +22,7 @@ budgets for 12 GB, so it also fits the 16 GB card.
 | Run | Setting | Result (measured on the development box) |
 | --- | --- | --- |
 | LoRA, SmolLM2-135M | r = 8 on q/v (460,800 trainable of 135.0M), 200 steps × 4 × 128 tokens, lr 2e-4 | held-out loss 3.592 → 3.353 nats/token in 121 s |
-| Distillation into AWEN-Mini | 7.10M-parameter student with the SmolLM2 tokenizer, teacher SmolLM2-135M, T = 2, α = 0.5, 300 steps × 8 × 128 | see `distill-*.json`: KD vs CE-only at equal steps and seed |
+| Distillation into AWEN-Mini | 7.10M-parameter student with the SmolLM2 tokenizer, teacher SmolLM2-135M, T = 2, α = 0.5, 300 steps × 8 × 128 | held-out loss (teacher tokenizer), KD vs CE-only at equal steps: seed 0 5.209 vs 5.426, seed 1 5.331 vs 5.637 nats/token (teacher 3.592). KD arm ≈ 300 s, CE-only ≈ 60 s |
 
 These runs show that the scripts work end to end and that the losses move
 the right way. They are not quality claims about the resulting models.
