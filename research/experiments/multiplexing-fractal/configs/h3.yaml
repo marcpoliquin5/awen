@@ -1,0 +1,20 @@
+# H3 full-run config (registered before any full run; see ../PREREGISTRATION.md).
+id: H3
+schema: awen.fractal-prereg-config.v1
+hypothesis: "A Cantor-stack filter bank gives a WDM channel plan with lower crosstalk and higher channel density than a uniform grid at equal footprint"
+status: registered
+pilot: {pr: 128, commit: 0974f38, files: [stacks.json], role: exploratory}
+method: "exact transfer-matrix (lossless, normal incidence)"
+free_parameters:
+  n_high: 2.3
+  n_low: 1.38
+  thickness_sigma_fraction: [0.0, 0.01, 0.02]
+cantor_generations: [2, 3, 4]
+uniform_grid: {channel_spacings_normalized: [0.02, 0.05, 0.1]}
+footprint_match: "equal total physical thickness and equal layer count"
+frequency_grid: {min: 0.5, max: 1.5, points: 20001, unit: "normalized to the quarter-wave design frequency"}
+usable_channel: {passband_T_min: 0.5, isolation_db_min: 15.0}
+metrics: [usable_channels, worst_adjacent_crosstalk_db, channels_per_unit_normalized_frequency]
+seeds: [1, 2, 3, 4, 5]
+falsification: "Killed if the Cantor plan is worse than the uniform grid on both crosstalk and channel density at equal footprint; better on one only is reported as not kept"
+command: "python research/experiments/multiplexing-fractal/h3_stacks.py --config research/experiments/multiplexing-fractal/configs/h3.yaml"

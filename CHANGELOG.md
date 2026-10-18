@@ -19,6 +19,10 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Research: pre-registration of the multiplexing/fractal hypotheses H1-H4
+  (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, full-run configs in `configs/`), with
+  the H1-H3 pilots of draft #128 (`0974f38`) disclosed as exploratory. Tested by
+  `research/tests/test_fractal_preregistration.py`. No run started.
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
