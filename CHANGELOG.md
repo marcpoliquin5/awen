@@ -10,6 +10,12 @@
   write-once, self-hashed evidence record (`awen.benchmark-evidence.v1`,
   git SHA, hardware, environment). One measured run on the build host's CPU
   is committed; see `docs/BENCHMARKS.md` (refs #74).
+- Added the efficiency program (`awen-efficiency`): low-rank, tensor-train,
+  untied head, MoE top-1, 50% magnitude pruning, int4 QAT vs PTQ,
+  distillation from AWEN-Mini and recursive reuse, all at a matched
+  818k-parameter budget with two seeds on CPU, plus a Pareto plot of quality
+  vs parameters, latency, memory and MACs (energy only estimated). Negative
+  results (low-rank, sparsity, untied head) are reported (refs #72).
 - Added `awen_systems.fabric`, a discrete-event interconnect simulator (links,
   electrical packet and optical circuit switches, contention, reconfiguration
   delay, loss budget, power, failures with rerouting, ring all-reduce and
