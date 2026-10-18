@@ -11,6 +11,9 @@ and versioned schemas remain authoritative where they are more specific.
 | PyTorch/JAX/NumPy/C++ integration | Implemented reference boundaries | framework tests and compiled ABI tests |
 | Classical and quantum-photonic dialects | Implemented typed contracts | AEP-0020, schemas, runtime conformance |
 | Physical-design integration | Implemented metadata/evidence boundary only | AEP-0021 and physical-design conformance |
+| AWEN-Mini model, noise-aware training, HF adapter | Implemented, measured on CPU | `awen-models` (trained checkpoint, eval, ablation, capability report) |
+| Python native binding to the Rust compiler and noise model | Implemented | `awen-native` (PyO3), `torch.compile` photonic target, PrivateUse1 `awen` device (simulated) |
+| Reference physics validation | Implemented, numerically validated | `awen-physics` notebooks (AEP-0023) |
 | Physical accelerator performance | Not established | No verified physical HIL artifact is published |
 | Hosted cloud product | Removed | The README-only nonfunctional directory was removed; no product is offered |
 | Desktop Studio product | Removed | The nonfunctional UI directory was removed; no product is offered |

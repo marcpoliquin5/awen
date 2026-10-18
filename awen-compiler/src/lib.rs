@@ -14,6 +14,7 @@ pub mod compiler;
 pub mod cost;
 pub mod executable;
 pub mod ir;
+pub mod isa;
 pub mod lowering;
 pub mod noise;
 pub mod ops;
