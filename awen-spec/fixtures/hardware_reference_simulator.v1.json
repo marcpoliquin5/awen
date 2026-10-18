@@ -1,0 +1,142 @@
+{
+  "version": "awen.hardware-description.v1",
+  "device_id": "awen-reference-simulator",
+  "provenance": {
+    "source": "reference_simulator",
+    "notes": "Illustrative parameters for the AWEN reference simulator drivers. Not a product, not a datasheet, not measured."
+  },
+  "components": [
+    {
+      "class": "mzi_mesh",
+      "id": "mesh0",
+      "modes": 4,
+      "topology": "clements",
+      "phase_shifter": {
+        "mechanism": "thermo_optic",
+        "v_pi_v": 2.5,
+        "bandwidth_mhz": 0.1,
+        "power_per_pi_mw": 20.0,
+        "phase_resolution_bits": 12
+      },
+      "insertion_loss_db_per_mzi": 0.1,
+      "extinction_ratio_db": 30.0,
+      "splitter_imbalance": 0.0,
+      "band": {
+        "minimum_nm": 1530.0,
+        "maximum_nm": 1565.0
+      },
+      "programmable": true
+    },
+    {
+      "class": "microring_bank",
+      "id": "rings0",
+      "rings": 4,
+      "radius_um": 10.0,
+      "fsr_nm": 9.0,
+      "q_loaded": 8000.0,
+      "self_coupling_r": 0.95,
+      "round_trip_amplitude_a": 0.98,
+      "tuning": {
+        "mechanism": "thermo_optic",
+        "v_pi_v": 2.5,
+        "bandwidth_mhz": 0.1,
+        "power_per_pi_mw": 20.0,
+        "phase_resolution_bits": 12
+      },
+      "configuration": "all_pass",
+      "weight_resolution_bits": 8
+    },
+    {
+      "class": "wdm",
+      "id": "wdm0",
+      "channels": 4,
+      "channel_spacing_ghz": 100.0,
+      "center_wavelength_nm": 1550.0,
+      "crosstalk_db": -25.0,
+      "insertion_loss_db": 2.0,
+      "device": "awg"
+    },
+    {
+      "class": "diffractive",
+      "id": "dnn0",
+      "layers": 3,
+      "pixels_per_layer": 4096,
+      "pixel_pitch_um": 8.0,
+      "layer_spacing_um": 3000.0,
+      "wavelength_nm": 1550.0,
+      "modulation": "phase",
+      "reconfigurable": true,
+      "phase_levels": 256
+    },
+    {
+      "class": "detector",
+      "id": "pd0",
+      "count": 4,
+      "responsivity_a_per_w": 1.0,
+      "dark_current_na": 10.0,
+      "bandwidth_ghz": 10.0,
+      "quantum_efficiency": 0.8,
+      "balanced": false
+    },
+    {
+      "class": "adc",
+      "id": "adc0",
+      "channels": 4,
+      "bits": 8,
+      "sample_rate_gsps": 1.0,
+      "full_scale_v": 1.0
+    },
+    {
+      "class": "dac",
+      "id": "dac0",
+      "channels": 16,
+      "bits": 10,
+      "sample_rate_gsps": 1.0,
+      "full_scale_v": 5.0
+    },
+    {
+      "class": "laser",
+      "id": "laser0",
+      "wavelengths_nm": [
+        1549.2,
+        1550.0,
+        1550.8,
+        1551.6
+      ],
+      "power_mw_per_line": 5.0,
+      "kind": "comb"
+    },
+    {
+      "class": "reservoir",
+      "id": "res0",
+      "nodes": 64,
+      "delay_ns": 10.0,
+      "nonlinearity": "detection",
+      "input_scaling": 0.5,
+      "feedback_gain": 0.9,
+      "physical_form": "delay_loop"
+    },
+    {
+      "class": "memory",
+      "id": "sram0",
+      "kind": "electronic_sram",
+      "capacity_bytes": 1048576,
+      "bandwidth_gb_per_s": 100.0,
+      "latency_ns": 2.0,
+      "volatile": true
+    },
+    {
+      "class": "quantum",
+      "id": "q0",
+      "modes": 4,
+      "sources": "spdc",
+      "source_indistinguishability": 0.95,
+      "heralding_efficiency": 0.5,
+      "detector": "snspd",
+      "detection_efficiency": 0.9,
+      "dark_count_hz": 100.0,
+      "photon_number_resolving": false,
+      "feed_forward_latency_ns": 50.0
+    }
+  ]
+}

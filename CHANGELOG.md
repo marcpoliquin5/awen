@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added the vendor-neutral hardware description schema
+  (`awen.hardware-description.v1`) for MZI meshes, microring banks, WDM,
+  diffractive layers, detectors, ADCs, DACs, lasers, reservoirs, memory and
+  quantum-photonic resources, with mandatory provenance
+  (`reference_simulator`, `vendor_datasheet` or `measured`); a
+  reference-simulator fixture covering every class; reference simulator
+  drivers on the existing HAL `Device` trait (Clements MZI mesh, all-pass
+  microring bank, detector + ADC) checked against closed-form physics; and
+  `docs/VENDOR_INTEGRATION.md`. No vendor drivers are included (refs #67).
 - Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
   formalism with hbar = 2): squeezing, two-mode squeezing, passive
   interferometers, displacement, pure loss, thermal states, purity,
