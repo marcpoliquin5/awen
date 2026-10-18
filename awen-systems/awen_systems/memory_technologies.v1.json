@@ -1,0 +1,431 @@
+{
+  "schema": "awen.memory_technologies.v1",
+  "label": "parameters (not measurements)",
+  "fields": {
+    "levels": "count",
+    "retention_s": "s",
+    "read_latency_s": "s",
+    "write_latency_s": "s",
+    "read_energy_j_per_bit": "J/bit",
+    "write_energy_j_per_cell": "J",
+    "read_noise_sigma": "fraction of full scale",
+    "endurance_cycles": "cycles",
+    "bandwidth_bits_per_s": "bit/s"
+  },
+  "citations": {
+    "rios2015": {
+      "authors": "C. Rios, M. Stegmaier, P. Hosseini, D. Wang, T. Scherer, C. D. Wright, H. Bhaskaran, W. H. P. Pernice",
+      "title": "Integrated all-photonic non-volatile multi-level memory",
+      "venue": "Nature Photonics 9, 725-732 (2015)",
+      "doi": "10.1038/nphoton.2015.182"
+    },
+    "oconnor2017": {
+      "authors": "M. O'Connor, N. Chatterjee, D. Lee, J. Wilson, A. Agrawal, S. W. Keckler, W. J. Dally",
+      "title": "Fine-Grained DRAM: Energy-Efficient DRAM for Extreme Bandwidth Systems",
+      "venue": "Proc. 50th IEEE/ACM International Symposium on Microarchitecture (MICRO-50), 2017",
+      "doi": "10.1145/3123939.3124545"
+    }
+  },
+  "technologies": {
+    "phase_change_photonic": {
+      "description": "Non-volatile phase-change cell (e.g. GST) on a waveguide; state sets optical transmission.",
+      "write_mechanism": "optical pulse heats the phase-change film (amorphize/crystallize)",
+      "read_mechanism": "low-power probe transmission",
+      "volatile": false,
+      "params": {
+        "levels": {
+          "value": 8,
+          "unit": "count",
+          "provenance": "literature-reported",
+          "citation": "rios2015",
+          "locator": "abstract",
+          "note": "'bit storage of up to eight levels in a single device'"
+        },
+        "retention_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_energy_j_per_bit": {
+          "value": null,
+          "unit": "J/bit",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_energy_j_per_cell": {
+          "value": 1.34e-11,
+          "unit": "J",
+          "provenance": "literature-reported",
+          "citation": "rios2015",
+          "locator": "abstract",
+          "note": "'switching energies as low as 13.4 pJ' (lowest reported, not typical); the abstract also reports speeds approaching 1 GHz, not bundled as a latency"
+        },
+        "read_noise_sigma": {
+          "value": null,
+          "unit": "fraction of full scale",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "endurance_cycles": {
+          "value": null,
+          "unit": "cycles",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "bandwidth_bits_per_s": {
+          "value": null,
+          "unit": "bit/s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        }
+      }
+    },
+    "microring_fading": {
+      "description": "Volatile storage of light in a high-Q microring; stored energy decays with photon lifetime.",
+      "write_mechanism": "couple pulse into ring resonance",
+      "read_mechanism": "out-couple / drop-port detection",
+      "volatile": true,
+      "params": {
+        "levels": {
+          "value": null,
+          "unit": "count",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "retention_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": "physics: photon lifetime tau = Q * lambda / (2 pi c); use photon_lifetime_s(Q, wavelength_m) and pass as override"
+        },
+        "read_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_energy_j_per_bit": {
+          "value": null,
+          "unit": "J/bit",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_energy_j_per_cell": {
+          "value": null,
+          "unit": "J",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_noise_sigma": {
+          "value": null,
+          "unit": "fraction of full scale",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "endurance_cycles": {
+          "value": null,
+          "unit": "cycles",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "bandwidth_bits_per_s": {
+          "value": null,
+          "unit": "bit/s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        }
+      }
+    },
+    "optical_rram": {
+      "description": "Resistive-switching cell read or written through an optical interface (optoelectronic RRAM).",
+      "write_mechanism": "electrical or optically assisted filament formation",
+      "read_mechanism": "photocurrent or optical transmission",
+      "volatile": false,
+      "params": {
+        "levels": {
+          "value": null,
+          "unit": "count",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "retention_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_energy_j_per_bit": {
+          "value": null,
+          "unit": "J/bit",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_energy_j_per_cell": {
+          "value": null,
+          "unit": "J",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_noise_sigma": {
+          "value": null,
+          "unit": "fraction of full scale",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "endurance_cycles": {
+          "value": null,
+          "unit": "cycles",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "bandwidth_bits_per_s": {
+          "value": null,
+          "unit": "bit/s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        }
+      }
+    },
+    "delay_line": {
+      "description": "Recirculating optical delay line (fiber or waveguide loop); data lives only while circulating.",
+      "write_mechanism": "inject modulated light into loop",
+      "read_mechanism": "tap and detect after an integer number of round trips",
+      "volatile": true,
+      "params": {
+        "levels": {
+          "value": null,
+          "unit": "count",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "retention_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": "physics: one round trip = L * n_g / c; use delay_line_round_trip_s(length_m, n_group)"
+        },
+        "write_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_energy_j_per_bit": {
+          "value": null,
+          "unit": "J/bit",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_energy_j_per_cell": {
+          "value": null,
+          "unit": "J",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_noise_sigma": {
+          "value": null,
+          "unit": "fraction of full scale",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "endurance_cycles": {
+          "value": null,
+          "unit": "cycles",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "bandwidth_bits_per_s": {
+          "value": null,
+          "unit": "bit/s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        }
+      }
+    },
+    "dram_hbm2": {
+      "description": "Electronic stacked DRAM (HBM2) baseline.",
+      "write_mechanism": "electrical charge storage",
+      "read_mechanism": "sense amplifier",
+      "volatile": true,
+      "params": {
+        "levels": {
+          "value": null,
+          "unit": "count",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "retention_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "write_latency_s": {
+          "value": null,
+          "unit": "s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_energy_j_per_bit": {
+          "value": 3.97e-12,
+          "unit": "J/bit",
+          "provenance": "literature-reported",
+          "citation": "oconnor2017",
+          "locator": "Section 1 / Fig. 1b",
+          "note": "'The energy to access a bit in HBM2 is approximately 3.97 pJ/bit' (access energy; used for reads)"
+        },
+        "write_energy_j_per_cell": {
+          "value": null,
+          "unit": "J",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "read_noise_sigma": {
+          "value": null,
+          "unit": "fraction of full scale",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "endurance_cycles": {
+          "value": null,
+          "unit": "cycles",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        },
+        "bandwidth_bits_per_s": {
+          "value": null,
+          "unit": "bit/s",
+          "provenance": "parameter",
+          "citation": null,
+          "locator": null,
+          "note": null
+        }
+      }
+    }
+  }
+}
