@@ -4,7 +4,6 @@ use anyhow::Result;
 use std::path::Path;
 
 use super::ArtifactBundle;
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 /// Import artifact bundle from filesystem
@@ -22,11 +21,7 @@ pub fn import_bundle(path: &Path) -> Result<ArtifactBundle> {
 
         for (rel, expected_hex) in expected.iter() {
             let file_path = path.join(rel);
-            let mut file = std::fs::File::open(&file_path)?;
-            let mut hasher = Sha256::new();
-            std::io::copy(&mut file, &mut hasher)?;
-            let digest = hasher.finalize();
-            let hex_actual = hex::encode(digest);
+            let hex_actual = super::sha256_file_hex(&file_path)?;
             if &hex_actual != expected_hex {
                 return Err(anyhow::anyhow!("Checksum mismatch for {}", rel));
             }
