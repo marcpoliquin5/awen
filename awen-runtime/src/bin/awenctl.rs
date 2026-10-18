@@ -297,6 +297,11 @@ enum Command {
         #[clap(long)]
         json: bool,
     },
+    /// Ed25519 plugin-manifest signing: keygen, sign, verify against pinned keys.
+    Plugin {
+        #[clap(subcommand)]
+        action: PluginAction,
+    },
     /// Profile one awenBLAS request (host wall-clock) and write a Chrome trace.
     Profile {
         /// Path to an awen.blas.v1 JSON request.
@@ -555,6 +560,7 @@ fn main() -> Result<()> {
             plugin_dir,
             allow_unverified,
         } => backends_command(&plugin_dir, allow_unverified)?,
+        Command::Plugin { action } => run_plugin_action(action)?,
         Command::Caps { input, json } => {
             let document: serde_json::Value =
                 serde_json::from_str(&std::fs::read_to_string(&input)?)?;
@@ -1125,5 +1131,104 @@ fn gradient_command(
     awen_runtime::observability::write_metrics(&out_dir, &metrics)?;
 
     println!("Gradients written to: {}", out_path.display());
+    Ok(())
+}
+
+#[derive(clap::Subcommand)]
+enum PluginAction {
+    /// Generate an Ed25519 key pair: <prefix>.key (secret, mode 0600) and <prefix>.pub.
+    Keygen {
+        /// Output path prefix.
+        prefix: String,
+    },
+    /// Sign a plugin manifest in place (or to --output) with a secret key file.
+    Sign {
+        manifest: String,
+        #[clap(long)]
+        key: String,
+        #[clap(long)]
+        output: Option<String>,
+    },
+    /// Verify a manifest signature AND require its signer key to be in a trust file.
+    Verify {
+        manifest: String,
+        /// Trust file: one Base64 public key per line.
+        #[clap(long)]
+        trusted: String,
+    },
+    /// Load a plugin directory, registering only manifests signed by trusted keys.
+    Discover {
+        plugin_dir: String,
+        #[clap(long)]
+        trusted: String,
+    },
+}
+
+fn run_plugin_action(action: PluginAction) -> anyhow::Result<()> {
+    use awen_runtime::plugins::signing;
+    match action {
+        PluginAction::Keygen { prefix } => {
+            let key = signing::generate_signing_key();
+            let secret = format!("{}\n", signing::encode_key(&key.to_bytes()));
+            let public = format!("{}\n", signing::encode_key(&key.verifying_key().to_bytes()));
+            let secret_path = format!("{prefix}.key");
+            write_secret(&secret_path, secret.as_bytes())?;
+            std::fs::write(format!("{prefix}.pub"), public.as_bytes())?;
+            println!("wrote {secret_path} (secret) and {prefix}.pub");
+            print!("public key: {public}");
+        }
+        PluginAction::Sign {
+            manifest,
+            key,
+            output,
+        } => {
+            let signing_key = signing::parse_signing_key(&std::fs::read_to_string(&key)?)?;
+            let mut parsed: awen_runtime::plugins::PluginManifest =
+                serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+            awen_runtime::plugins::PluginRegistry::new().validate_manifest(&parsed)?;
+            signing::sign_manifest(&mut parsed, &signing_key)?;
+            let target = output.unwrap_or(manifest);
+            std::fs::write(&target, serde_json::to_string_pretty(&parsed)? + "\n")?;
+            println!("signed {} -> {target}", parsed.id);
+        }
+        PluginAction::Verify { manifest, trusted } => {
+            let trusted = signing::TrustedKeys::from_file(&trusted)?;
+            let parsed: awen_runtime::plugins::PluginManifest =
+                serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+            match trusted.verify(&parsed) {
+                Ok(()) => println!("trusted: {} {}", parsed.id, parsed.version),
+                Err(error) => anyhow::bail!("untrusted: {}: {error:#}", parsed.id),
+            }
+        }
+        PluginAction::Discover {
+            plugin_dir,
+            trusted,
+        } => {
+            let trusted = signing::TrustedKeys::from_file(&trusted)?;
+            let found = signing::discover_trusted(&plugin_dir, &trusted)?;
+            for plugin in &found.registry.plugins {
+                println!("trusted {} {}", plugin.id, plugin.version);
+            }
+            for rejected in &found.rejected {
+                println!("rejected {}: {}", rejected.plugin_id, rejected.message);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn write_secret(path: &str, bytes: &[u8]) -> anyhow::Result<()> {
+    use std::io::Write;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options
+        .open(path)
+        .map_err(|e| anyhow::anyhow!("refusing to create {path}: {e}"))?;
+    file.write_all(bytes)?;
     Ok(())
 }

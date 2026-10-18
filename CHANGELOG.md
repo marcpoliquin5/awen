@@ -9,6 +9,26 @@
   a flat message list. 0.59 resolves references eagerly, so the plugin-manifest
   conformance test now registers the capability and calibration schemas it
   transitively references.
+- Security (X1b): trust-pinned Ed25519 plugin signing (`TrustedKeys`,
+  `sign_manifest`, `discover_trusted`; `awenctl plugin keygen|sign|verify|discover`)
+  so self-signed manifests from unpinned keys are rejected; `cargo deny`
+  license/source policy (`deny.toml`); CycloneDX SBOMs for the three Rust
+  crates and the CI Python environment (`scripts/generate_sbom.py`, uploaded
+  per CI run); an AST-based safe-model-loading check (no remote code, no
+  pickle, `torch.load` only with `weights_only=True`); `docs/REPRODUCIBLE_BUILDS.md`
+  and `docs/COMPATIBILITY.md` (refs #78).
+- Added `docs/CLOUD_ARCHITECTURE.md`: a design-only architecture for a
+  possible hosted service, mapped component by component onto existing
+  modules and schemas, with what exists and what does not. No service exists
+  (closes #116).
+- Lab Agent (S2): new `awen-lab` package and CLI. It orchestrates Quick,
+  Truth, Repro, Compare and Publish workflows over the existing simulators
+  (the Rust photonic GEMM model and the quantum-photonic references). Each
+  run produces an immutable, content-addressed lab state with provenance,
+  and states support branch, restore, history and diff. Operating bounds
+  cap every simulation. Publish writes a local, self-verifying bundle only
+  after a recorded approval. Every hardware action is refused, with or
+  without approval (refs #76).
 - Research (R1–R3): `research/ledger/` adds the research ledger schema
   (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
   (unchecked rows land as `citation pending`) and 15 seed directions, each
