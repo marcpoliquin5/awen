@@ -13,7 +13,7 @@
 - `awen.cost-model.v1`: dimensioned end-to-end latency, energy, error, and throughput estimates with provenance, uncertainty, benchmark fitting, and deterministic autotuning.
 - `awen.partition-graph.v1`: complete DAGs with legal CPU/GPU/photonic candidates, tensor dependencies, residency, barriers, numerical eligibility, and memory budgets.
 - `awen.partition-trace.v1`: deterministic whole-graph assignments, ranked alternatives, fused regions, deduplicated transfers, optical/electrical crossings, memory peaks, profiler events, and visualization edges.
-- `awen.blas.v1`: 22 executable dense, complex, transformer, convolution/correlation, Fourier, structured, RF, reservoir, and propagation kernel kinds with explicit shapes, layouts, dtypes, phase, accumulation, accuracy, calibration, and structure.
+- `awen.blas.v1`: 25 executable dense, complex, batched complex, transformer (including fused attention and feed-forward), convolution/correlation, Fourier, structured, RF, reservoir, and propagation kernel kinds with explicit shapes, layouts, dtypes, phase, accumulation, accuracy, calibration, and structure.
 - `awen.blas.v1` backend/result/plan records: capability and provenance-bearing cost dispatch, every candidate decision, diagnosed CPU fallback, and deterministic fingerprints.
 - `awen.blas-benchmark.v1`: measured end-to-end CPU-reference versus deterministic-simulator conformance timing, numerical error, measurement boundary, and output checksum.
 

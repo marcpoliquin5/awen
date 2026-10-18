@@ -24,7 +24,7 @@ pub mod precision;
 pub mod simulator;
 
 pub use awenblas::kernels::{
-    benchmark_kernel, execute_reference as execute_kernel_reference,
+    all_kernel_kinds, benchmark_kernel, execute_reference as execute_kernel_reference,
     execute_simulator as execute_kernel_simulator, select_kernel, CalibrationInput, ComplexValue,
     KernelAttributes, KernelBackendProfile, KernelBenchmarkReport, KernelCandidateTrace,
     KernelCostEstimate, KernelData, KernelDescriptor, KernelExecutionPlan, KernelKind,
