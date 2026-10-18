@@ -1,0 +1,831 @@
+{
+  "config": {
+    "cost": "pace_like_128, CostModelInputs::from_capabilities(Assumed), GEMM 256x256x256 F16, tile 128, 16 wavelengths",
+    "gemm": "X[4,64] = sin(0.37 i), W[8,64] = cos(0.11 i)",
+    "seed": 7,
+    "tile_k": 16
+  },
+  "default": {
+    "cost": {
+      "effective_bits": 7,
+      "energy_breakdown_uj": {
+        "adc": 0.019507199999999995,
+        "calibration_amortization": 0.001,
+        "dac": 0.006144,
+        "detector": 0.003072,
+        "digital_accumulation": 0.016384,
+        "host_transfer": 0.393216,
+        "laser": 21.444294605431978,
+        "memory": 0.196608,
+        "modulation": 0.003072,
+        "support_system": 48.80148299999999
+      },
+      "energy_interval_uj": {
+        "expected": 70.88478080543197,
+        "lower": 70.64239216285677,
+        "upper": 71.12716944800718
+      },
+      "energy_uj": 70.88478080543197,
+      "estimated_error_fraction": 0.007961953525904604,
+      "latency_interval_ns": {
+        "expected": 32534.321999999996,
+        "lower": 32423.071742087366,
+        "upper": 32645.57225791263
+      },
+      "latency_ns": 32534.321999999996,
+      "provenance": [
+        {
+          "parameter": "host/link/memory transfer",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "DAC/ADC conversion",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "modulation/detection",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "optical propagation",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "laser/support power",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "digital accumulation",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "reconfiguration/calibration",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "SNR/insertion loss",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "queueing/overlap/residency",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        },
+        {
+          "parameter": "tensor layout/sparsity/error",
+          "reference": "reference-pace-like-128 capability snapshot",
+          "source": "assumed",
+          "uncertainty_fraction": 0.003419473684210526
+        }
+      ],
+      "throughput_gops": 1031.3548873094699
+    },
+    "noise": {
+      "contract": {
+        "adc_bits": 8,
+        "crosstalk_db": -35.0,
+        "dac_bits": 8,
+        "detection_bandwidth_hz": 10000000000.0,
+        "drift_rad_per_sqrt_s": 0.0,
+        "insertion_loss_db": 6.0,
+        "phase_sigma_rad": 0.002,
+        "photons_per_mac": 1000.0,
+        "quantum_efficiency": 0.8,
+        "rin_db_per_hz": -150.0,
+        "seconds_since_calibration": 0.0,
+        "thermal_noise_electrons": 100.0,
+        "version": "awen.photonic-noise-contract.v1"
+      },
+      "max_abs_error_vs_exact": 2.578891058277216,
+      "rms_error_vs_exact": 1.2259965581371104,
+      "tile_budget": {
+        "adc_quantization": 0.0022730325558646684,
+        "effective_bits": 4.005304848612007,
+        "full_scale_photoelectrons": 3215.2146323322627,
+        "rin": 0.0031622776601683794,
+        "shot": 0.017635793914505798,
+        "thermal": 0.03110212269949197,
+        "total": 0.03596567725497734
+      },
+      "y": [
+        2.640385224008863,
+        1.5930285693936321,
+        1.2827696314040637,
+        -2.4527942229828485,
+        -2.9968771541487316,
+        -4.198671315390812,
+        -0.9306191912783149,
+        2.5168713107994933,
+        1.3005714952406777,
+        -1.320223034989373,
+        -2.262759388020177,
+        -2.3008739371062896,
+        -4.289100978210993,
+        -0.5797246517873965,
+        3.590298967944763,
+        2.833491056891882,
+        -1.012088129043187,
+        -2.6819948899457784,
+        0.5975787396218764,
+        -0.49292646526085154,
+        4.753360967865202,
+        2.9911567900530183,
+        1.7167370606030208,
+        -3.2048323972786674,
+        -3.3472184062226606,
+        1.7325588105604364,
+        3.031044159753686,
+        1.1888443363169743,
+        2.92273014376707,
+        1.855261132711336,
+        -1.856592850927183,
+        -3.5749133942025297
+      ]
+    }
+  },
+  "opt_in": {
+    "high": {
+      "cost": {
+        "effective_bits": 7,
+        "energy_breakdown_uj": {
+          "adc": 0.019507199999999995,
+          "calibration_amortization": 0.001,
+          "dac": 0.006144,
+          "detector": 0.003072,
+          "digital_accumulation": 0.016384,
+          "host_transfer": 0.393216,
+          "laser": 21.444294605431978,
+          "memory": 0.196608,
+          "modulation": 0.003072,
+          "support_system": 48.80148299999999
+        },
+        "energy_interval_uj": {
+          "expected": 70.88478080543197,
+          "lower": 70.64239216285677,
+          "upper": 71.12716944800718
+        },
+        "energy_uj": 70.88478080543197,
+        "estimated_error_fraction": 0.007961953525904604,
+        "latency_interval_ns": {
+          "expected": 32534.321999999996,
+          "lower": 32423.071742087366,
+          "upper": 32645.57225791263
+        },
+        "latency_ns": 32534.321999999996,
+        "provenance": [
+          {
+            "parameter": "host/link/memory transfer",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "DAC/ADC conversion",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "modulation/detection",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "optical propagation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "laser/support power",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "digital accumulation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "reconfiguration/calibration",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "SNR/insertion loss",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "queueing/overlap/residency",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "tensor layout/sparsity/error",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "hardware assumption set",
+            "reference": "awen.hardware-assumptions.v0 (2026-10-18, High corner); applied: []",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          }
+        ],
+        "throughput_gops": 1031.3548873094699
+      },
+      "cost_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "high",
+        "fields": [
+          {
+            "assumption": "modulator.energy_per_symbol",
+            "field": "modulator_energy_pj_per_sample",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "fJ",
+            "value": 1.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      },
+      "noise": {
+        "contract": {
+          "adc_bits": 8,
+          "crosstalk_db": -35.0,
+          "dac_bits": 8,
+          "detection_bandwidth_hz": 10000000000.0,
+          "drift_rad_per_sqrt_s": 0.0,
+          "insertion_loss_db": 6.0,
+          "phase_sigma_rad": 0.002,
+          "photons_per_mac": 1000.0,
+          "quantum_efficiency": 0.8,
+          "rin_db_per_hz": -150.0,
+          "seconds_since_calibration": 0.0,
+          "thermal_noise_electrons": 100.0,
+          "version": "awen.photonic-noise-contract.v1"
+        },
+        "max_abs_error_vs_exact": 2.578891058277216,
+        "rms_error_vs_exact": 1.2259965581371104,
+        "tile_budget": {
+          "adc_quantization": 0.0022730325558646684,
+          "effective_bits": 4.005304848612007,
+          "full_scale_photoelectrons": 3215.2146323322627,
+          "rin": 0.0031622776601683794,
+          "shot": 0.017635793914505798,
+          "thermal": 0.03110212269949197,
+          "total": 0.03596567725497734
+        },
+        "y": [
+          2.640385224008863,
+          1.5930285693936321,
+          1.2827696314040637,
+          -2.4527942229828485,
+          -2.9968771541487316,
+          -4.198671315390812,
+          -0.9306191912783149,
+          2.5168713107994933,
+          1.3005714952406777,
+          -1.320223034989373,
+          -2.262759388020177,
+          -2.3008739371062896,
+          -4.289100978210993,
+          -0.5797246517873965,
+          3.590298967944763,
+          2.833491056891882,
+          -1.012088129043187,
+          -2.6819948899457784,
+          0.5975787396218764,
+          -0.49292646526085154,
+          4.753360967865202,
+          2.9911567900530183,
+          1.7167370606030208,
+          -3.2048323972786674,
+          -3.3472184062226606,
+          1.7325588105604364,
+          3.031044159753686,
+          1.1888443363169743,
+          2.92273014376707,
+          1.855261132711336,
+          -1.856592850927183,
+          -3.5749133942025297
+        ]
+      },
+      "noise_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "high",
+        "fields": [
+          {
+            "assumption": "dac.weight_dac_bits",
+            "field": "dac_bits",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "bits",
+            "value": 8.0
+          },
+          {
+            "assumption": "laser.rin",
+            "field": "rin_db_per_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB/Hz",
+            "value": -150.0
+          },
+          {
+            "assumption": "photodetector.bandwidth",
+            "field": "detection_bandwidth_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "GHz",
+            "value": 10000000000.0
+          },
+          {
+            "assumption": "mzi.crosstalk",
+            "field": "crosstalk_db",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB",
+            "value": -35.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      }
+    },
+    "low": {
+      "cost": {
+        "effective_bits": 7,
+        "energy_breakdown_uj": {
+          "adc": 0.019507199999999995,
+          "calibration_amortization": 0.001,
+          "dac": 0.006144,
+          "detector": 0.003072,
+          "digital_accumulation": 0.016384,
+          "host_transfer": 0.393216,
+          "laser": 21.444294605431978,
+          "memory": 0.196608,
+          "modulation": 0.003072,
+          "support_system": 48.80148299999999
+        },
+        "energy_interval_uj": {
+          "expected": 70.88478080543197,
+          "lower": 70.64239216285677,
+          "upper": 71.12716944800718
+        },
+        "energy_uj": 70.88478080543197,
+        "estimated_error_fraction": 0.007961953525904604,
+        "latency_interval_ns": {
+          "expected": 32534.321999999996,
+          "lower": 32423.071742087366,
+          "upper": 32645.57225791263
+        },
+        "latency_ns": 32534.321999999996,
+        "provenance": [
+          {
+            "parameter": "host/link/memory transfer",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "DAC/ADC conversion",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "modulation/detection",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "optical propagation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "laser/support power",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "digital accumulation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "reconfiguration/calibration",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "SNR/insertion loss",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "queueing/overlap/residency",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "tensor layout/sparsity/error",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "hardware assumption set",
+            "reference": "awen.hardware-assumptions.v0 (2026-10-18, Low corner); applied: []",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          }
+        ],
+        "throughput_gops": 1031.3548873094699
+      },
+      "cost_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "low",
+        "fields": [
+          {
+            "assumption": "modulator.energy_per_symbol",
+            "field": "modulator_energy_pj_per_sample",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "fJ",
+            "value": 1.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      },
+      "noise": {
+        "contract": {
+          "adc_bits": 8,
+          "crosstalk_db": -35.0,
+          "dac_bits": 8,
+          "detection_bandwidth_hz": 10000000000.0,
+          "drift_rad_per_sqrt_s": 0.0,
+          "insertion_loss_db": 6.0,
+          "phase_sigma_rad": 0.002,
+          "photons_per_mac": 1000.0,
+          "quantum_efficiency": 0.8,
+          "rin_db_per_hz": -150.0,
+          "seconds_since_calibration": 0.0,
+          "thermal_noise_electrons": 100.0,
+          "version": "awen.photonic-noise-contract.v1"
+        },
+        "max_abs_error_vs_exact": 2.578891058277216,
+        "rms_error_vs_exact": 1.2259965581371104,
+        "tile_budget": {
+          "adc_quantization": 0.0022730325558646684,
+          "effective_bits": 4.005304848612007,
+          "full_scale_photoelectrons": 3215.2146323322627,
+          "rin": 0.0031622776601683794,
+          "shot": 0.017635793914505798,
+          "thermal": 0.03110212269949197,
+          "total": 0.03596567725497734
+        },
+        "y": [
+          2.640385224008863,
+          1.5930285693936321,
+          1.2827696314040637,
+          -2.4527942229828485,
+          -2.9968771541487316,
+          -4.198671315390812,
+          -0.9306191912783149,
+          2.5168713107994933,
+          1.3005714952406777,
+          -1.320223034989373,
+          -2.262759388020177,
+          -2.3008739371062896,
+          -4.289100978210993,
+          -0.5797246517873965,
+          3.590298967944763,
+          2.833491056891882,
+          -1.012088129043187,
+          -2.6819948899457784,
+          0.5975787396218764,
+          -0.49292646526085154,
+          4.753360967865202,
+          2.9911567900530183,
+          1.7167370606030208,
+          -3.2048323972786674,
+          -3.3472184062226606,
+          1.7325588105604364,
+          3.031044159753686,
+          1.1888443363169743,
+          2.92273014376707,
+          1.855261132711336,
+          -1.856592850927183,
+          -3.5749133942025297
+        ]
+      },
+      "noise_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "low",
+        "fields": [
+          {
+            "assumption": "dac.weight_dac_bits",
+            "field": "dac_bits",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "bits",
+            "value": 8.0
+          },
+          {
+            "assumption": "laser.rin",
+            "field": "rin_db_per_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB/Hz",
+            "value": -150.0
+          },
+          {
+            "assumption": "photodetector.bandwidth",
+            "field": "detection_bandwidth_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "GHz",
+            "value": 10000000000.0
+          },
+          {
+            "assumption": "mzi.crosstalk",
+            "field": "crosstalk_db",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB",
+            "value": -35.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      }
+    },
+    "typical": {
+      "cost": {
+        "effective_bits": 7,
+        "energy_breakdown_uj": {
+          "adc": 0.019507199999999995,
+          "calibration_amortization": 0.001,
+          "dac": 0.006144,
+          "detector": 0.003072,
+          "digital_accumulation": 0.016384,
+          "host_transfer": 0.393216,
+          "laser": 21.444294605431978,
+          "memory": 0.196608,
+          "modulation": 0.003072,
+          "support_system": 48.80148299999999
+        },
+        "energy_interval_uj": {
+          "expected": 70.88478080543197,
+          "lower": 70.64239216285677,
+          "upper": 71.12716944800718
+        },
+        "energy_uj": 70.88478080543197,
+        "estimated_error_fraction": 0.007961953525904604,
+        "latency_interval_ns": {
+          "expected": 32534.321999999996,
+          "lower": 32423.071742087366,
+          "upper": 32645.57225791263
+        },
+        "latency_ns": 32534.321999999996,
+        "provenance": [
+          {
+            "parameter": "host/link/memory transfer",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "DAC/ADC conversion",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "modulation/detection",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "optical propagation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "laser/support power",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "digital accumulation",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "reconfiguration/calibration",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "SNR/insertion loss",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "queueing/overlap/residency",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "tensor layout/sparsity/error",
+            "reference": "reference-pace-like-128 capability snapshot",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          },
+          {
+            "parameter": "hardware assumption set",
+            "reference": "awen.hardware-assumptions.v0 (2026-10-18, Typical corner); applied: []",
+            "source": "assumed",
+            "uncertainty_fraction": 0.003419473684210526
+          }
+        ],
+        "throughput_gops": 1031.3548873094699
+      },
+      "cost_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "typical",
+        "fields": [
+          {
+            "assumption": "modulator.energy_per_symbol",
+            "field": "modulator_energy_pj_per_sample",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "fJ",
+            "value": 1.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      },
+      "noise": {
+        "contract": {
+          "adc_bits": 8,
+          "crosstalk_db": -35.0,
+          "dac_bits": 8,
+          "detection_bandwidth_hz": 10000000000.0,
+          "drift_rad_per_sqrt_s": 0.0,
+          "insertion_loss_db": 6.0,
+          "phase_sigma_rad": 0.002,
+          "photons_per_mac": 1000.0,
+          "quantum_efficiency": 0.8,
+          "rin_db_per_hz": -150.0,
+          "seconds_since_calibration": 0.0,
+          "thermal_noise_electrons": 100.0,
+          "version": "awen.photonic-noise-contract.v1"
+        },
+        "max_abs_error_vs_exact": 2.578891058277216,
+        "rms_error_vs_exact": 1.2259965581371104,
+        "tile_budget": {
+          "adc_quantization": 0.0022730325558646684,
+          "effective_bits": 4.005304848612007,
+          "full_scale_photoelectrons": 3215.2146323322627,
+          "rin": 0.0031622776601683794,
+          "shot": 0.017635793914505798,
+          "thermal": 0.03110212269949197,
+          "total": 0.03596567725497734
+        },
+        "y": [
+          2.640385224008863,
+          1.5930285693936321,
+          1.2827696314040637,
+          -2.4527942229828485,
+          -2.9968771541487316,
+          -4.198671315390812,
+          -0.9306191912783149,
+          2.5168713107994933,
+          1.3005714952406777,
+          -1.320223034989373,
+          -2.262759388020177,
+          -2.3008739371062896,
+          -4.289100978210993,
+          -0.5797246517873965,
+          3.590298967944763,
+          2.833491056891882,
+          -1.012088129043187,
+          -2.6819948899457784,
+          0.5975787396218764,
+          -0.49292646526085154,
+          4.753360967865202,
+          2.9911567900530183,
+          1.7167370606030208,
+          -3.2048323972786674,
+          -3.3472184062226606,
+          1.7325588105604364,
+          3.031044159753686,
+          1.1888443363169743,
+          2.92273014376707,
+          1.855261132711336,
+          -1.856592850927183,
+          -3.5749133942025297
+        ]
+      },
+      "noise_report": {
+        "assumption_date": "2026-10-18",
+        "assumption_set": "awen.hardware-assumptions.v0",
+        "corner": "typical",
+        "fields": [
+          {
+            "assumption": "dac.weight_dac_bits",
+            "field": "dac_bits",
+            "from_assumptions": true,
+            "source": "hua2025",
+            "source_type": "measured",
+            "unit": "bits",
+            "value": 8.0
+          },
+          {
+            "assumption": "laser.rin",
+            "field": "rin_db_per_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB/Hz",
+            "value": -150.0
+          },
+          {
+            "assumption": "photodetector.bandwidth",
+            "field": "detection_bandwidth_hz",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "GHz",
+            "value": 10000000000.0
+          },
+          {
+            "assumption": "mzi.crosstalk",
+            "field": "crosstalk_db",
+            "from_assumptions": false,
+            "source": null,
+            "source_type": null,
+            "unit": "dB",
+            "value": -35.0
+          }
+        ],
+        "version": "awen.assumption-report.v0"
+      }
+    }
+  }
+}
