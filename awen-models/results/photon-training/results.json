@@ -1,0 +1,758 @@
+{
+  "version": "awen.photon-noise-training.v1",
+  "fidelity": "simulated",
+  "evidence": "Accuracies are measured on the MNIST test set with GEMMs executed by the AWEN Rust compact noise model (simulated, not hardware). Optical energy per MAC is modeled photon energy only.",
+  "dataset": {
+    "name": "mnist",
+    "license": "MNIST (LeCun, Cortes, Burges), CC BY-SA 3.0",
+    "test_examples": 10000,
+    "files": {
+      "train-images-idx3-ubyte.gz": "440fcabf73cc546fa21475e81ea370265605f56be210a4024d2ca8f203523609",
+      "train-labels-idx1-ubyte.gz": "3552534a0a558bbed6aed32b30c495cca23d567ec52cac8be1a0730e8010255c",
+      "t10k-images-idx3-ubyte.gz": "8d422c7b0a1c1c79245a5bcf07fe86e33eeafee792b84584aec276f5a2dbc4e6",
+      "t10k-labels-idx1-ubyte.gz": "f7ae60f92e00ec6debd23a6088c31dbd2371eca3ffa0defaefb259924204aec6"
+    }
+  },
+  "settings": {
+    "hidden": 128,
+    "epochs": 3,
+    "batch_size": 128,
+    "lr": 0.002,
+    "tile_k": 64,
+    "train_limit": null,
+    "test_limit": null
+  },
+  "base_contract": {
+    "version": "awen.photonic-noise-contract.v1",
+    "photons_per_mac": 1000.0,
+    "quantum_efficiency": 0.8,
+    "insertion_loss_db": 6.0,
+    "phase_sigma_rad": 0.002,
+    "drift_rad_per_sqrt_s": 0.0,
+    "seconds_since_calibration": 0.0,
+    "rin_db_per_hz": -150.0,
+    "detection_bandwidth_hz": 10000000000.0,
+    "thermal_noise_electrons": 100.0,
+    "crosstalk_db": -35.0,
+    "dac_bits": 8,
+    "adc_bits": 8
+  },
+  "wavelength_m": 1.55e-06,
+  "seeds": [
+    1,
+    2
+  ],
+  "points": [
+    {
+      "photons_per_mac": 10.0,
+      "tile_effective_bits": -0.438622289544398,
+      "optical_energy_per_mac_j": 1.2815779723541476e-18
+    },
+    {
+      "photons_per_mac": 30.0,
+      "tile_effective_bits": 1.1282674489608686,
+      "optical_energy_per_mac_j": 3.844733917062443e-18
+    },
+    {
+      "photons_per_mac": 100.0,
+      "tile_effective_bits": 2.803990577863092,
+      "optical_energy_per_mac_j": 1.2815779723541474e-17
+    },
+    {
+      "photons_per_mac": 300.0,
+      "tile_effective_bits": 4.230939307549711,
+      "optical_energy_per_mac_j": 3.8447339170624424e-17
+    },
+    {
+      "photons_per_mac": 1000.0,
+      "tile_effective_bits": 5.543519656019143,
+      "optical_energy_per_mac_j": 1.2815779723541477e-16
+    },
+    {
+      "photons_per_mac": 3000.0,
+      "tile_effective_bits": 6.384579702707445,
+      "optical_energy_per_mac_j": 3.8447339170624426e-16
+    },
+    {
+      "photons_per_mac": 10000.0,
+      "tile_effective_bits": 6.895412250520888,
+      "optical_energy_per_mac_j": 1.2815779723541477e-15
+    },
+    {
+      "photons_per_mac": 100000.0,
+      "tile_effective_bits": 7.176414955419099,
+      "optical_energy_per_mac_j": 1.2815779723541474e-14
+    }
+  ],
+  "runs": [
+    {
+      "regime": {
+        "name": "standard",
+        "noisy": false,
+        "photons_per_mac": null
+      },
+      "seed": 1,
+      "train_seconds": 0.8848823469998024,
+      "final_train_loss": 0.10230253338813781,
+      "ideal_accuracy": 0.9689,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.1007,
+          "ci95": [
+            0.09495422660505048,
+            0.10675244575969384
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.1051,
+          "ci95": [
+            0.09923991612657682,
+            0.11126337692836316
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.1404,
+          "ci95": [
+            0.13372892753401017,
+            0.1473472542399995
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.3483,
+          "ci95": [
+            0.33902180589574826,
+            0.357694703490006
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.8132,
+          "ci95": [
+            0.8054411297237637,
+            0.8207183248601634
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.942,
+          "ci95": [
+            0.9372466308970622,
+            0.9464139020725921
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.9629,
+          "ci95": [
+            0.9590141544995893,
+            0.9664303267484943
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.9675,
+          "ci95": [
+            0.9638409595636264,
+            0.9707999887696619
+          ]
+        }
+      ]
+    },
+    {
+      "regime": {
+        "name": "standard",
+        "noisy": false,
+        "photons_per_mac": null
+      },
+      "seed": 2,
+      "train_seconds": 0.9155676909977046,
+      "final_train_loss": 0.09315621864050627,
+      "ideal_accuracy": 0.9723,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.097,
+          "ci95": [
+            0.09135303429490885,
+            0.10295647976217098
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.098,
+          "ci95": [
+            0.0923260801259665,
+            0.10398266590615778
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.1367,
+          "ci95": [
+            0.13010616410337295,
+            0.1435728593629722
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.3656,
+          "ci95": [
+            0.3562139618061339,
+            0.37508926074788956
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.8346,
+          "ci95": [
+            0.8271895671803037,
+            0.8417534516695749
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.9485,
+          "ci95": [
+            0.9439932798287342,
+            0.9526622609787091
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.9645,
+          "ci95": [
+            0.96069115675142,
+            0.9679520956567349
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.9677,
+          "ci95": [
+            0.9640512153624751,
+            0.970989579365822
+          ]
+        }
+      ]
+    },
+    {
+      "regime": {
+        "name": "noise-aware-100",
+        "noisy": true,
+        "photons_per_mac": 100.0
+      },
+      "seed": 1,
+      "train_seconds": 11.764299688002211,
+      "final_train_loss": 1286.3925952148438,
+      "ideal_accuracy": 0.8708,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.1055,
+          "ci95": [
+            0.09962968990101843,
+            0.11167329594393934
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.1507,
+          "ci95": [
+            0.1438221771151333,
+            0.1578460940018344
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.5107,
+          "ci95": [
+            0.5009000158765731,
+            0.5204917662564028
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.8133,
+          "ci95": [
+            0.8055426656705145,
+            0.8208167121109171
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.8632,
+          "ci95": [
+            0.8563251084852995,
+            0.8697959448508507
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.8691,
+          "ci95": [
+            0.8623471081115489,
+            0.8755694138773636
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.8715,
+          "ci95": [
+            0.8647979914232949,
+            0.8779166873057246
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.8695,
+          "ci95": [
+            0.8627555371806773,
+            0.8759606775982532
+          ]
+        }
+      ]
+    },
+    {
+      "regime": {
+        "name": "noise-aware-100",
+        "noisy": true,
+        "photons_per_mac": 100.0
+      },
+      "seed": 2,
+      "train_seconds": 11.337130732998048,
+      "final_train_loss": 1258.494599609375,
+      "ideal_accuracy": 0.8691,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.1048,
+          "ci95": [
+            0.0989476035979539,
+            0.11095591986447276
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.1439,
+          "ci95": [
+            0.13715733784037068,
+            0.15091615584629467
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.5084,
+          "ci95": [
+            0.4986000384139671,
+            0.5181935101764064
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.8052,
+          "ci95": [
+            0.797320890490157,
+            0.8128447082934143
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.8554,
+          "ci95": [
+            0.8483702315900185,
+            0.8621568123407851
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.8643,
+          "ci95": [
+            0.8574475287336673,
+            0.8708726797750318
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.867,
+          "ci95": [
+            0.8602031884542378,
+            0.8735149463870815
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.8676,
+          "ci95": [
+            0.8608156801978565,
+            0.8741019938284896
+          ]
+        }
+      ]
+    },
+    {
+      "regime": {
+        "name": "noise-aware-1000",
+        "noisy": true,
+        "photons_per_mac": 1000.0
+      },
+      "seed": 1,
+      "train_seconds": 10.924318198998662,
+      "final_train_loss": 0.6167522051930427,
+      "ideal_accuracy": 0.9526,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.101,
+          "ci95": [
+            0.09524632453150739,
+            0.1070601174257503
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.107,
+          "ci95": [
+            0.10109158095211607,
+            0.11321025285540842
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.1896,
+          "ci95": [
+            0.18203685200902456,
+            0.1974015429371729
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.5759,
+          "ci95": [
+            0.5661862395710732,
+            0.5855554673348017
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.9036,
+          "ci95": [
+            0.897659322340099,
+            0.9092307027878477
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.9415,
+          "ci95": [
+            0.9367283624935278,
+            0.9459325544886042
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.9466,
+          "ci95": [
+            0.9420193454676271,
+            0.9508376545872317
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.9507,
+          "ci95": [
+            0.9462809355358969,
+            0.9547729156166443
+          ]
+        }
+      ]
+    },
+    {
+      "regime": {
+        "name": "noise-aware-1000",
+        "noisy": true,
+        "photons_per_mac": 1000.0
+      },
+      "seed": 2,
+      "train_seconds": 11.446211108999705,
+      "final_train_loss": 0.6977770841121673,
+      "ideal_accuracy": 0.9581,
+      "sweep": [
+        {
+          "photons_per_mac": 10.0,
+          "tile_effective_bits": -0.438622289544398,
+          "optical_energy_per_mac_j": 1.2815779723541476e-18,
+          "accuracy": 0.0988,
+          "ci95": [
+            0.09310465093662777,
+            0.10480348067553207
+          ]
+        },
+        {
+          "photons_per_mac": 30.0,
+          "tile_effective_bits": 1.1282674489608686,
+          "optical_energy_per_mac_j": 3.844733917062443e-18,
+          "accuracy": 0.1015,
+          "ci95": [
+            0.095733190139227,
+            0.10757286780555293
+          ]
+        },
+        {
+          "photons_per_mac": 100.0,
+          "tile_effective_bits": 2.803990577863092,
+          "optical_energy_per_mac_j": 1.2815779723541474e-17,
+          "accuracy": 0.1753,
+          "ci95": [
+            0.16797269605367587,
+            0.18287668164938575
+          ]
+        },
+        {
+          "photons_per_mac": 300.0,
+          "tile_effective_bits": 4.230939307549711,
+          "optical_energy_per_mac_j": 3.8447339170624424e-17,
+          "accuracy": 0.5649,
+          "ci95": [
+            0.5551598176260094,
+            0.5745903375543765
+          ]
+        },
+        {
+          "photons_per_mac": 1000.0,
+          "tile_effective_bits": 5.543519656019143,
+          "optical_energy_per_mac_j": 1.2815779723541477e-16,
+          "accuracy": 0.9151,
+          "ci95": [
+            0.909476156551318,
+            0.9204050362896402
+          ]
+        },
+        {
+          "photons_per_mac": 3000.0,
+          "tile_effective_bits": 6.384579702707445,
+          "optical_energy_per_mac_j": 3.8447339170624426e-16,
+          "accuracy": 0.9499,
+          "ci95": [
+            0.9454487986700216,
+            0.954005666902484
+          ]
+        },
+        {
+          "photons_per_mac": 10000.0,
+          "tile_effective_bits": 6.895412250520888,
+          "optical_energy_per_mac_j": 1.2815779723541477e-15,
+          "accuracy": 0.9556,
+          "ci95": [
+            0.9513847794675595,
+            0.9594653083626995
+          ]
+        },
+        {
+          "photons_per_mac": 100000.0,
+          "tile_effective_bits": 7.176414955419099,
+          "optical_energy_per_mac_j": 1.2815779723541474e-14,
+          "accuracy": 0.9567,
+          "ci95": [
+            0.9525323143049796,
+            0.9605169286978282
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "standard": {
+      "ideal_accuracy_mean": 0.9706,
+      "sweep_accuracy_mean": [
+        0.09885,
+        0.10155,
+        0.13855,
+        0.35695,
+        0.8239000000000001,
+        0.9452499999999999,
+        0.9637,
+        0.9676
+      ],
+      "sweep_accuracy_min": [
+        0.097,
+        0.098,
+        0.1367,
+        0.3483,
+        0.8132,
+        0.942,
+        0.9629,
+        0.9675
+      ],
+      "sweep_accuracy_max": [
+        0.1007,
+        0.1051,
+        0.1404,
+        0.3656,
+        0.8346,
+        0.9485,
+        0.9645,
+        0.9677
+      ]
+    },
+    "noise-aware-100": {
+      "ideal_accuracy_mean": 0.86995,
+      "sweep_accuracy_mean": [
+        0.10515,
+        0.1473,
+        0.50955,
+        0.80925,
+        0.8593,
+        0.8667,
+        0.8692500000000001,
+        0.86855
+      ],
+      "sweep_accuracy_min": [
+        0.1048,
+        0.1439,
+        0.5084,
+        0.8052,
+        0.8554,
+        0.8643,
+        0.867,
+        0.8676
+      ],
+      "sweep_accuracy_max": [
+        0.1055,
+        0.1507,
+        0.5107,
+        0.8133,
+        0.8632,
+        0.8691,
+        0.8715,
+        0.8695
+      ]
+    },
+    "noise-aware-1000": {
+      "ideal_accuracy_mean": 0.9553499999999999,
+      "sweep_accuracy_mean": [
+        0.0999,
+        0.10425000000000001,
+        0.18245,
+        0.5704,
+        0.90935,
+        0.9457,
+        0.9511000000000001,
+        0.9537
+      ],
+      "sweep_accuracy_min": [
+        0.0988,
+        0.1015,
+        0.1753,
+        0.5649,
+        0.9036,
+        0.9415,
+        0.9466,
+        0.9507
+      ],
+      "sweep_accuracy_max": [
+        0.101,
+        0.107,
+        0.1896,
+        0.5759,
+        0.9151,
+        0.9499,
+        0.9556,
+        0.9567
+      ]
+    }
+  },
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 6,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  }
+}
