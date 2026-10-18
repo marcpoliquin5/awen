@@ -32,6 +32,8 @@ currently labeled *measured* against photonic hardware.
 
 ## Truth table
 
+Rows marked "since #N" were updated after the baseline; the rest describe `020be48`.
+
 | Capability | Status | Fidelity | Evidence | Gap / issue |
 | --- | --- | --- | --- | --- |
 | Tensor IR validation, precision/scaling/error contracts | implemented | analytic | compiler tests | Contracts are dimensionless fractions, not physical units (#56) |
@@ -43,21 +45,21 @@ currently labeled *measured* against photonic hardware.
 | Calibrated transfer simulator (`awenctl benchmark`) | experimental | compact model | CLI smoke test | Noise is fractional, not photon/ENOB based (#57) |
 | awenBLAS (22 kernel kinds) | implemented (reference) | analytic | `awenblas_kernels.rs` | GPU/photonic paths are simulated dispatch (#65) |
 | MLIR StableHLO `dot_general` → AWENEXE | partial | n/a | CTest | Rank 2 and equal-batch rank 3 only |
-| `awenctl execute` | partial | n/a | ABI step in CI | Validates and prepares dispatches; performs no arithmetic (#59) |
+| `awenctl execute` | implemented (since #82) | compact model | ABI step in CI | GEMM dispatches only |
 | C/C++ GEMM ABI | implemented | analytic | C++20 consumer in CI | f32/f64 GEMM only (#66) |
 | HAL | experimental | n/a | unit tests | Only `SimulatedDevice`; no hardware driver (#67) |
 | Scheduler, observability, artifacts, plugin registry | implemented | n/a | integration tests | No streams/events, multi-device, plugin isolation (#64) |
 | HIL benchmark orchestration and claim generator | implemented | n/a | `hil_benchmark_conformance` | Zero physical artifacts exist |
 | Quantum Gaussian/Fock experiments | experimental | numerical | `quantum_integration.rs` | No permanents, boson sampling or resource model (#69) |
-| Python `torch.compile` backend, JAX StableHLO, NumPy API | partial | analytic | pytest | Pure Python: GEMMs run on the host framework, not the Rust stack (#59) |
-| PyTorch PrivateUse1 device | missing | | | #60 |
+| Python `torch.compile` backend, JAX StableHLO, NumPy API | partial | analytic / compact model | pytest | `target="photonic"` routes GEMMs through Rust via `awen-native` since #84; other targets use host framework math |
+| PyTorch PrivateUse1 device | partial (since #87) | compact model | `test_device.py` (6) | Inference only; mm/addmm/bmm/add/relu |
 | OpenXLA PJRT plugin | missing | | | #61 |
 | ONNX import | missing | | | #63 |
 | Physics solvers (mode solver, FDTD, BPM, rings, SHG) | missing | | | #68 |
-| Physical-unit noise model | missing | | | #56, #57 |
-| Physics validation notebooks | missing | | | #58 |
+| Physical-unit noise model | implemented (since #80) | compact model | Monte Carlo vs closed form in `noise.rs` | Parameter values are illustrative, not measured |
+| Physics validation notebooks | implemented (since #86) | analytic / numerical | `awen-physics/tests/test_notebooks.py` | Slab, Clements mesh, ENOB only; solvers in #68 |
 | Memory subsystem / fabric simulators | missing | | | #70, #71 |
-| Trained model checkpoints | missing | | | AWEN-Mini (this directive) |
+| Trained model checkpoints | implemented (since #83) | measured (CPU training) | `awen-models` tests reproduce recorded loss | AWEN-Mini 1.0M params, char-level |
 | Studio, Lab Agent | missing (removed earlier as nonfunctional) | | | #75, #76 |
 | Hosted cloud | not offered | | | Architecture document only |
 | Supply chain (SBOM, binary release artifacts) | partial | | release workflow publishes source only | #78 |
