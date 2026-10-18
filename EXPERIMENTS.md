@@ -27,4 +27,5 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
 an independently parameterized noise model (sim-to-real control); `awen-spec/hardware_assumptions.yaml`
-exists (merged in #126) but no experiment reads it yet.
+exists (merged in #126 and #130) but no experiment reads it yet; the device literals the compiler
+still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml` (40, checked in CI).

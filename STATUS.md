@@ -1,8 +1,9 @@
 # AWEN status
 
-Updated 2026-10-18 11:50 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-Main is `ee2e8cf` (#127), after `840f5c5` (#126) and `0235668` (#125). Truth-table counts were measured at
-`0235668`. Gates passed on `0235668` (run 39140149777) and `840f5c5` (run 39141006838); the gate on `ee2e8cf` (run 39142255032) was running at this commit.
+Updated 2026-10-18 12:45 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `132d4d9` (#130), after `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and
+`0235668` (#125). Truth-table counts were measured at `0235668`. Gates passed on `0235668` (run 39140149777),
+`840f5c5` (run 39141006838) and `132d4d9` (run 39143781587).
 
 ## Current phase
 
@@ -10,7 +11,8 @@ Main is `ee2e8cf` (#127), after `840f5c5` (#126) and `0235668` (#125). Truth-tab
 engineering already exists from the earlier directive (see the truth table), but
 several earlier agent decisions now need Marc's ratification
 ([DECISIONS.md](DECISIONS.md), D-007 to D-012), so Phase 0 is not done until they
-are settled. `awen-spec/hardware_assumptions.yaml` v0 is merged (#126); nothing reads it yet.
+are settled. `awen-spec/hardware_assumptions.yaml` v0 is merged (#126, #130); no code reads it yet, and the
+device literals still hard-coded in `awen-compiler` are listed in `awen-spec/hardcoded_device_defaults.yaml`.
 
 ## Evidence levels
 
@@ -46,7 +48,8 @@ command shown.
 | Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests, measured @ 0235668: `cd awen-lab && pytest -q` |
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
-| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up PR #130 in review |
+| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`) |
+| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | 40 literals in 7 code blocks: 36 unsourced, 3 differ from the assumption set, 1 matches; `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
 
@@ -59,7 +62,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 | Gap | v2 section | Current level | Needed |
 | --- | --- | --- | --- |
-| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126), not read by any code | wiring, no hard-coded device energies |
+| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; 40 hard-coded literals inventoried and checked in CI | loader in `awen-compiler`, then replace inventoried literals one block at a time |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
@@ -71,7 +74,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | 2026-10-18-01 merged #127 (`ee2e8cf`) | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` (#127), `2026-10-18-02.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -97,8 +100,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
   and held by Marc only; the agent must never create or hold it. Blocked on Marc.
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
-- Device energies and noise defaults are still hard-coded in the noise contract until the
-  noise model and cost estimates read `hardware_assumptions.yaml`.
+- Device energies and noise defaults are still hard-coded in `awen-compiler` (40 literals, listed in
+  `awen-spec/hardcoded_device_defaults.yaml`) until the noise model and cost estimates read
+  `hardware_assumptions.yaml`. 36 have no checked value in the assumption set yet, so wiring them needs
+  sourced values first, never guesses.
 
 ## In progress (draft, not merged)
 
@@ -110,8 +115,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 ## Next 3 tasks
 
-1. Make the noise model and cost estimates read `awen-spec/hardware_assumptions.yaml`, with no
-   hard-coded device energies.
+1. Wiring `hardware_assumptions.yaml`, slice 2 (slice 1, the CI-checked inventory, is done): load the file
+   in `awen-compiler`, record the assumption-set version in cost estimates, and make the 3 literals that
+   differ from it (reference descriptor ADC energy 4.0 pJ, DAC 10 bits, effective bits 8) either read the
+   file or carry an explicit "illustrative" label, with compatibility notes.
 2. Pre-register H1-H4 with configs, then run H1 (accuracy per dB, ≥3 tasks, ≥5 fabrication-noise
    seeds) and H3 on CPU; draft PRs only.
 3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).
