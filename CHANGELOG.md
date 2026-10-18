@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
+  separate from the classical photonic domain (AEP-0020): permanents by
+  Ryser's formula, Fock-space linear optics, exact boson sampling for small
+  n, the Hong-Ou-Mandel dip with partial distinguishability, and photon
+  counting with detection efficiency, uniform loss and dark counts. Checked
+  against brute-force permutation sums, explicit creation-operator
+  expansion, closed-form HOM coincidence and an environment-mode loss
+  oracle. Simulation only (#97, refs #69).
 - `awen-physics`: χ⁽²⁾ second-harmonic generation by integrating the
   coupled-wave equations (`shg`), checked against the undepleted sinc²,
   depleted tanh² and first-order quasi-phase-matching closed forms; and a
