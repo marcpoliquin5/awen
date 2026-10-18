@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-10-18 13:04 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-10-18 13:16 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 This commit is based on main `c02eee9` (#131), after `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127),
 `840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at `0235668`; the inventory counts
 at `c02eee9` with this change. Gates passed on `0235668` (run 39140149777), `840f5c5` (run 39141006838) and
@@ -50,7 +50,7 @@ command shown.
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
 | Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`) |
-| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` code, two literal forms: single-line `field: <number>,` device literals (95) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38); 133 entries in 36 functions (88 unsourced, 21 numeric guards, 20 definitional, 3 differ from the assumption set, 1 matches). Not covered: integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern; `awen-runtime` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
+| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` code, two literal forms: single-line `field: <number>,` device literals (95) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38); 133 entries in 36 functions (88 unsourced, 21 numeric guards, 20 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern; `awen-runtime` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
 
