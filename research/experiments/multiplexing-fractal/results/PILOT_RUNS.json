@@ -1,0 +1,19 @@
+{
+ "note": "PILOT runs made before pre-registration (Master Prompt v2 section 10); not evidence for H1-H4.",
+ "git_sha_of_code": "2c3e38a9c4337c15d56ccd0fb249e6e749a265dc",
+ "host": {
+  "cpu": "Intel Xeon, 8 vCPU",
+  "ram_gib": 15,
+  "gpu": null,
+  "os": "Linux-6.12.94+-x86_64-with-glibc2.41",
+  "python": "3.13.5",
+  "torch": "2.14.1+cpu"
+ },
+ "commands": {
+  "meshes_n8.json": "OMP_NUM_THREADS=1 python meshes.py --modes 8  (module now h1_meshes.py)",
+  "meshes_n16.json": "OMP_NUM_THREADS=1 python meshes.py --modes 16 --targets 8 --restarts 2 --steps 800",
+  "stacks.json": "OMP_NUM_THREADS=1 python stacks.py  (module now h3_stacks.py)",
+  "h2_pilot_partial_runs.jsonl": "OMP_NUM_THREADS=4 python structured_weights.py --seeds {1,2} --threads 4 (two processes in parallel; module now h2_structured_weights.py); rows copied from the run logs while kron3/recursive/recursive-monarch were still training; batch-1 latency measured under that concurrent load"
+ },
+ "started_et": "2026-10-18 10:58-11:01 ET"
+}
