@@ -2,19 +2,17 @@ use awen_compiler::{
     AdapterKind, DataClassification, MappingRequest, PhysicalDesignBinding, PHYSICAL_DESIGN_VERSION,
 };
 use awen_runtime::plugins::{PluginManifest, PluginRegistry, PLUGIN_MANIFEST_VERSION};
-use jsonschema::JSONSchema;
+use awen_runtime::schema::Validator;
 
-fn validator() -> JSONSchema {
+fn validator() -> Validator {
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../awen-spec/schemas/awen_physical_design.v1.json"
     ))
     .expect("physical-design schema JSON");
-    JSONSchema::options()
-        .compile(&schema)
-        .expect("compile physical-design schema")
+    awen_runtime::schema::compile(&schema).expect("compile physical-design schema")
 }
 
-fn plugin_validator() -> JSONSchema {
+fn plugin_validator() -> Validator {
     let physical: serde_json::Value = serde_json::from_str(include_str!(
         "../../awen-spec/schemas/awen_physical_design.v1.json"
     ))
@@ -23,13 +21,34 @@ fn plugin_validator() -> JSONSchema {
         "../../awen-spec/schemas/awen_plugin_manifest.v1.json"
     ))
     .expect("plugin schema JSON");
-    JSONSchema::options()
-        .with_document(
-            "https://awen.dev/schemas/awen_physical_design.v1.json".to_string(),
-            physical,
-        )
-        .compile(&plugin)
-        .expect("compile plugin schema with physical-design adapter reference")
+    // The manifest schema also references the device-capability schema, which
+    // references the calibration snapshot; all must be supplied (offline).
+    let capability: serde_json::Value = serde_json::from_str(include_str!(
+        "../../awen-spec/schemas/awen_device_capability.v1.json"
+    ))
+    .expect("capability schema JSON");
+    let calibration: serde_json::Value = serde_json::from_str(include_str!(
+        "../../awen-spec/schemas/awen_calibration_snapshot.v1.json"
+    ))
+    .expect("calibration schema JSON");
+    awen_runtime::schema::compile_with(
+        &plugin,
+        &[
+            (
+                "https://awen.dev/schemas/awen_physical_design.v1.json",
+                &physical,
+            ),
+            (
+                "https://awen.dev/schemas/awen_device_capability.v1.json",
+                &capability,
+            ),
+            (
+                "https://awen.dev/schemas/awen_calibration_snapshot.v1.json",
+                &calibration,
+            ),
+        ],
+    )
+    .expect("compile plugin schema with physical-design adapter reference")
 }
 
 fn binding() -> PhysicalDesignBinding {

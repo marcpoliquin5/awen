@@ -22,7 +22,7 @@ their testable portion implemented and the blocked boundary written down.
 | F2 | PyTorch 2.14 support (supersedes Dependabot #49) | implemented | #52 | pytest on torch 2.10.0 and 2.14.1 | |
 | F3 | Dependabot backlog resolved | implemented | #51, #53 | obsolete PRs closed with reasons; updates merged green | |
 | F4 | Dead code and mock-only tests removed; loader/CLI/HAL coverage raised | implemented | #54 | runtime coverage 81.2% → 85.6% | |
-| F5 | jsonschema upgrade | proposed | | schema tests pass on current jsonschema | #79 |
+| F5 | jsonschema upgrade | implemented (0.16 -> 0.59 behind `awen_runtime::schema`) | #115 | all runtime schema conformance tests pass on 0.59; `cargo audit` clean | #79 |
 | P0.1 | `docs/AUDIT.md` truth table and baseline | implemented | #81, #90 | doc lists every component with evidence | |
 | P0.2 | `docs/ROADMAP.md` dependency-aware with acceptance tests and hardware needs | implemented | #81 | every milestone has a CI acceptance test | |
 | P0.3 | Labeled issues for missing modules | implemented | issues #55–#79 | one open issue per missing module | |
@@ -85,5 +85,5 @@ their testable portion implemented and the blocked boundary written down.
 | S2 | Lab Agent (simulation only, approval gates) | implemented (`awen-lab`: Quick/Truth/Repro/Compare/Publish over the Rust photonic GEMM model and the quantum-photonic simulators; immutable content-addressed lab states with branch/restore/history/diff; provenance in every state; operating bounds; Publish needs a recorded approval; every hardware action refused, approval or not; `awen-lab` CLI) | #113 | `awen-lab/tests/test_lab.py` (11) | no hardware path by design; #76 |
 | S3 | Cloud architecture doc, marked not available | implemented (`docs/CLOUD_ARCHITECTURE.md`, design only) | #117 | doc states not available; every component mapped to an existing module or marked not built | no service; #116 |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
-| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | proposed | | | #78 |
+| X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | implemented | #114 | `tests/plugin_signing.rs` (10), `scripts/tests` (6), cargo-deny + SBOM + safe-loading steps in the gate; release checksums land with X2 | #78 |
 | X2 | Release automation with real artifacts; v0.1.0 | proposed | | release workflow attaches wheels/binaries | #78 |

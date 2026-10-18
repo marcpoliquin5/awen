@@ -4,8 +4,8 @@ use awen_runtime::photonic::{
     InteropProgram, MigrationSeverity, MigrationStatus, PhotonicProgram, QuantumMeasurementFamily,
     QuantumProgram, QuantumResult,
 };
+use awen_runtime::schema::Validator;
 use awen_runtime::ExecutionChokepoint;
-use jsonschema::JSONSchema;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -25,14 +25,12 @@ fn fixture<T: DeserializeOwned>(name: &str) -> T {
     .expect("typed fixture")
 }
 
-fn schema(name: &str) -> JSONSchema {
+fn schema(name: &str) -> Validator {
     let value: Value = serde_json::from_slice(
         &std::fs::read(root().join("awen-spec/schemas").join(name)).expect("schema bytes"),
     )
     .expect("schema JSON");
-    JSONSchema::options()
-        .compile(&value)
-        .expect("schema compiles")
+    awen_runtime::schema::compile(&value).expect("schema compiles")
 }
 
 fn context(id: &str, timestamp: u64) -> ExecContext {
@@ -82,14 +80,8 @@ fn independent_classical_quantum_result_and_interop_schemas_match_rust_contracts
         ),
     ] {
         let validator = schema(schema_name);
-        if let Err(errors) = validator.validate(&instance) {
-            panic!(
-                "{schema_name} rejected its Rust value: {}",
-                errors
-                    .map(|error| error.to_string())
-                    .collect::<Vec<_>>()
-                    .join("; ")
-            );
+        if let Err(errors) = awen_runtime::schema::check(&validator, &instance) {
+            panic!("{schema_name} rejected its Rust value: {errors}");
         };
     }
 }

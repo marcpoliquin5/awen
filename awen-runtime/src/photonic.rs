@@ -1,7 +1,6 @@
 //! Independent classical- and quantum-photonic runtime contracts.
 
 use anyhow::{bail, Context, Result};
-use jsonschema::JSONSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -1301,17 +1300,10 @@ pub struct V5MigrationReport {
 pub fn migrate_v5_document(document: &Value) -> Result<V5MigrationReport> {
     let legacy_schema: Value =
         serde_json::from_str(include_str!("../../awen-spec/schemas/photonic_ir.v5.json"))?;
-    let validator = JSONSchema::options()
-        .compile(&legacy_schema)
+    let validator = crate::schema::compile(&legacy_schema)
         .map_err(|error| anyhow::anyhow!("compile legacy Photonic IR V5 schema: {error}"))?;
-    if let Err(errors) = validator.validate(document) {
-        bail!(
-            "legacy Photonic IR V5 structure is invalid: {}",
-            errors
-                .map(|error| error.to_string())
-                .collect::<Vec<_>>()
-                .join("; ")
-        );
+    if let Err(errors) = crate::schema::check(&validator, document) {
+        bail!("legacy Photonic IR V5 structure is invalid: {errors}");
     }
     let source_version = document
         .get("ir_version")

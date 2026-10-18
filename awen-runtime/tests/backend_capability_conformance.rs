@@ -50,19 +50,22 @@ fn reference_capability_and_health_conform_to_published_json_schemas() {
     ))
     .expect("health JSON");
 
-    let capability_validator = jsonschema::JSONSchema::options()
-        .with_document(
-            "https://awen.dev/schemas/awen_calibration_snapshot.v1.json".to_string(),
-            calibration_schema,
-        )
-        .with_document(
-            "https://awen.dev/schemas/awen_physical_design.v1.json".to_string(),
-            physical_design_schema,
-        )
-        .compile(&capability_schema)
-        .expect("compile capability schema");
+    let capability_validator = awen_runtime::schema::compile_with(
+        &capability_schema,
+        &[
+            (
+                "https://awen.dev/schemas/awen_calibration_snapshot.v1.json",
+                &calibration_schema,
+            ),
+            (
+                "https://awen.dev/schemas/awen_physical_design.v1.json",
+                &physical_design_schema,
+            ),
+        ],
+    )
+    .expect("compile capability schema");
     let health_validator =
-        jsonschema::JSONSchema::compile(&health_schema).expect("compile health schema");
+        awen_runtime::schema::compile(&health_schema).expect("compile health schema");
     assert!(capability_validator.is_valid(&capability_value));
     assert!(health_validator.is_valid(&health_value));
 }

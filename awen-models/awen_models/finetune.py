@@ -148,12 +148,12 @@ def load_base(model_id: str, qlora: bool = False, revision: Optional[str] = None
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision, trust_remote_code=False)
-    kwargs: dict[str, Any] = {"revision": revision, "trust_remote_code": False, "use_safetensors": True}
+    kwargs: dict[str, Any] = {"revision": revision, "use_safetensors": True}
     if qlora:
         kwargs.update(qlora_load_kwargs())
     else:
         kwargs["dtype"] = torch.float32
-    model = AutoModelForCausalLM.from_pretrained(model_id, **kwargs)
+    model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=False, **kwargs)
     return model, tokenizer
 
 
