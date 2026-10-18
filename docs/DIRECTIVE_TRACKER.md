@@ -26,7 +26,7 @@ their testable portion implemented and the blocked boundary written down.
 | P0.1 | `docs/AUDIT.md` truth table and baseline | implemented | #81, #90 | doc lists every component with evidence | |
 | P0.2 | `docs/ROADMAP.md` dependency-aware with acceptance tests and hardware needs | implemented | #81 | every milestone has a CI acceptance test | |
 | P0.3 | Labeled issues for missing modules | implemented | issues #55–#79 | one open issue per missing module | |
-| P0.4 | `docs/EVIDENCE.md` with exact commands and results | implemented | #PRNUM | every command in the file was run on the stated host; counts match the CI gate suites | |
+| P0.4 | `docs/EVIDENCE.md` with exact commands and results | implemented | #121 | every command in the file was run on the stated host; counts match the CI gate suites | |
 
 ## Models
 
