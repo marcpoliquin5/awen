@@ -13,7 +13,18 @@
   "meshes_n8.json": "OMP_NUM_THREADS=1 python meshes.py --modes 8  (module now h1_meshes.py)",
   "meshes_n16.json": "OMP_NUM_THREADS=1 python meshes.py --modes 16 --targets 8 --restarts 2 --steps 800",
   "stacks.json": "OMP_NUM_THREADS=1 python stacks.py  (module now h3_stacks.py)",
-  "h2_pilot_partial_runs.jsonl": "OMP_NUM_THREADS=4 python structured_weights.py --seeds {1,2} --threads 4 (two processes in parallel; module now h2_structured_weights.py); rows copied from the run logs while kron3/recursive/recursive-monarch were still training; batch-1 latency measured under that concurrent load"
+  "h2_pilot_runs.jsonl": "OMP_NUM_THREADS=4 python structured_weights.py --seeds {1,2} --threads 4 (two processes in parallel; module now h2_structured_weights.py). Rows = the full run logs: baseline, monarch, kron3, recursive for seeds 1 and 2. recursive-monarch did not run to completion (no row, no number). Batch-1 latency measured while two training processes shared the CPU.",
+  "boxcount.json": "OMP_NUM_THREADS=1 python boxcount.py  (module now x_boxcount.py); float64, direction seeds 0,1,2; exploratory, may be dropped per v2 section 10"
  },
- "started_et": "2026-10-18 10:58-11:01 ET"
+ "started_et": "2026-10-18 10:58-11:01 ET",
+ "sha256": {
+  "boxcount.json": "efce51ad2ddadd1c7c5942002e21f5459bc3000aad7eade7e9d4fae359aaa78b",
+  "h2_pilot_runs.jsonl": "b4a5c5a0e058d3713e4f73971df0e3be1924b1ebde2a90ea678574fad95a9a08",
+  "meshes_n16.json": "4aa0747d564bcd78f909af1ca95150914d8a8b1f8f2187bffc96b2bce82c91aa",
+  "meshes_n8.json": "2b90ac4e449d50ee5cdcd2100a9a83736726824e5b823da4a2b9fb2e9b1ce231",
+  "stacks.json": "194434cd512d4f5c248cb5d0a2c25650fc823dd6626f13fc9a01a7772a52054c"
+ },
+ "not_run": {
+  "h2 recursive-monarch": "python research/experiments/multiplexing-fractal/h2_structured_weights.py --seeds 1 2 3"
+ }
 }
