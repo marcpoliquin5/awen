@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `awen_runtime::devrt`: health-aware placement over simulated photonic
+  devices (healthy / degraded / failed) that remaps past unavailable devices
+  and falls back to the exact CPU reference, with the reason recorded;
+  deterministic mode (SplitMix64 seed stream from one root seed); experiment
+  records (`awen.experiment-record.v1`) holding SHA-256 digests of each
+  request and of the output bits, with a bit-exact replay check; and a host
+  wall-clock profiler with per-kernel summaries and Chrome trace export.
+  Profiler times are host timings of the simulator or CPU, not device
+  timings (refs #64).
 - Added `awen_runtime::devrt`, runtime services layered on the existing HAL
   and scheduler: ordered asynchronous streams (one worker thread each) with
   events for cross-stream and cross-device dependencies and sticky error
