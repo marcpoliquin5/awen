@@ -117,7 +117,7 @@ def main() -> int:
     version = info["version"]
 
     required = [f"awenctl-{version}-x86_64-unknown-linux-gnu.tar.gz", f"awen-mini-checkpoint-{version}.tar.gz",
-                f"awen-{version}.tar.gz", "sbom/SBOM-SUMMARY.json"]
+                f"awen-{version}.tar.gz", "SBOM-SUMMARY.json", "awen-runtime.cdx.json"]
     for name in required:
         if name not in sums:
             fail(f"missing artifact {name}")

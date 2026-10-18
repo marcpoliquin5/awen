@@ -1,26 +1,31 @@
-name: Verified draft release
+name: Verified release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing annotated vMAJOR.MINOR.PATCH tag
+        description: Existing annotated tag, vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N
         required: true
         type: string
 
 permissions:
   actions: read
+  attestations: write
   contents: write
+  id-token: write
 
 jobs:
-  draft-release:
-    name: Verify evidence and create draft
+  release:
+    name: Verify evidence, build artifacts, create draft release
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - name: Checkout complete history
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
 
       - name: Verify tag and exact green quality-gate evidence
         id: evidence
@@ -28,51 +33,95 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "tag must use vMAJOR.MINOR.PATCH" >&2
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "tag must use vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N" >&2
             exit 1
           fi
+          git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG" main:refs/remotes/origin/main
           test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
           sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+          test "$sha" = "$(git rev-parse HEAD)"
           git merge-base --is-ancestor "$sha" origin/main
           run_json="$(gh api \
             "repos/$GITHUB_REPOSITORY/actions/workflows/observability-quality-gate.yml/runs?head_sha=$sha&status=success&per_page=100" \
             --jq '.workflow_runs | map(select(.conclusion == "success" and .head_branch == "main")) | first')"
           test "$run_json" != "null"
-          run_id="$(jq -r .id <<<"$run_json")"
-          run_url="$(jq -r .html_url <<<"$run_json")"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+          echo "run_id=$(jq -r .id <<<"$run_json")" >> "$GITHUB_OUTPUT"
+          echo "run_url=$(jq -r .html_url <<<"$run_json")" >> "$GITHUB_OUTPUT"
+          if [[ "$RELEASE_TAG" == *-rc.* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build immutable source and release evidence
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.1"
+
+      - name: Install cargo-cyclonedx
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-cyclonedx@0.5.9
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "maturin>=1.9,<2" "build>=1.2" "setuptools>=77" wheel "pip-audit==2.10.1"
+          # CPU-only torch for the post-build smoke test (no GPU on the runner).
+          python -m pip install --disable-pip-version-check \
+            --index-url https://download.pytorch.org/whl/cpu "torch==2.14.1"
+
+      - name: Build release artifacts
         env:
           RELEASE_TAG: ${{ inputs.tag }}
-          RELEASE_SHA: ${{ steps.evidence.outputs.sha }}
-          QUALITY_RUN_ID: ${{ steps.evidence.outputs.run_id }}
-          QUALITY_RUN_URL: ${{ steps.evidence.outputs.run_url }}
+        run: scripts/build_release_artifacts.sh "${RELEASE_TAG#v}" dist/release
+
+      - name: Verify artifacts (checksums, binaries, fresh-venv wheel install, model smoke test)
+        run: python scripts/verify_release_artifacts.py dist/release --system-site-packages
+
+      - name: Attest build provenance (Sigstore-signed, verifiable with `gh attestation verify`)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/release/*
+
+      - name: Generate evidence-bound release notes
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          git archive --format=tar.gz \
-            --prefix="awen-${RELEASE_TAG#v}/" \
-            --output="awen-${RELEASE_TAG#v}.tar.gz" "$RELEASE_SHA"
-          sha256sum "awen-${RELEASE_TAG#v}.tar.gz" > SHA256SUMS
           python scripts/build_release_evidence.py \
             --tag "$RELEASE_TAG" \
-            --commit "$RELEASE_SHA" \
-            --run-id "$QUALITY_RUN_ID" \
-            --run-url "$QUALITY_RUN_URL" \
-            --checksums SHA256SUMS \
+            --commit "${{ steps.evidence.outputs.sha }}" \
+            --run-id "${{ steps.evidence.outputs.run_id }}" \
+            --run-url "${{ steps.evidence.outputs.run_url }}" \
+            --checksums dist/release/SHA256SUMS \
+            --build-info dist/release/BUILD-INFO.json \
             --output release-notes.md
+
+      - name: Upload artifacts to the workflow run
+        uses: actions/upload-artifact@v7
+        with:
+          name: awen-release-${{ inputs.tag }}
+          path: dist/release/
+          retention-days: 30
 
       - name: Create evidence-bound draft release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
+          PRERELEASE: ${{ steps.evidence.outputs.prerelease }}
         run: |
-          gh release create "$RELEASE_TAG" \
-            "awen-${RELEASE_TAG#v}.tar.gz" \
-            SHA256SUMS \
-            --draft \
-            --verify-tag \
-            --title "AWEN $RELEASE_TAG" \
-            --notes-file release-notes.md
+          flags=(--draft --verify-tag --title "AWEN $RELEASE_TAG" --notes-file release-notes.md)
+          if [[ "$PRERELEASE" == true ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" dist/release/* "${flags[@]}"

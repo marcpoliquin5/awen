@@ -9,7 +9,7 @@
 #                                                     awen-physics, awen-qphotonic, awen-systems,
 #                                                     awen-lab, awen-studio (frontend bundled)
 #   awen-mini-checkpoint-VERSION.tar.gz               the bundled AWEN-Mini checkpoint
-#   sbom/*.cdx.json                                   CycloneDX SBOMs (scripts/generate_sbom.py)
+#   *.cdx.json, SBOM-SUMMARY.json                     CycloneDX SBOMs (scripts/generate_sbom.py)
 #   awen-VERSION.tar.gz                               git archive of HEAD
 #   BUILD-INFO.json                                   toolchains, commit, awenctl rebuild check
 #   SHA256SUMS                                        over every file above
@@ -79,7 +79,7 @@ echo "== source archive"
 git archive --format=tar.gz --prefix="awen-$VERSION/" --output="$DIST/awen-$VERSION.tar.gz" HEAD
 
 echo "== SBOM"
-"$PY" scripts/generate_sbom.py --out "$DIST/sbom" --python
+"$PY" scripts/generate_sbom.py --out "$DIST" --python
 
 echo "== build info"
 "$PY" - "$DIST/BUILD-INFO.json" <<PY
@@ -105,5 +105,7 @@ json.dump({
 PY
 
 echo "== checksums"
-(cd "$DIST" && find . -type f ! -name SHA256SUMS -printf '%P\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS)
+# Release assets are uploaded flat, so every file lives directly in DIST.
+if find "$DIST" -mindepth 1 -type d | grep -q .; then echo "DIST must be flat" >&2; exit 1; fi
+(cd "$DIST" && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS)
 cat "$DIST/SHA256SUMS"

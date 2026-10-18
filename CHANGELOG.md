@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Release automation (X2): the manual `Verified release` workflow now builds
+  real artifacts with `scripts/build_release_artifacts.sh` (the `awenctl`
+  Linux x86_64 binary, built twice to record bit-for-bit reproducibility;
+  the `awen_native` wheel via maturin; wheels for every Python package, with
+  AWEN-Mini inside `awen_models` and the built frontend inside `awen_studio`;
+  the AWEN-Mini checkpoint tarball; CycloneDX SBOMs; the source archive;
+  `BUILD-INFO.json`; `SHA256SUMS`), verifies them in a fresh virtual
+  environment (`scripts/verify_release_artifacts.py`), attaches Sigstore
+  build-provenance attestations, and creates a draft release whose notes
+  state plainly that everything runs on CPUs and nothing is a hardware
+  measurement. `-rc.N` tags become pre-releases (closes #78).
 - Research (R1–R3): `research/ledger/` adds the research ledger schema
   (`awen.research-ledger.v1`), an importer for CSV and Markdown tables
   (unchecked rows land as `citation pending`) and 15 seed directions, each
