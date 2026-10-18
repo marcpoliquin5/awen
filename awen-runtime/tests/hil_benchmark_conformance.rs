@@ -4,7 +4,7 @@ use awen_runtime::benchmark::{
     BenchmarkRunContext, BenchmarkSuite, DriverOutputSample, EvidenceKind, MetricSources,
     VerificationStatus, HIL_ARTIFACT_VERSION, HIL_DRIVER_VERSION, HIL_SUITE_VERSION,
 };
-use jsonschema::JSONSchema;
+use awen_runtime::schema::Validator;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -53,25 +53,23 @@ fn schemas() -> Vec<(&'static str, Value)> {
     ]
 }
 
-fn validator(schema_id: &str) -> JSONSchema {
+fn validator(schema_id: &str) -> Validator {
     let documents = schemas();
     let selected = documents
         .iter()
         .find_map(|(id, document)| (*id == schema_id).then_some(document))
         .expect("registered HIL schema");
-    let mut options = JSONSchema::options();
-    for (id, document) in &documents {
-        options.with_document((*id).to_string(), document.clone());
-    }
-    options.compile(selected).expect("HIL schema compiles")
+    let refs: Vec<(&str, &Value)> = documents
+        .iter()
+        .map(|(id, document)| (*id, document))
+        .collect();
+    awen_runtime::schema::compile_with(selected, &refs).expect("HIL schema compiles")
 }
 
 fn assert_valid(schema_id: &str, value: &Value) {
-    if let Err(errors) = validator(schema_id).validate(value) {
-        panic!(
-            "{schema_id} rejected HIL value: {:?}",
-            errors.map(|error| error.to_string()).collect::<Vec<_>>()
-        );
+    let messages = awen_runtime::schema::errors(&validator(schema_id), value);
+    if !messages.is_empty() {
+        panic!("{schema_id} rejected HIL value: {messages:?}");
     }
 }
 

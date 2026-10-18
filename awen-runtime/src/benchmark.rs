@@ -1754,7 +1754,6 @@ fn now() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use jsonschema::JSONSchema;
     use serde_json::json;
 
     fn request() -> KernelRequest {
@@ -2061,9 +2060,7 @@ mod tests {
             "../../awen-spec/schemas/awen_benchmark_claims.v1.json"
         ))
         .expect("claims schema JSON");
-        let validator = JSONSchema::options()
-            .compile(&schema)
-            .expect("claims schema compiles");
+        let validator = crate::schema::compile(&schema).expect("claims schema compiles");
         assert!(validator.is_valid(&serde_json::to_value(claims).expect("claims value")));
     }
 }

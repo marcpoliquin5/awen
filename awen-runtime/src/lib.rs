@@ -18,6 +18,7 @@ pub mod photonic;
 pub mod plugins;
 pub mod quantum;
 pub mod scheduler;
+pub mod schema;
 pub mod state;
 pub mod storage;
 

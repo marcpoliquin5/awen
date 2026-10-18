@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgraded the runtime's `jsonschema` from 0.16 to 0.59 (closes #79). A new
+  `awen_runtime::schema` module wraps it for every caller: formats are
+  asserted under every draft (0.16 behaviour), `$ref`s resolve only against
+  documents passed in (offline; nothing is fetched), and errors come back as
+  a flat message list. 0.59 resolves references eagerly, so the plugin-manifest
+  conformance test now registers the capability and calibration schemas it
+  transitively references.
 - Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
   when no GPU is visible), the AWEN software reference, the photonic
   simulator and a hybrid placement on GEMM and AWEN-Mini inference, with

@@ -5,8 +5,8 @@ use crate::observability;
 use crate::photonic::PhotonicProgram;
 use crate::plugins::registry::PluginRegistry;
 use crate::plugins::PluginLoader;
+use crate::schema::Validator;
 use crate::storage::{save_artifact, ArtifactType, BundleBuilder};
-use jsonschema::JSONSchema;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -31,9 +31,9 @@ pub trait ExecutionChokepoint: Send + Sync {
 }
 
 pub struct NonBypassableGateway {
-    classical_schema: Option<JSONSchema>,
-    quantum_schema: Option<JSONSchema>,
-    interop_schema: Option<JSONSchema>,
+    classical_schema: Option<Validator>,
+    quantum_schema: Option<Validator>,
+    interop_schema: Option<Validator>,
 }
 
 impl NonBypassableGateway {
@@ -219,25 +219,20 @@ impl ExecutionChokepoint for NonBypassableGateway {
     }
 }
 
-fn compile_schema(source: &str) -> Option<JSONSchema> {
+fn compile_schema(source: &str) -> Option<Validator> {
     serde_json::from_str::<Value>(source)
         .ok()
-        .and_then(|schema| JSONSchema::options().compile(&schema).ok())
+        .and_then(|schema| crate::schema::compile(&schema).ok())
 }
 
 fn validate_schema<T: Serialize>(
-    schema: Option<&JSONSchema>,
+    schema: Option<&Validator>,
     value: &T,
     dialect: &str,
 ) -> Result<(), String> {
     let schema = schema.ok_or_else(|| format!("{dialect} schema is unavailable"))?;
     let instance = serde_json::to_value(value).map_err(|error| error.to_string())?;
-    schema.validate(&instance).map_err(|errors| {
-        errors
-            .map(|error| error.to_string())
-            .collect::<Vec<_>>()
-            .join("; ")
-    })
+    crate::schema::check(schema, &instance)
 }
 
 fn failed(message: &str) -> ExecutionResult {

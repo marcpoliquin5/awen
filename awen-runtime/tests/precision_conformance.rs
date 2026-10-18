@@ -2,7 +2,7 @@ use awen_compiler::{
     benchmark, compile, refresh_for_backend, BackendSnapshot, CompileOptions, DeviceCapabilities,
     TargetBackend, TensorProgram,
 };
-use jsonschema::JSONSchema;
+use awen_runtime::schema::Validator;
 use serde_json::{json, Value};
 
 const TENSOR_ID: &str = "https://awen.dev/schemas/awen_tensor_ir.v1.json";
@@ -92,25 +92,24 @@ fn schemas() -> Vec<(&'static str, Value)> {
     ]
 }
 
-fn validator(schema_id: &str) -> JSONSchema {
+fn validator(schema_id: &str) -> Validator {
     let documents = schemas();
     let selected = documents
         .iter()
         .find_map(|(id, document)| (*id == schema_id).then_some(document))
         .expect("registered precision schema");
-    let mut options = JSONSchema::options();
-    for (id, document) in &documents {
-        options.with_document((*id).to_string(), document.clone());
-    }
-    options
-        .compile(selected)
+    let refs: Vec<(&str, &Value)> = documents
+        .iter()
+        .map(|(id, document)| (*id, document))
+        .collect();
+    awen_runtime::schema::compile_with(selected, &refs)
         .expect("published precision schema must compile")
 }
 
 fn assert_valid(schema_id: &str, value: &Value) {
     let compiled = validator(schema_id);
-    if let Err(errors) = compiled.validate(value) {
-        let messages = errors.map(|error| error.to_string()).collect::<Vec<_>>();
+    let messages = awen_runtime::schema::errors(&compiled, value);
+    if !messages.is_empty() {
         panic!("{schema_id} rejected precision artifact: {messages:?}");
     };
 }
