@@ -21,7 +21,8 @@
         "attention_scores", "attention_value", "mlp_projection", "convolution1d",
         "correlation1d", "dft", "fft", "fourier_filter", "low_rank_gemm",
         "random_projection", "toeplitz", "circulant", "block_circulant",
-        "beamforming", "rf_fir", "reservoir_step", "propagation"
+        "beamforming", "rf_fir", "reservoir_step", "propagation",
+        "batched_complex_gemm", "scaled_dot_product_attention", "feed_forward"
       ]
     },
     "complex": {
