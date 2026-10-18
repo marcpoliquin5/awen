@@ -80,7 +80,7 @@ their testable portion implemented and the blocked boundary written down.
 | R3 | Frontier-physics hypotheses (Casimir, toroidal/fractal optics, information capacity) with falsification criteria | proposed | | | #77 |
 | E1 | Efficiency program ablations + Pareto (energy estimated) | proposed | | | #72 |
 | E2 | AWEN-Photon differentiable MZI layers vs independent reference; six nonlinearity categories | proposed | | | #73 |
-| B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | proposed | | | #74 |
+| B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | implemented (`awen-bench`: CPU, CUDA (skipped with reason when absent), AWEN software reference, photonic-sim and hybrid on GEMM and AWEN-Mini inference; p50/p95/p99, throughput, RSS, compile time, TTFT, tok/s, perplexity; bootstrap CIs over runs; write-once self-hashed evidence `awen.benchmark-evidence.v1`; one measured box-CPU run committed; see docs/BENCHMARKS.md) | this PR | `awen-models/tests/test_bench.py` (8) + validate_json checks every committed evidence record | no GPU on the build host, so CUDA rows are skipped; simulator wall-clock is not device speed; #74 |
 | S1 | Studio local web app wired to real backends | proposed | | | #75 |
 | S2 | Lab Agent (simulation only, approval gates) | proposed | | | hardware actions disabled; #76 |
 | S3 | Cloud architecture doc, marked not available | proposed | | | no service |

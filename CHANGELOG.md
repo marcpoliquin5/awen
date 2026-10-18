@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Benchmarks (B1): `awen-bench` compares CPU, CUDA (skipped with a reason
+  when no GPU is visible), the AWEN software reference, the photonic
+  simulator and a hybrid placement on GEMM and AWEN-Mini inference, with
+  p50/p95/p99 latency, throughput, memory, compile time, time to first token,
+  tokens/s and perplexity, bootstrap 95% CIs over multiple runs, and a
+  write-once, self-hashed evidence record (`awen.benchmark-evidence.v1`,
+  git SHA, hardware, environment). One measured run on the build host's CPU
+  is committed; see `docs/BENCHMARKS.md` (refs #74).
 - Added the vendor-neutral hardware description schema
   (`awen.hardware-description.v1`) for MZI meshes, microring banks, WDM,
   diffractive layers, detectors, ADCs, DACs, lasers, reservoirs, memory and
