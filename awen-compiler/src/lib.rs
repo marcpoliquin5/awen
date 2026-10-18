@@ -7,6 +7,7 @@
 //! awenBLAS registry with executable CPU references, deterministic accelerator
 //! simulation, capability/cost selection, and conformance measurement.
 
+pub mod assumption_report;
 pub mod assumptions;
 pub mod awenblas;
 pub mod calibration;
@@ -24,6 +25,7 @@ pub mod physical_design;
 pub mod precision;
 pub mod simulator;
 
+pub use assumption_report::{AssumptionField, AssumptionReport, ASSUMPTION_REPORT_VERSION};
 pub use assumptions::{
     Corner, HardwareAssumptions, RangeParameter, BUNDLED_HARDWARE_ASSUMPTIONS,
     HARDWARE_ASSUMPTIONS_VERSION,
