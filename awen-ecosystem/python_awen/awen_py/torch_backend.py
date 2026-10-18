@@ -15,7 +15,8 @@ from .runtime import ExecutionOptions, NumericalContract, get_runtime
 
 
 TORCH_BACKEND_VERSION = "awen.torch-backend.v1"
-SUPPORTED_TORCH_RANGE = ">=2.10,<2.14"
+_SUPPORTED_TORCH_MINORS = (10, 15)  # PyTorch 2.x, inclusive lower and exclusive upper minor
+SUPPORTED_TORCH_RANGE = f">=2.{_SUPPORTED_TORCH_MINORS[0]},<2.{_SUPPORTED_TORCH_MINORS[1]}"
 
 
 @dataclass(frozen=True)
@@ -359,7 +360,7 @@ def _require_supported_torch(version: str) -> None:
         major, minor = int(numeric[0]), int(numeric[1])
     except (ValueError, IndexError) as error:
         raise ContractError(f"cannot parse PyTorch version '{version}'") from error
-    if major != 2 or not 10 <= minor < 14:
+    if major != 2 or not _SUPPORTED_TORCH_MINORS[0] <= minor < _SUPPORTED_TORCH_MINORS[1]:
         raise ContractError(
             f"PyTorch {version} is outside the tested range {SUPPORTED_TORCH_RANGE}"
         )
