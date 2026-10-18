@@ -8,6 +8,9 @@ still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it agains
 non-test Rust file in the inventory's `scope` (awen-compiler/src today):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
+  so must every float literal passed to a fallback, floor or cap inside an expression
+  (``.map_or(0.05, ...)``, ``.unwrap_or(0.0)``, ``.max(0.001)``, ``.min(1.0)``, ``.clamp(a, b)``),
+  listed under the field ``expr:<method>``, and
 * every listed entry must still exist in the code (no stale entries), and
 * each entry's status must agree with hardware_assumptions.yaml (``unsourced`` only when
   the assumption set has no value for it).
@@ -37,13 +40,19 @@ DEVICE_FIELD = re.compile(
 )
 # `name: 1.0,` / `name: Some(-150.0),` / `name: 2_000.0,` on one line (formulas are skipped).
 LITERAL = re.compile(r"^\s*([a-z_][a-z0-9_]*):\s*(?:Some\()?(-?[0-9][0-9_]*(?:\.[0-9_]*)?(?:e-?[0-9]+)?)\)?,\s*$")
+# `.map_or(0.05, f)` / `.unwrap_or(0.0)` / `.max(0.001)` / `.min(1.0)` / `.clamp(-1.0, 1.0)` anywhere
+# in a line. Only float literals (with a `.` or exponent) count: integer guards such as `.max(1)` on
+# counts and `.min(1024)` on capacities are not device values. `fold(0.0, ...)` accumulators,
+# arithmetic factors (`x * 0.01`) and named constants are not matched.
+FLOAT = r"-?[0-9][0-9_]*(?:\.[0-9_]*(?:e-?[0-9]+)?|e-?[0-9]+)(?:_f64|_f32)?"
+FALLBACK = re.compile(rf"\.(map_or|unwrap_or|max|min|clamp)\(\s*({FLOAT})\s*[,)]")
 ITEM = re.compile(r"^(\s*)(?:pub(?:\([a-z]+\))?\s+)?(fn|impl)\b")
 FN_NAME = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
-STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional"}
+STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional", "numeric_guard"}
 
 
 def parse_number(raw: str) -> float:
-    return float(raw.replace("_", ""))
+    return float(raw.removesuffix("_f64").removesuffix("_f32").replace("_", ""))
 
 
 def is_device_field(name: str) -> bool:
@@ -75,13 +84,21 @@ def literals(text: str) -> dict[tuple[str, str], float]:
             elif item.group(2) == "fn" and (name := FN_NAME.search(line)):
                 context = f"{impl_header}::{name.group(1)}" if item.group(1) and impl_header else name.group(1)
             continue
+        if line.lstrip().startswith("//"):
+            continue
         match = LITERAL.match(line)
         if match and is_device_field(match.group(1)):
-            field, n = match.group(1), 1
-            while (context, field if n == 1 else f"{field}#{n}") in found:
-                n += 1
-            found[(context, field if n == 1 else f"{field}#{n}")] = parse_number(match.group(2))
+            add(found, context, match.group(1), parse_number(match.group(2)))
+        for fallback in FALLBACK.finditer(line):
+            add(found, context, f"expr:{fallback.group(1)}", parse_number(fallback.group(2)))
     return found
+
+
+def add(found: dict[tuple[str, str], float], context: str, field: str, value: float) -> None:
+    n = 1
+    while (context, field if n == 1 else f"{field}#{n}") in found:
+        n += 1
+    found[(context, field if n == 1 else f"{field}#{n}")] = value
 
 
 def scan(root: Path, scope: list[str]) -> dict[tuple[str, str, str], float]:
