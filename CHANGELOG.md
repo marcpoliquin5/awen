@@ -19,6 +19,10 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Compiler: `awen_compiler::assumptions` parses `awen-spec/hardware_assumptions.yaml` (bundled at build time
+  or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
+  nulls kept as `None`. No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
+  (MIT OR Apache-2.0, pure Rust).
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
