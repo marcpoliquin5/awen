@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added the quantum-photonic resource model (`awen_qphotonic.resources`) and
+  a small quantum-kernel experiment (`awen_qphotonic.kernel`,
+  `awen-qkernel`) compared with RBF and linear baselines on the same
+  splits. Committed results (simulation, three seeds): the photonic kernel
+  scores below RBF on both toy datasets; no advantage is claimed (#99,
+  closes #69).
 - Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
   formalism with hbar = 2): squeezing, two-mode squeezing, passive
   interferometers, displacement, pure loss, thermal states, purity,
