@@ -2,6 +2,7 @@
 pub mod benchmark;
 pub mod calibration;
 pub mod chokepoint;
+pub mod cli_tools;
 pub mod devrt;
 pub mod engine;
 pub mod engine_v2;
