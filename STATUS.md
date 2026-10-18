@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-10-18 11:37 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-10-18 11:38 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 Main is `840f5c5` (#126), after `0235668` (#125). Truth-table counts were measured at `0235668`; the
 gate on `0235668` passed (CI run 39140149777); the gate on `840f5c5` (run 39141006838) was running at this commit.
 
