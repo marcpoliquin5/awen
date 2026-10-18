@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added `awen_systems.fabric`, a discrete-event interconnect simulator (links,
+  electrical packet and optical circuit switches, contention, reconfiguration
+  delay, loss budget, power, failures with rerouting, ring all-reduce and
+  all-to-all) checked against M/M/1 and the alpha-beta all-reduce formula,
+  plus an optical-vs-electrical study on identical workloads under stated
+  assumed parameters (`awen-fabric-study`; modeled, refs #71).
 - Added `awen-systems` with a memory-technology parameter schema
   (`awen.memory_technologies.v1`: phase-change photonic, microring fading,
   optical RRAM, delay line, HBM2 baseline). Every value carries a provenance;
