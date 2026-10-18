@@ -114,7 +114,7 @@ Blocked on things this project does not have:
 | Photonic hardware | every "hardware validated" or "experimentally validated" status; vendor drivers (C11); measured energy/latency (B1, E1, T8, T9); hardware levels in the ops library (C7) | noise-model simulator, simulated HAL devices, hardware description schemas, vendor integration guide |
 | Single-photon sources and detectors | quantum-photonic experiments on devices (T7) | `awen-qphotonic` simulators |
 | GPU | CUDA benchmark rows (B1), QLoRA and Qwen3 fine-tunes (M6), memory model check (M8), larger efficiency models (E1) | CPU runs; CUDA rows skipped with a recorded reason |
-| 72-paper research ledger file | importing the historical ledger (R1) | schema, importer, 15 seed directions with checked citations |
+| 72-paper research ledger file | importing the historical ledger (R1) | schema, importer, empty index; 15 agent-sourced directions with checked citations in `research/reference/agent-sourced.json` |
 | Paid compute | GPU-scale training | `docs/COMPUTE_PLAN.md` estimates |
 | Hosted service | cloud (S3) | design document only |
 

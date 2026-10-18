@@ -8,7 +8,7 @@ Main is `e6d4224`; the required quality gate is green on it (run of 2026-10-18 0
 **Phase 0 (audit and truth layer), session 1 under v2.** Most of the Phase 1-2
 engineering already exists from the earlier directive (see the truth table), but
 several earlier agent decisions now need Marc's ratification
-([DECISIONS.md](DECISIONS.md), D-004 to D-011), so Phase 0 is not done until they
+([DECISIONS.md](DECISIONS.md), D-007 to D-012), so Phase 0 is not done until they
 are settled and `awen-spec/hardware_assumptions.yaml` v0 lands.
 
 ## Evidence levels
@@ -42,12 +42,44 @@ generated, no device), L3 measured on hardware. **Nothing in AWEN is L3.**
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
 | Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | missing | PR in progress (v2 section 9) |
 
+## Gap list against Master Prompt v2
+
+| Gap | v2 section | Current level | Needed |
+| --- | --- | --- | --- |
+| `hardware_assumptions.yaml` with cited low/typical/high; simulators read it | 9 | missing | file + wiring, no hard-coded device energies |
+| AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
+| `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
+| AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
+| OpenXLA PJRT plugin | 8 | StableHLO `dot_general` executor (L1) | plugin |
+| torch.compile backend with FX partitioning | 8 | PrivateUse1 eager GEMM (L1) | backend + capability report |
+| ONNX Runtime execution provider | 8 | ONNX import report (L0) | EP |
+| Adapters to Meep, SAX, gdsfactory, Perceval, MrMustard | 8, 11 | own reference solvers (L0) | adapters + oracle comparisons |
+| Reproduce ≥3 published photonic results | 11 | analytic checks only | 3 reproductions |
+| Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
+| ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008) | rerun with a third seed |
+| docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
+| Session reports in `docs/sessions/` | 3, 17 | starts with 2026-10-18-01 | every session |
+
+## Phase 1 plan (one task per session)
+
+| Session | Task | Done when |
+| --- | --- | --- |
+| P1-1 | Marc picks the AWEN-Mini base model (recommendation: Qwen3-0.6B, Apache-2.0; fallback SmolLM2-360M) | decision logged in DECISIONS.md |
+| P1-2 | `docs/install.md` + pinned CPU and cu128 lockfiles; CPU fallback for every example | fresh-clone install test in CI |
+| P1-3 | `Runtime(device="auto"\|"cpu"\|"cuda").load_model("awen-mini").generate()` with a tiny CI config | CI test on CPU |
+| P1-4 | AWEN-Mini v0 fine-tune script, model card, checkpoint SHA-256 (CPU smoke test; laptop GPU run plan for Marc) | smoke test passes; run plan written |
+| P1-5 | Same model on `device="photonic-sim"`: linear layers through the GEMM lowering, capability report, deviation from CPU | CI test with tiny config |
+| P1-6 | Three validation notebooks re-checked under v2 (slab modes, MZI mesh vs Clements, shot-noise bits) | notebooks run in CI |
+| P1-7 | Laptop CUDA run logged by Marc for all three devices | log committed |
+
 ## Blockers
 
 - No photonic hardware: nothing can reach L3.
 - No GPU on the build box: CUDA paths are untested; Marc's RTX 5070 Ti laptop would cover this.
-- The 72-paper ledger is not in the repo (`research/ledger/` has only 15 checked seed entries).
-- Section 16 decisions pending (license, base model, v0.1.0 tag, merge policy): see DECISIONS.md.
+- **Marc's 72-paper ledger export is missing.** `research/ledger/ledger.json` is an empty index; the 15
+  agent-written entries live separately in `research/reference/agent-sourced.json`.
+- Section 16 decisions pending: v0.1.0 tag (D-007), AWEN-Mini base model (D-008, D-009); see DECISIONS.md.
+  Settled by Marc: MIT license (D-001), agent self-merge after green checks (D-002).
 - Device energies and noise defaults are still hard-coded in the noise contract until
   `hardware_assumptions.yaml` exists and is wired in.
 
@@ -65,4 +97,4 @@ generated, no device), L3 measured on hardware. **Nothing in AWEN is L3.**
    model and cost estimates read it.
 2. Pre-register H1-H4 with configs, then run H1 (accuracy per dB, ≥3 tasks, ≥5 fabrication-noise
    seeds) and H3 on CPU; draft PRs only.
-3. Get Marc's answers on D-004 to D-011, then plan Phase 1 (fine-tuned open-model AWEN-Mini v0).
+3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).

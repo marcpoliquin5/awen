@@ -4,7 +4,8 @@ Research material kept **separate from the AWEN core packages**. Nothing in
 `awen-*` imports from here, and nothing here supports product claims.
 
 - `ledger/`: the research ledger, with the JSON schema `ledger.schema.json`
-  (`awen.research-ledger.v1`), the seed `ledger.json` and `import_ledger.py`
+  (`awen.research-ledger.v1`), the v2 field list `schema.yaml`, the ledger index
+  `ledger.json` (empty until Marc's export is committed) and `import_ledger.py`
   (CSV or Markdown table import).
 - `frontier-physics/`: long-range hypotheses H1–H3, each with its hypothesis,
   math, assumptions, observables, method, comparison to established theory and
@@ -30,9 +31,10 @@ title, authors and a year, **and** a recorded verification method and date.
 Every other row is imported as `citation pending`, whatever its status column
 says. Existing entries are never overwritten unless `--replace` is given.
 
-## Seed entries
+## Agent-sourced reference list (not the ledger)
 
-`ledger.json` seeds 15 research directions in photonic and physical AI. Each
+`reference/agent-sourced.json` is a list chosen by the coding agent. It is
+**not** Marc's ledger. It covers 15 directions in photonic and physical AI. Each
 cites one paper whose title, authors and year were checked against the
 Crossref record for its DOI on 2026-10-18 (status `verified`). The summaries
 and AWEN mappings are this project's own reading of each direction, not
