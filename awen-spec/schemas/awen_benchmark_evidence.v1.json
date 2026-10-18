@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_benchmark_evidence.v1.json",
+  "title": "AWEN Immutable Benchmark Evidence v1",
+  "description": "Write-once record of one benchmark session. Extends the benchmark-claims family: the self hash uses the same sha256 fingerprint format, and a claim may cite an evidence file by that fingerprint. Rows for awen-reference, photonic-sim and hybrid time the simulator on the recorded host and are never photonic hardware measurements.",
+  "type": "object",
+  "required": ["version", "created_at", "label", "git", "hardware", "environment", "settings", "evidence_policy", "results", "wall_seconds", "evidence_sha256"],
+  "properties": {
+    "version": {"const": "awen.benchmark-evidence.v1"},
+    "created_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "label": {"type": "string", "minLength": 1},
+    "git": {
+      "type": "object",
+      "required": ["sha", "dirty"],
+      "properties": {
+        "sha": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "dirty": {"type": ["boolean", "null"]},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "hardware": {
+      "type": "object",
+      "required": ["platform", "machine", "cpu_count", "torch_threads", "cuda_available"],
+      "properties": {
+        "platform": {"type": "string"},
+        "machine": {"type": "string"},
+        "cpu_count": {"type": ["integer", "null"]},
+        "torch_threads": {"type": "integer", "minimum": 1},
+        "cpu_model": {"type": "string"},
+        "mem_total_kib": {"type": "integer", "minimum": 1},
+        "load_average_1_5_15": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 3, "maxItems": 3},
+        "cuda_available": {"type": "boolean"},
+        "gpu": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": ["python", "torch", "numpy"],
+      "additionalProperties": {"type": ["string", "null"]}
+    },
+    "settings": {
+      "type": "object",
+      "required": ["backends", "runs", "repeats", "warmup", "seed", "bootstrap_resamples", "ci_level"],
+      "properties": {
+        "backends": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/backend"}},
+        "runs": {"type": "integer", "minimum": 2},
+        "repeats": {"type": "integer", "minimum": 1},
+        "warmup": {"type": "integer", "minimum": 0},
+        "seed": {"type": "integer"},
+        "bootstrap_resamples": {"type": "integer", "minimum": 100},
+        "ci_level": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}
+      }
+    },
+    "evidence_policy": {"type": "string", "minLength": 1},
+    "results": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/result"}},
+    "wall_seconds": {"type": "number", "minimum": 0},
+    "evidence_sha256": {"$ref": "awen_benchmark_claims.v1.json#/$defs/fingerprint"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "backend": {"enum": ["cpu", "cuda", "awen-reference", "photonic-sim", "hybrid"]},
+    "fidelity": {"enum": ["measured", "software reference (exact math)", "simulated (compact model)", "simulated (compact model) + measured host"]},
+    "interval": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+    "latency": {
+      "type": "object",
+      "required": ["samples", "runs", "p50_ms", "p95_ms", "p99_ms", "median_ci95_ms", "run_median_ci95_ms"],
+      "properties": {
+        "samples": {"type": "integer", "minimum": 1},
+        "runs": {"type": "integer", "minimum": 1},
+        "p50_ms": {"type": "number", "minimum": 0},
+        "p95_ms": {"type": "number", "minimum": 0},
+        "p99_ms": {"type": "number", "minimum": 0},
+        "mean_ms": {"type": "number", "minimum": 0},
+        "min_ms": {"type": "number", "minimum": 0},
+        "median_ci95_ms": {"$ref": "#/$defs/interval"},
+        "run_median_mean_ms": {"type": "number", "minimum": 0},
+        "run_median_ci95_ms": {"$ref": "#/$defs/interval"}
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": ["workload", "backend", "status"],
+      "properties": {
+        "workload": {"enum": ["gemm", "awen-mini-inference"]},
+        "backend": {"$ref": "#/$defs/backend"},
+        "status": {"enum": ["ok", "skipped"]},
+        "reason": {"type": "string", "minLength": 1},
+        "fidelity": {"$ref": "#/$defs/fidelity"},
+        "latency": {"$ref": "#/$defs/latency"},
+        "compile": {"$ref": "#/$defs/latency"},
+        "time_to_first_token": {"$ref": "#/$defs/latency"},
+        "decode_latency_per_token": {"$ref": "#/$defs/latency"}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "skipped"}}}, "then": {"required": ["reason"]}},
+        {"if": {"properties": {"status": {"const": "ok"}}}, "then": {"required": ["fidelity", "process_max_rss_mib"]}},
+        {"if": {"properties": {"status": {"const": "ok"}, "workload": {"const": "gemm"}}},
+         "then": {"required": ["shape_mkn", "latency", "throughput_gflops", "relative_rms_error_vs_fp64", "working_set_bytes"]}},
+        {"if": {"properties": {"status": {"const": "ok"}, "workload": {"const": "awen-mini-inference"}}},
+         "then": {"required": ["time_to_first_token", "decode_tokens_per_s", "perplexity", "val_loss_nats"]}},
+        {"if": {"properties": {"backend": {"const": "cpu"}, "status": {"const": "ok"}}}, "then": {"properties": {"fidelity": {"const": "measured"}}}},
+        {"if": {"properties": {"backend": {"enum": ["photonic-sim", "hybrid"]}, "status": {"const": "ok"}}}, "then": {"properties": {"fidelity": {"not": {"const": "measured"}}}}}
+      ]
+    }
+  }
+}

@@ -1,0 +1,373 @@
+{
+  "harness": "awen.efficiency-ablation.v1",
+  "dataset": {
+    "name": "tiny-shakespeare",
+    "url": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt",
+    "sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "characters": 1115394,
+    "license": "Public domain text (Shakespeare); file from the MIT-licensed karpathy/char-rnn repository"
+  },
+  "steps": 1500,
+  "batch_size": 32,
+  "seeds": [
+    1,
+    2
+  ],
+  "parameter_tolerance": 0.03,
+  "runs": [
+    {
+      "variant": "baseline",
+      "seed": 1,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 106.3,
+      "val_loss": 1.72089,
+      "forward_latency_ms_b1": 1.315,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "untied-head",
+      "seed": 1,
+      "stored_parameters": 818144,
+      "train_wall_time_s": 102.0,
+      "val_loss": 1.72323,
+      "forward_latency_ms_b1": 1.223,
+      "weight_memory_kib": 3195.9,
+      "macs_per_token_at_full_context": 917632
+    },
+    {
+      "variant": "low-rank",
+      "seed": 1,
+      "stored_parameters": 811904,
+      "train_wall_time_s": 143.4,
+      "val_loss": 1.97137,
+      "forward_latency_ms_b1": 1.737,
+      "weight_memory_kib": 3171.5,
+      "macs_per_token_at_full_context": 917632
+    },
+    {
+      "variant": "tensor-train",
+      "seed": 1,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 168.6,
+      "val_loss": 1.70682,
+      "forward_latency_ms_b1": 2.317,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 1450112
+    },
+    {
+      "variant": "moe-top1",
+      "seed": 1,
+      "stored_parameters": 821632,
+      "train_wall_time_s": 96.9,
+      "val_loss": 1.68218,
+      "forward_latency_ms_b1": 2.304,
+      "weight_memory_kib": 3209.5,
+      "macs_per_token_at_full_context": 534656
+    },
+    {
+      "variant": "sparse-50",
+      "seed": 1,
+      "stored_parameters": 820096,
+      "train_wall_time_s": 238.7,
+      "val_loss": 1.74854,
+      "mlp_weight_sparsity": 0.5,
+      "forward_latency_ms_b1": 1.907,
+      "weight_memory_kib": 3203.5,
+      "macs_per_token_at_full_context": 1450112
+    },
+    {
+      "variant": "qat-int4",
+      "seed": 1,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 124.9,
+      "val_loss": 1.73339,
+      "forward_latency_ms_b1": 1.338,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "ptq-int4",
+      "seed": 1,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 124.9,
+      "val_loss": 1.74817,
+      "forward_latency_ms_b1": 1.368,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "distill",
+      "seed": 1,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 180.6,
+      "val_loss": 1.70628,
+      "forward_latency_ms_b1": 1.616,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "recursive",
+      "seed": 1,
+      "stored_parameters": 839680,
+      "train_wall_time_s": 299.7,
+      "val_loss": 1.61527,
+      "forward_latency_ms_b1": 3.493,
+      "weight_memory_kib": 3280.0,
+      "macs_per_token_at_full_context": 3424512
+    },
+    {
+      "variant": "baseline",
+      "seed": 2,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 109.4,
+      "val_loss": 1.71541,
+      "forward_latency_ms_b1": 1.25,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "untied-head",
+      "seed": 2,
+      "stored_parameters": 818144,
+      "train_wall_time_s": 98.9,
+      "val_loss": 1.72599,
+      "forward_latency_ms_b1": 1.235,
+      "weight_memory_kib": 3195.9,
+      "macs_per_token_at_full_context": 917632
+    },
+    {
+      "variant": "low-rank",
+      "seed": 2,
+      "stored_parameters": 811904,
+      "train_wall_time_s": 141.7,
+      "val_loss": 1.97698,
+      "forward_latency_ms_b1": 1.396,
+      "weight_memory_kib": 3171.5,
+      "macs_per_token_at_full_context": 917632
+    },
+    {
+      "variant": "tensor-train",
+      "seed": 2,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 176.3,
+      "val_loss": 1.70489,
+      "forward_latency_ms_b1": 2.267,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 1450112
+    },
+    {
+      "variant": "moe-top1",
+      "seed": 2,
+      "stored_parameters": 821632,
+      "train_wall_time_s": 97.3,
+      "val_loss": 1.70932,
+      "forward_latency_ms_b1": 1.885,
+      "weight_memory_kib": 3209.5,
+      "macs_per_token_at_full_context": 534656
+    },
+    {
+      "variant": "sparse-50",
+      "seed": 2,
+      "stored_parameters": 820096,
+      "train_wall_time_s": 208.3,
+      "val_loss": 1.73378,
+      "mlp_weight_sparsity": 0.5,
+      "forward_latency_ms_b1": 1.624,
+      "weight_memory_kib": 3203.5,
+      "macs_per_token_at_full_context": 1450112
+    },
+    {
+      "variant": "qat-int4",
+      "seed": 2,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 129.6,
+      "val_loss": 1.72615,
+      "forward_latency_ms_b1": 1.312,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "ptq-int4",
+      "seed": 2,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 119.9,
+      "val_loss": 1.7405,
+      "forward_latency_ms_b1": 1.328,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "distill",
+      "seed": 2,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 185.1,
+      "val_loss": 1.69022,
+      "forward_latency_ms_b1": 1.35,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824
+    },
+    {
+      "variant": "recursive",
+      "seed": 2,
+      "stored_parameters": 839680,
+      "train_wall_time_s": 299.2,
+      "val_loss": 1.60752,
+      "forward_latency_ms_b1": 2.861,
+      "weight_memory_kib": 3280.0,
+      "macs_per_token_at_full_context": 3424512
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "stored_parameters": 818048,
+      "val_loss_mean": 1.7182,
+      "val_loss_stdev": 0.0039,
+      "forward_latency_ms_b1_mean": 1.282,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.0,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "untied-head": {
+      "stored_parameters": 818144,
+      "val_loss_mean": 1.7246,
+      "val_loss_stdev": 0.002,
+      "forward_latency_ms_b1_mean": 1.229,
+      "weight_memory_kib": 3195.9,
+      "macs_per_token_at_full_context": 917632,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 0.991,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "low-rank": {
+      "stored_parameters": 811904,
+      "val_loss_mean": 1.9742,
+      "val_loss_stdev": 0.004,
+      "forward_latency_ms_b1_mean": 1.567,
+      "weight_memory_kib": 3171.5,
+      "macs_per_token_at_full_context": 917632,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 0.991,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "tensor-train": {
+      "stored_parameters": 818048,
+      "val_loss_mean": 1.7059,
+      "val_loss_stdev": 0.0014,
+      "forward_latency_ms_b1_mean": 2.292,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 1450112,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.566,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "moe-top1": {
+      "stored_parameters": 821632,
+      "val_loss_mean": 1.6957,
+      "val_loss_stdev": 0.0192,
+      "forward_latency_ms_b1_mean": 2.095,
+      "weight_memory_kib": 3209.5,
+      "macs_per_token_at_full_context": 534656,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 0.577,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "sparse-50": {
+      "stored_parameters": 820096,
+      "val_loss_mean": 1.7412,
+      "val_loss_stdev": 0.0104,
+      "forward_latency_ms_b1_mean": 1.766,
+      "weight_memory_kib": 3203.5,
+      "macs_per_token_at_full_context": 1450112,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.566,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "qat-int4": {
+      "stored_parameters": 818048,
+      "val_loss_mean": 1.7298,
+      "val_loss_stdev": 0.0051,
+      "forward_latency_ms_b1_mean": 1.325,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.0,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "ptq-int4": {
+      "stored_parameters": 818048,
+      "val_loss_mean": 1.7443,
+      "val_loss_stdev": 0.0054,
+      "forward_latency_ms_b1_mean": 1.348,
+      "weight_memory_kib": 507.5,
+      "macs_per_token_at_full_context": 925824,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.0,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "distill": {
+      "stored_parameters": 818048,
+      "val_loss_mean": 1.6983,
+      "val_loss_stdev": 0.0114,
+      "forward_latency_ms_b1_mean": 1.483,
+      "weight_memory_kib": 3195.5,
+      "macs_per_token_at_full_context": 925824,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 1.0,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    },
+    "recursive": {
+      "stored_parameters": 839680,
+      "val_loss_mean": 1.6114,
+      "val_loss_stdev": 0.0055,
+      "forward_latency_ms_b1_mean": 3.177,
+      "weight_memory_kib": 3280.0,
+      "macs_per_token_at_full_context": 3424512,
+      "energy_per_token_estimate": {
+        "relative_to_baseline": 3.699,
+        "label": "estimated: proportional to MACs; no pJ/MAC supplied"
+      }
+    }
+  },
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 8,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  },
+  "evidence": "val loss, latency measured on the hardware above; weight memory computed from stored values (sparse index overhead excluded); energy is an estimate, not measured",
+  "pareto_front_loss_vs_params": [
+    "low-rank",
+    "moe-top1",
+    "distill",
+    "recursive"
+  ],
+  "pareto_front_loss_vs_latency": [
+    "baseline",
+    "untied-head",
+    "moe-top1",
+    "distill",
+    "recursive"
+  ],
+  "pareto_front_loss_vs_memory": [
+    "moe-top1",
+    "qat-int4",
+    "distill",
+    "recursive"
+  ]
+}

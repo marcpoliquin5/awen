@@ -56,3 +56,34 @@ pip install ./awen-systems[test]
 python -m pytest awen-systems/tests -q
 awen-kvcache-study --context 2048 --bits 16 --overrides my_params.json
 ```
+
+## Fabric simulator (`awen_systems.fabric`, `awen-fabric-study`)
+
+A discrete-event simulator of directed FIFO store-and-forward links (bandwidth,
+propagation latency, energy per bit, optical loss vs a receiver sensitivity
+budget, failure time), electrical packet switches (per-hop latency) and
+optical circuit switches (reconfiguration delay per new circuit pattern; one
+permutation at a time). Contention and queueing come out of the simulation.
+Links that fail are routed around (shortest path on the surviving graph);
+unreachable messages are counted as dropped. Collectives: bandwidth-optimal
+ring all-reduce and all-to-all (shift schedule, or a single direct phase on
+packet fabrics). Cut-through switching is not modeled, so every switch hop
+re-serializes the message.
+
+Analytic checks in CI (`tests/test_fabric.py`, 12 tests): M/M/1 mean sojourn
+`1/(mu-lambda)` at ρ = 0.5 and 0.8, ring all-reduce equal to the α-β formula
+`2(n-1)(α + D/(n·B))`, closed-form shift all-to-all on a star, the direct
+all-to-all serialization bound, reconfiguration counts, rerouting on link
+failure, partition drops, loss-budget failures and static-power accounting.
+
+`results/fabric_study.json` compares an electrical packet switch with an
+optical circuit switch on the same star of 8 endpoints with the same assumed
+link bandwidth (400 Gb/s) and latency (25 ns); the packet switch is assumed to
+add 500 ns per hop. **These are illustrative assumptions, not literature or
+measured values**, and energy is not compared because no cited per-bit
+energies are bundled. Under those assumptions: the circuit switch is faster
+for ring all-reduce only when reconfiguration takes about 1 µs (1e6-bit
+buffer: 10.5 µs vs 16.5 µs); at 10 µs and above it is slower for small
+buffers, and for all-to-all (7 reconfigurations) it is slower at every tested
+point. For 1e10-bit buffers the two are within 1% for ring all-reduce up to a
+100 µs reconfiguration delay because bandwidth dominates.

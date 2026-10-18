@@ -1,0 +1,554 @@
+{
+  "version": "awen.research-ledger.v1",
+  "source_note": "Seed of 15 directions. The 72-paper historical ledger file was not available; import it with import_ledger.py when supplied.",
+  "entries": [
+    {
+      "id": "coherent-mzi-mesh-inference",
+      "direction": "Coherent interferometric (MZI mesh) neural-network inference",
+      "summary": "Programmable Mach-Zehnder interferometer meshes perform matrix-vector products in the optical domain for neural-network inference.",
+      "citation": {
+        "title": "Deep learning with coherent nanophotonic circuits",
+        "authors": [
+          "Yichen Shen",
+          "Nicholas C. Harris",
+          "Scott Skirlo",
+          "Mihika Prabhu",
+          "Tom Baehr-Jones",
+          "Michael Hochberg",
+          "Xin Sun",
+          "Shijie Zhao",
+          "Hugo Larochelle",
+          "Dirk Englund",
+          "Marin Soljačić"
+        ],
+        "year": 2017,
+        "venue": "Nature Photonics",
+        "doi": "10.1038/nphoton.2017.93",
+        "url": "https://doi.org/10.1038/nphoton.2017.93"
+      },
+      "relevance": "Core execution model for the AWEN photonic GEMM path and the Clements mesh notebook.",
+      "awen_mapping": {
+        "state": "implemented",
+        "modules": [
+          "awen-runtime photonic GEMM model",
+          "awen-physics Clements mesh notebook"
+        ],
+        "next_step": "Calibrate against measured mesh phase errors when hardware data exists."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "universal-unitary-decomposition",
+      "direction": "Universal multiport interferometer decomposition",
+      "summary": "Any unitary can be realized by a rectangular mesh of beam splitters and phase shifters with balanced depth.",
+      "citation": {
+        "title": "Optimal design for universal multiport interferometers",
+        "authors": [
+          "William R. Clements",
+          "Peter C. Humphreys",
+          "Benjamin J. Metcalf",
+          "W. Steven Kolthammer",
+          "Ian A. Walmsley"
+        ],
+        "year": 2016,
+        "venue": "Optica",
+        "doi": "10.1364/OPTICA.3.001460",
+        "url": "https://doi.org/10.1364/OPTICA.3.001460"
+      },
+      "relevance": "Defines the mesh layout AWEN uses to map unitary factors of a weight matrix (SVD) to hardware.",
+      "awen_mapping": {
+        "state": "implemented",
+        "modules": [
+          "awen-physics notebooks (Clements mesh)"
+        ],
+        "next_step": "Expose decomposition as a compiler pass with loss-aware ordering."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "diffractive-networks",
+      "direction": "Free-space diffractive deep neural networks",
+      "summary": "Stacked passive diffractive layers, trained in simulation and fabricated, perform classification at the speed of light propagation.",
+      "citation": {
+        "title": "All-optical machine learning using diffractive deep neural networks",
+        "authors": [
+          "Xing Lin",
+          "Yair Rivenson",
+          "Nezih T. Yardimci",
+          "Muhammed Veli",
+          "Yi Luo",
+          "Mona Jarrahi",
+          "Aydogan Ozcan"
+        ],
+        "year": 2018,
+        "venue": "Science",
+        "doi": "10.1126/science.aat8084",
+        "url": "https://doi.org/10.1126/science.aat8084"
+      },
+      "relevance": "A non-mesh photonic substrate; needs a propagation-based backend (BPM/angular spectrum) in awen-physics.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-physics BPM solver"
+        ],
+        "next_step": "Add an angular-spectrum diffractive layer and a trainable diffractive backend."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "photonic-tensor-core-pcm",
+      "direction": "Integrated photonic tensor cores with phase-change memory weights",
+      "summary": "Wavelength-multiplexed photonic tensor core with non-volatile phase-change weights performs parallel convolutions.",
+      "citation": {
+        "title": "Parallel convolutional processing using an integrated photonic tensor core",
+        "authors": [
+          "J. Feldmann",
+          "N. Youngblood",
+          "M. Karpov",
+          "H. Gehring",
+          "X. Li",
+          "M. Stappers",
+          "M. Le Gallo",
+          "X. Fu",
+          "A. Lukashchuk",
+          "A. S. Raja",
+          "J. Liu",
+          "C. D. Wright",
+          "A. Sebastian",
+          "T. J. Kippenberg",
+          "W. H. P. Pernice",
+          "H. Bhaskaran"
+        ],
+        "year": 2021,
+        "venue": "Nature",
+        "doi": "10.1038/s41586-020-03070-1",
+        "url": "https://doi.org/10.1038/s41586-020-03070-1"
+      },
+      "relevance": "Informs the in-memory weight residency model and the photonic memory parameter schema.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-systems memory simulator"
+        ],
+        "next_step": "Model PCM drift and level count as a precision contract."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "spiking-photonic-networks",
+      "direction": "All-optical spiking neurosynaptic networks",
+      "summary": "Phase-change synapses and all-optical spiking neurons with on-chip self-learning.",
+      "citation": {
+        "title": "All-optical spiking neurosynaptic networks with self-learning capabilities",
+        "authors": [
+          "J. Feldmann",
+          "N. Youngblood",
+          "C. D. Wright",
+          "H. Bhaskaran",
+          "W. H. P. Pernice"
+        ],
+        "year": 2019,
+        "venue": "Nature",
+        "doi": "10.1038/s41586-019-1157-8",
+        "url": "https://doi.org/10.1038/s41586-019-1157-8"
+      },
+      "relevance": "Candidate event-driven nonlinear architecture; no AWEN implementation yet.",
+      "awen_mapping": {
+        "state": "not-started",
+        "modules": [],
+        "next_step": "Add a spiking neuron model to the nonlinear architecture study."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "electro-optic-nonlinearity",
+      "direction": "Reprogrammable electro-optic nonlinear activations",
+      "summary": "Tapping a fraction of the optical signal to drive a modulator yields programmable nonlinear activation functions.",
+      "citation": {
+        "title": "Reprogrammable Electro-Optic Nonlinear Activation Functions for Optical Neural Networks",
+        "authors": [
+          "Ian A. D. Williamson",
+          "Tyler W. Hughes",
+          "Momchil Minkov",
+          "Ben Bartlett",
+          "Sunil Pai",
+          "Shanhui Fan"
+        ],
+        "year": 2020,
+        "venue": "IEEE Journal of Selected Topics in Quantum Electronics",
+        "doi": "10.1109/JSTQE.2019.2930455",
+        "url": "https://doi.org/10.1109/JSTQE.2019.2930455"
+      },
+      "relevance": "A physically motivated activation for AWEN-Nonlinear and the ops library nonlinear entries.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-models nonlinear study"
+        ],
+        "next_step": "Add an electro-optic activation variant with its loss and bandwidth cost."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "in-situ-backprop",
+      "direction": "In situ training by gradient measurement",
+      "summary": "Adjoint-method gradients of photonic circuit parameters can be obtained from intensity measurements on chip.",
+      "citation": {
+        "title": "Training of photonic neural networks through in situ backpropagation and gradient measurement",
+        "authors": [
+          "Tyler W. Hughes",
+          "Momchil Minkov",
+          "Yu Shi",
+          "Shanhui Fan"
+        ],
+        "year": 2018,
+        "venue": "Optica",
+        "doi": "10.1364/OPTICA.5.000864",
+        "url": "https://doi.org/10.1364/OPTICA.5.000864"
+      },
+      "relevance": "Grounds the awen-physics adjoint solver and future hardware-in-the-loop training.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-physics FDFD adjoint"
+        ],
+        "next_step": "Implement mesh-level adjoint gradients matching the in situ procedure."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "photoelectric-multiplication",
+      "direction": "Homodyne photoelectric multiplication at scale",
+      "summary": "Optical fan-out with homodyne detection multiplies vectors by matrices, with an analysis of the standard quantum limit on energy per MAC.",
+      "citation": {
+        "title": "Large-Scale Optical Neural Networks Based on Photoelectric Multiplication",
+        "authors": [
+          "Ryan Hamerly",
+          "Liane Bernstein",
+          "Alexander Sludds",
+          "Marin Soljačić",
+          "Dirk Englund"
+        ],
+        "year": 2019,
+        "venue": "Physical Review X",
+        "doi": "10.1103/PhysRevX.9.021032",
+        "url": "https://doi.org/10.1103/PhysRevX.9.021032"
+      },
+      "relevance": "Basis for the shot-noise term in the AWEN noise contract (photons per MAC).",
+      "awen_mapping": {
+        "state": "implemented",
+        "modules": [
+          "AEP-0022 noise contract",
+          "awen-models AWEN-Photon training"
+        ],
+        "next_step": "Compare the contract's shot-noise term against the paper's scaling analysis."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "single-chip-photonic-dnn",
+      "direction": "Single-chip photonic DNN with forward-only training",
+      "summary": "A fully integrated coherent photonic DNN including nonlinear function units, trained in situ.",
+      "citation": {
+        "title": "Single-chip photonic deep neural network with forward-only training",
+        "authors": [
+          "Saumil Bandyopadhyay",
+          "Alexander Sludds",
+          "Stefan Krastanov",
+          "Ryan Hamerly",
+          "Nicholas Harris",
+          "Darius Bunandar",
+          "Matthew Streshinsky",
+          "Michael Hochberg",
+          "Dirk Englund"
+        ],
+        "year": 2024,
+        "venue": "Nature Photonics",
+        "doi": "10.1038/s41566-024-01567-z",
+        "url": "https://doi.org/10.1038/s41566-024-01567-z"
+      },
+      "relevance": "Reference architecture for an end-to-end on-chip backend description.",
+      "awen_mapping": {
+        "state": "not-started",
+        "modules": [],
+        "next_step": "Describe a comparable device in the hardware description schema as a fixture."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "photonic-reservoir-computing",
+      "direction": "Photonic reservoir computing",
+      "summary": "A passive silicon-photonic reservoir performs recurrent computation with only output weights trained.",
+      "citation": {
+        "title": "Experimental demonstration of reservoir computing on a silicon photonics chip",
+        "authors": [
+          "Kristof Vandoorne",
+          "Pauline Mechet",
+          "Thomas Van Vaerenbergh",
+          "Martin Fiers",
+          "Geert Morthier",
+          "David Verstraeten",
+          "Benjamin Schrauwen",
+          "Joni Dambre",
+          "Peter Bienstman"
+        ],
+        "year": 2014,
+        "venue": "Nature Communications",
+        "doi": "10.1038/ncomms4541",
+        "url": "https://doi.org/10.1038/ncomms4541"
+      },
+      "relevance": "Recurrent and recursive computation without trained optical weights; relevant to the recursive-reuse study.",
+      "awen_mapping": {
+        "state": "not-started",
+        "modules": [],
+        "next_step": "Add a reservoir variant to the nonlinear architecture study."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "time-wavelength-convolution",
+      "direction": "Time-wavelength interleaved convolution accelerators",
+      "summary": "Kerr microcomb wavelengths plus time interleaving implement convolution with high aggregate throughput.",
+      "citation": {
+        "title": "11 TOPS photonic convolutional accelerator for optical neural networks",
+        "authors": [
+          "Xingyuan Xu",
+          "Mengxi Tan",
+          "Bill Corcoran",
+          "Jiayang Wu",
+          "Andreas Boes",
+          "Thach G. Nguyen",
+          "Sai T. Chu",
+          "Brent E. Little",
+          "Damien G. Hicks",
+          "Roberto Morandotti",
+          "Arnan Mitchell",
+          "David J. Moss"
+        ],
+        "year": 2021,
+        "venue": "Nature",
+        "doi": "10.1038/s41586-020-03063-0",
+        "url": "https://doi.org/10.1038/s41586-020-03063-0"
+      },
+      "relevance": "Informs a wavelength-multiplexed convolution lowering in the ops library.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "compiler ops library (convolution, math reference level)"
+        ],
+        "next_step": "Model WDM channel count and crosstalk in the convolution op."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "sub-photon-per-mac",
+      "direction": "Optical neural networks below one photon per multiplication",
+      "summary": "Optical matrix-vector multiplication was operated at fewer than one detected photon per multiplication on a classification task.",
+      "citation": {
+        "title": "An optical neural network using less than 1 photon per multiplication",
+        "authors": [
+          "Tianyu Wang",
+          "Shi-Yuan Ma",
+          "Logan G. Wright",
+          "Tatsuhiro Onodera",
+          "Brian C. Richard",
+          "Peter L. McMahon"
+        ],
+        "year": 2022,
+        "venue": "Nature Communications",
+        "doi": "10.1038/s41467-021-27774-8",
+        "url": "https://doi.org/10.1038/s41467-021-27774-8"
+      },
+      "relevance": "Direct test case for AWEN noise-aware training at very low photon budgets.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-models AWEN-Photon training"
+        ],
+        "next_step": "Reproduce the photon-budget sweep shape on the simulator."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "photonic-boson-sampling",
+      "direction": "Gaussian boson sampling with photons",
+      "summary": "Large-scale Gaussian boson sampling experiment reporting a quantum computational advantage claim.",
+      "citation": {
+        "title": "Quantum computational advantage using photons",
+        "authors": [
+          "Han-Sen Zhong",
+          "Hui Wang",
+          "Yu-Hao Deng",
+          "Ming-Cheng Chen",
+          "Li-Chao Peng",
+          "Yi-Han Luo",
+          "Jian Qin",
+          "Dian Wu",
+          "Xing Ding",
+          "Yi Hu",
+          "Peng Hu",
+          "Xiao-Yan Yang",
+          "Wei-Jun Zhang",
+          "Hao Li",
+          "Yuxuan Li",
+          "Xiao Jiang",
+          "Lin Gan",
+          "Guangwen Yang",
+          "Lixing You",
+          "Zhen Wang",
+          "Li Li",
+          "Nai-Le Liu",
+          "Chao-Yang Lu",
+          "Jian-Wei Pan"
+        ],
+        "year": 2020,
+        "venue": "Science",
+        "doi": "10.1126/science.abe8770",
+        "url": "https://doi.org/10.1126/science.abe8770"
+      },
+      "relevance": "Reference for the separate quantum-photonic track; AWEN makes no advantage claims.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-qphotonic"
+        ],
+        "next_step": "Keep classical-simulability checks next to any sampler benchmark."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "inverse-design",
+      "direction": "Inverse design of nanophotonic devices",
+      "summary": "Gradient-based optimization over device geometry discovers compact, high-performance photonic components.",
+      "citation": {
+        "title": "Inverse design in nanophotonics",
+        "authors": [
+          "Sean Molesky",
+          "Zin Lin",
+          "Alexander Y. Piggott",
+          "Weiliang Jin",
+          "Jelena Vucković",
+          "Alejandro W. Rodriguez"
+        ],
+        "year": 2018,
+        "venue": "Nature Photonics",
+        "doi": "10.1038/s41566-018-0246-9",
+        "url": "https://doi.org/10.1038/s41566-018-0246-9"
+      },
+      "relevance": "Motivates the device-design workflows built on the awen-physics adjoint solver.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-physics FDFD adjoint"
+        ],
+        "next_step": "Add a 2-D inverse design example with fabrication constraints."
+      },
+      "maturity": "simulation",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    },
+    {
+      "id": "physics-aware-training",
+      "direction": "Physics-aware training of physical neural networks",
+      "summary": "Backpropagation through a differentiable digital model while running the forward pass on physical hardware trains physical systems.",
+      "citation": {
+        "title": "Deep physical neural networks trained with backpropagation",
+        "authors": [
+          "Logan G. Wright",
+          "Tatsuhiro Onodera",
+          "Martin M. Stein",
+          "Tianyu Wang",
+          "Darren T. Schachter",
+          "Zoey Hu",
+          "Peter L. McMahon"
+        ],
+        "year": 2022,
+        "venue": "Nature",
+        "doi": "10.1038/s41586-021-04223-6",
+        "url": "https://doi.org/10.1038/s41586-021-04223-6"
+      },
+      "relevance": "The training recipe AWEN needs once a real device sits in the loop; noise-aware training is the simulator-only precursor.",
+      "awen_mapping": {
+        "state": "partial",
+        "modules": [
+          "awen-models AWEN-Photon training"
+        ],
+        "next_step": "Add a hybrid forward(physical)/backward(model) training loop against the simulator."
+      },
+      "maturity": "lab-demonstration",
+      "status": "verified",
+      "verification": {
+        "method": "title, authors and year checked against the Crossref record for the DOI",
+        "date": "2026-10-18"
+      }
+    }
+  ]
+}
