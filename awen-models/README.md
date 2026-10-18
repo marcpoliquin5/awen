@@ -221,6 +221,30 @@ prints a capability report. The report lists which linear layers can lower to
 an AWEN GEMM and which stay on the CPU, and why. Needs `pip install
 "./awen-models[hf]"`.
 
+## ONNX import
+
+`pip install "awen-models[onnx]"`, then:
+
+```bash
+awen-onnx-report model.onnx --json report.json
+```
+
+```python
+from awen_models import onnx_import
+report = onnx_import.analyze("model.onnx")          # per-node placement and level
+outputs, info = onnx_import.run("model.onnx", {"x": x})                  # f64 reference
+outputs, info = onnx_import.run("model.onnx", {"x": x}, contract=c)      # simulated
+```
+
+Constant-weight `MatMul`/`Gemm` and 2-D `Conv` (group 1, no dilation) map to
+the AWEN `gemm` and `conv2d` operators and are placed `photonic`.
+Activation-activation `MatMul`, elementwise ops (`Add`, `Sub`, `Mul`, `Div`,
+`Relu`, `Sigmoid`, `Tanh`, `Gelu`, `Softmax`) and shape ops stay
+`electronic`. Everything else is `unsupported`: the report lists it and `run`
+refuses the graph. The photonic MAC fraction is static analysis, not a
+measurement. Not mapped yet: `Gather`, `LayerNormalization`, pooling, grouped
+and dilated convolution, and fused attention ops.
+
 ## Tests
 
 ```bash
