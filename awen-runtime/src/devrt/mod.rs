@@ -8,10 +8,16 @@
 //!   LRU eviction and transfer accounting.
 //! * [`lease`]: exclusive/shared device leases with logical-clock expiry and
 //!   resource budgets.
+//! * [`remap`]: health-aware placement on simulated devices with CPU fallback.
+//! * [`record`]: deterministic seeding, experiment recording, bit-exact replay.
+//! * [`profile`]: host wall-clock spans, summaries and Chrome trace export.
 //!
 //! All quantities are bookkeeping values supplied by callers or by the
 //! simulator. They are not hardware measurements.
 
 pub mod lease;
+pub mod profile;
+pub mod record;
+pub mod remap;
 pub mod residency;
 pub mod stream;
