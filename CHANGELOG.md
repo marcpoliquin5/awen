@@ -16,6 +16,23 @@
   against brute-force permutation sums, explicit creation-operator
   expansion, closed-form HOM coincidence and an environment-mode loss
   oracle. Simulation only (#97, refs #69).
+- `awen-physics`: χ⁽²⁾ second-harmonic generation by integrating the
+  coupled-wave equations (`shg`), checked against the undepleted sinc²,
+  depleted tanh² and first-order quasi-phase-matching closed forms; and a
+  1-D frequency-domain Helmholtz solver with adjoint permittivity gradients
+  (`fdfd_adjoint`), checked against central finite differences and the
+  transfer-matrix reflectance (#96, refs #68).
+- `awen-physics`: 1-D Yee FDTD reflectance spectra (`fdtd1d`, full-wave 1-D)
+  converging at second order to the transfer-matrix result, and a 2-D
+  scalar paraxial Crank–Nicolson BPM with imaginary-distance mode solving
+  (`bpm`), checked against the Gaussian-beam width and the analytic slab
+  mode (#95, refs #68).
+- `awen-physics`: planar multilayer optics by transfer matrices and an
+  independent Redheffer S-matrix composition (`tmm`), and microring
+  all-pass/add-drop transmission with explicit round-trip propagation, FSR
+  and FWHM (`rings`). Checked against Fresnel, quarter-wave-mirror and
+  Beer–Lambert closed forms (fidelity: analytic / numerical propagation;
+  #94, refs #68).
 - Added minimal ONNX import (`awen_models.onnx_import`, `awen-onnx-report`,
   `awen.onnx-report.v1`). It maps constant-weight MatMul/Gemm and 2-D Conv
   onto the AWEN `gemm`/`conv2d` operators, keeps activation-activation
