@@ -1,0 +1,38 @@
+{
+  "version": "awen.model-evaluation.v1",
+  "model": "awen-mini",
+  "parameters": 1016320,
+  "checkpoint_step": 5750,
+  "uniform_baseline_nats": 4.17439,
+  "evaluation": {
+    "split": "validation",
+    "batches": 40,
+    "batch_size": 32,
+    "seed": 2024
+  },
+  "variants": {
+    "float32": {
+      "val_loss_nats": 1.47167,
+      "bits_per_char": 2.12317,
+      "linear_weight_bytes": 3932160,
+      "generate_tokens_per_s": 548.7
+    },
+    "int8_weights": {
+      "val_loss_nats": 1.47161,
+      "bits_per_char": 2.12309,
+      "linear_weight_bytes": 1006080,
+      "generate_tokens_per_s": 482.2
+    }
+  },
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 2,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  },
+  "evidence": "measured on the hardware recorded above"
+}

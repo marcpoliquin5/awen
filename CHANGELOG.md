@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Added `awen-models`: the AWEN-Mini character-level language model
+  (1,016,320 parameters), trained on CPU on Tiny Shakespeare. It ships with a
+  bundled safetensors checkpoint (validation loss 1.4795 nats, measured), int8
+  inference, `Runtime(device="auto")`, an evaluation command, the
+  AWEN-Nonlinear equal-parameter ablation with committed results, and a
+  Hugging Face capability report (`trust_remote_code=False`) for SmolLM2-135M.
+- `awenctl execute --inputs` runs AWENEXE GEMM dispatches on the photonic
+  noise model and reports error and measured effective bits against an exact
+  reference (#82).
+- Added the physical-unit photonic noise contract
+  (`awen.photonic-noise-contract.v1`) and a compact GEMM noise model covering
+  shot, thermal, RIN, phase, drift, crosstalk, insertion loss and DAC/ADC
+  terms (AEP-0022, #80).
 - Added `docs/AUDIT.md` (implementation truth table at `020be48`),
   `docs/ROADMAP.md` (dependency-aware milestones with acceptance tests and
   hardware needs) and `docs/DIRECTIVE_TRACKER.md`; opened labeled issues

@@ -136,6 +136,14 @@ jobs:
       - name: Test current supported Python frameworks
         run: python -m pytest awen-ecosystem/python_awen/tests -q
 
+      - name: Install awen-models
+        run: python -m pip install --disable-pip-version-check "./awen-models[test]"
+
+      - name: Test awen-models (bundled AWEN-Mini checkpoint, ablation harness, HF adapter)
+        env:
+          OMP_NUM_THREADS: "2"
+        run: python -m pytest awen-models/tests -q
+
       - name: Audit Python dependencies
         run: python -m pip_audit --local --skip-editable
 

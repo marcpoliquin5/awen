@@ -1,0 +1,73 @@
+{
+  "config": {
+    "bias": true,
+    "block_size": 128,
+    "dropout": 0.1,
+    "extra": {},
+    "ffn": "gelu",
+    "ffn_hidden": 512,
+    "ffn_rank": 32,
+    "n_embd": 128,
+    "n_head": 4,
+    "n_layer": 5,
+    "shared_layers": false,
+    "vocab_size": 65
+  },
+  "dataset": {
+    "characters": 1115394,
+    "license": "Public domain text (Shakespeare); file from the MIT-licensed karpathy/char-rnn repository",
+    "name": "tiny-shakespeare",
+    "sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "url": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+  },
+  "evidence": "measured on the hardware recorded above",
+  "final": {
+    "elapsed_s": 2167.39,
+    "step": 6000,
+    "train_loss": 1.19569,
+    "val_loss": 1.48017
+  },
+  "hardware": {
+    "cpu_count": 8,
+    "cpu_model": "Intel(R) Xeon(R) Processor",
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "python": "3.13.5",
+    "torch": "2.14.1+cpu",
+    "torch_threads": 6
+  },
+  "model": "awen-mini",
+  "parameters": 1016320,
+  "selected_checkpoint": {
+    "elapsed_s": 2087.73,
+    "rule": "lowest validation loss at an evaluation step",
+    "step": 5750,
+    "train_loss": 1.19917,
+    "val_loss": 1.47945
+  },
+  "settings": {
+    "batch_size": 64,
+    "device": "auto",
+    "eval_batches": 20,
+    "eval_interval": 250,
+    "grad_clip": 1.0,
+    "keep_best": true,
+    "learning_rate": 0.001,
+    "min_learning_rate": 0.0001,
+    "seed": 1337,
+    "steps": 6000,
+    "threads": 6,
+    "val_fraction": 0.1,
+    "warmup_steps": 100,
+    "weight_decay": 0.1
+  },
+  "split": {
+    "method": "contiguous; last 10% is validation",
+    "train_tokens": 1003854,
+    "val_tokens": 111540
+  },
+  "train_tokens_per_s": 22677.9,
+  "train_tokens_processed": 49152000,
+  "train_wall_time_s": 2167.4
+}

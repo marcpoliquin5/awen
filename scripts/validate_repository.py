@@ -132,6 +132,7 @@ for clause in ("Permission is hereby granted", "THE SOFTWARE IS PROVIDED \"AS IS
 metadata_checks = {
     "awen-compiler/Cargo.toml": ('license = "MIT"', "repository = "),
     "awen-runtime/Cargo.toml": ('license = "MIT"', "repository = "),
+    "awen-models/pyproject.toml": ('license = "MIT"', "Repository = "),
     "awen-ecosystem/python_awen/pyproject.toml": ('license = "MIT"', "Repository = "),
 }
 for name, needles in metadata_checks.items():

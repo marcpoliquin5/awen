@@ -1,0 +1,38 @@
+[project]
+name = "awen-models"
+version = "0.1.0"
+description = "AWEN-Mini and related small, reproducible models plus the `awen` runtime facade."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.10,<2.15",
+  "numpy>=1.26,<3",
+  "safetensors>=0.4,<1",
+]
+
+[project.optional-dependencies]
+hf = ["transformers>=4.50,<6"]
+plot = ["matplotlib>=3.8,<4"]
+test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6"]
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+Issues = "https://github.com/marcpoliquin5/awen/issues"
+
+[project.scripts]
+awen-mini-train = "awen_models.train:main"
+awen-nonlinear = "awen_models.nonlinear:main"
+awen-hf-report = "awen_models.hf_adapter:main"
+awen-mini-eval = "awen_models.evaluate:main"
+
+[tool.setuptools]
+packages = ["awen", "awen_models"]
+
+[tool.setuptools.package-data]
+awen_models = ["checkpoints/*/*.json", "checkpoints/*/*.safetensors"]
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
