@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![AWEN Required Quality Gate](https://github.com/marcpoliquin5/awen/actions/workflows/observability-quality-gate.yml/badge.svg?branch=main)](https://github.com/marcpoliquin5/awen/actions/workflows/observability-quality-gate.yml)
 
-[Status site](https://marcpoliquin5.github.io/awenphotonics.github.io/) · [Implementation status](docs/IMPLEMENTATION-STATUS.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+[Implementation status](docs/IMPLEMENTATION-STATUS.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -66,12 +66,6 @@ model = torch.compile(model, backend=awen, dynamic=True)
 ```
 
 The full build-and-verify procedure is in [Build and verify](#build-and-verify).
-
-## Related repositories
-
-- [awen-labs](https://github.com/marcpoliquin5/awen-labs): interactive platform website (React, TypeScript).
-- [awenphotonics.github.io](https://github.com/marcpoliquin5/awenphotonics.github.io): static, evidence-checked status site.
-- [understanding-ai](https://github.com/marcpoliquin5/understanding-ai): background on [photonic computing for AI](https://github.com/marcpoliquin5/understanding-ai/blob/main/docs/06-frontiers/photonic-computing.md).
 
 ## Technical overview
 
