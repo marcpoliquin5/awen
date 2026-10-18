@@ -12,6 +12,20 @@
   established results they build on. `docs/RESEARCH_PIPELINE.md` describes
   the research-to-code path. Kept separate from the core; no free-energy
   claims (refs #77).
+- Added `awen-systems` with a memory-technology parameter schema
+  (`awen.memory_technologies.v1`: phase-change photonic, microring fading,
+  optical RRAM, delay line, HBM2 baseline). Every value carries a provenance;
+  only values checked against a cited source are bundled, the rest must be
+  supplied. Includes a behavioral memory simulator and a KV-cache workload
+  study (traffic, energy, attention fidelity), all labeled modeled (refs #70).
+- Added the model conversion utility `awen-convert` (`awen_models.convert`):
+  `to-onnx` exports an AWEN-Mini checkpoint to ONNX and verifies it against
+  PyTorch with `onnx.reference.ReferenceEvaluator` (max logit difference
+  1.0e-05 on the bundled checkpoint at sequence length 32), with the ONNX
+  compatibility analysis in the report; `to-program` turns constant-weight
+  MatMul/Gemm nodes into an `awen.tensor.v1` program that `awenctl compile`
+  plans, listing activation products and Gemm epilogues as electronic
+  (refs #66).
 - Added the vendor-neutral hardware description schema
   (`awen.hardware-description.v1`) for MZI meshes, microring banks, WDM,
   diffractive layers, detectors, ADCs, DACs, lasers, reservoirs, memory and

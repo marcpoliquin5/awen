@@ -1,0 +1,717 @@
+{
+  "label": "modeled; not a hardware measurement",
+  "energy": [
+    {
+      "label": "modeled",
+      "technology": "phase_change_photonic",
+      "shape": "AWEN-Mini",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 2683043840,
+      "values_written": 2621440,
+      "bits_read": 42928701440,
+      "bits_written": 41943040,
+      "kv_bytes_at_end": 5242880.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 6,
+      "write_energy_j": 0.000210763776,
+      "write_energy_source": "literature-reported [rios2015]"
+    },
+    {
+      "label": "modeled",
+      "technology": "microring_fading",
+      "shape": "AWEN-Mini",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 2683043840,
+      "values_written": 2621440,
+      "bits_read": 42928701440,
+      "bits_written": 41943040,
+      "kv_bytes_at_end": 5242880.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "optical_rram",
+      "shape": "AWEN-Mini",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 2683043840,
+      "values_written": 2621440,
+      "bits_read": 42928701440,
+      "bits_written": 41943040,
+      "kv_bytes_at_end": 5242880.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "delay_line",
+      "shape": "AWEN-Mini",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 2683043840,
+      "values_written": 2621440,
+      "bits_read": 42928701440,
+      "bits_written": 41943040,
+      "kv_bytes_at_end": 5242880.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "dram_hbm2",
+      "shape": "AWEN-Mini",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 2683043840,
+      "values_written": 2621440,
+      "bits_read": 42928701440,
+      "bits_written": 41943040,
+      "kv_bytes_at_end": 5242880.0,
+      "read_energy_j": 0.1704269447168,
+      "read_energy_source": "literature-reported [oconnor2017]",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "phase_change_photonic",
+      "shape": "SmolLM2-135M",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 24147394560,
+      "values_written": 23592960,
+      "bits_read": 386358312960,
+      "bits_written": 377487360,
+      "kv_bytes_at_end": 47185920.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 6,
+      "write_energy_j": 0.0018968739839999998,
+      "write_energy_source": "literature-reported [rios2015]"
+    },
+    {
+      "label": "modeled",
+      "technology": "microring_fading",
+      "shape": "SmolLM2-135M",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 24147394560,
+      "values_written": 23592960,
+      "bits_read": 386358312960,
+      "bits_written": 377487360,
+      "kv_bytes_at_end": 47185920.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "optical_rram",
+      "shape": "SmolLM2-135M",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 24147394560,
+      "values_written": 23592960,
+      "bits_read": 386358312960,
+      "bits_written": 377487360,
+      "kv_bytes_at_end": 47185920.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "delay_line",
+      "shape": "SmolLM2-135M",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 24147394560,
+      "values_written": 23592960,
+      "bits_read": 386358312960,
+      "bits_written": 377487360,
+      "kv_bytes_at_end": 47185920.0,
+      "read_energy_j": null,
+      "read_energy_source": "parameter (unset)",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    },
+    {
+      "label": "modeled",
+      "technology": "dram_hbm2",
+      "shape": "SmolLM2-135M",
+      "context": 2048,
+      "bits_per_value": 16,
+      "values_read": 24147394560,
+      "values_written": 23592960,
+      "bits_read": 386358312960,
+      "bits_written": 377487360,
+      "kv_bytes_at_end": 47185920.0,
+      "read_energy_j": 1.5338425024512001,
+      "read_energy_source": "literature-reported [oconnor2017]",
+      "cells_per_value": 1,
+      "write_energy_j": null,
+      "write_energy_source": "parameter (unset)"
+    }
+  ],
+  "fidelity": [
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 1.6140419718861994,
+      "rel_l2_error_per_seed": [
+        1.4257553293317695,
+        1.8023286144406292
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 1.25230294055489,
+      "rel_l2_error_per_seed": [
+        1.129412777275314,
+        1.375193103834466
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 1.6230718577272132,
+      "rel_l2_error_per_seed": [
+        1.4298398148135558,
+        1.8163039006408703
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 1.2580933429132157,
+      "rel_l2_error_per_seed": [
+        1.1321857282227394,
+        1.3840009576036918
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 1.6563376042906088,
+      "rel_l2_error_per_seed": [
+        1.4496906617074798,
+        1.862984546873738
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 4,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 1.2848315664285224,
+      "rel_l2_error_per_seed": [
+        1.1495119257682465,
+        1.4201512070887985
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.47383442641157303,
+      "rel_l2_error_per_seed": [
+        0.47010507036514354,
+        0.4775637824580025
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.42634899661414455,
+      "rel_l2_error_per_seed": [
+        0.42027073842970547,
+        0.4324272547985836
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.47583494745452193,
+      "rel_l2_error_per_seed": [
+        0.47325724430599075,
+        0.4784126506030531
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.4294076533424318,
+      "rel_l2_error_per_seed": [
+        0.4240829961106184,
+        0.43473231057424516
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.499545907513383,
+      "rel_l2_error_per_seed": [
+        0.49770969182585584,
+        0.5013821232009102
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 8,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.4531952844057372,
+      "rel_l2_error_per_seed": [
+        0.44858718040543055,
+        0.4578033884060439
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.2208160372190526,
+      "rel_l2_error_per_seed": [
+        0.21707640335942444,
+        0.22455567107868077
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.25048851620026896,
+      "rel_l2_error_per_seed": [
+        0.25228431097154186,
+        0.24869272142899607
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.22951116561566348,
+      "rel_l2_error_per_seed": [
+        0.22575164867764855,
+        0.23327068255367842
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.2579881608082557,
+      "rel_l2_error_per_seed": [
+        0.260410807586289,
+        0.2555655140302225
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.28043158828050907,
+      "rel_l2_error_per_seed": [
+        0.2743219216949603,
+        0.2865412548660579
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 16,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.2983252982424399,
+      "rel_l2_error_per_seed": [
+        0.3003448132522714,
+        0.29630578323260837
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.05250480862406981,
+      "rel_l2_error_per_seed": [
+        0.049834534373593004,
+        0.055175082874546616
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.17618234558602947,
+      "rel_l2_error_per_seed": [
+        0.18340659026601236,
+        0.16895810090604657
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.07560032172834671,
+      "rel_l2_error_per_seed": [
+        0.07292491257928171,
+        0.07827573087741171
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.18540759490227604,
+      "rel_l2_error_per_seed": [
+        0.19261933498515718,
+        0.1781958548193949
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.1716046897459495,
+      "rel_l2_error_per_seed": [
+        0.1669611223060077,
+        0.1762482571858913
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 64,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.23599042451971466,
+      "rel_l2_error_per_seed": [
+        0.24134782867117274,
+        0.23063302036825659
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.012515120205413005,
+      "rel_l2_error_per_seed": [
+        0.012471324845105934,
+        0.012558915565720077
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.0,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.17388606896178643,
+      "rel_l2_error_per_seed": [
+        0.1822112720559719,
+        0.165560865867601
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.054873452425609426,
+      "rel_l2_error_per_seed": [
+        0.05430310256410937,
+        0.05544380228710949
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.01,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.18300073459989347,
+      "rel_l2_error_per_seed": [
+        0.1912518153385598,
+        0.17474965386122715
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.0,
+      "rel_l2_error_mean": 0.16249088112003304,
+      "rel_l2_error_per_seed": [
+        0.15888624485611555,
+        0.16609551738395054
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    },
+    {
+      "label": "modeled (parameter sweep)",
+      "levels": 256,
+      "read_noise_sigma": 0.03,
+      "age_over_retention": 0.1,
+      "rel_l2_error_mean": 0.23355436778070868,
+      "rel_l2_error_per_seed": [
+        0.23962667153946837,
+        0.22748206402194898
+      ],
+      "seeds": [
+        0,
+        1
+      ],
+      "seq": 128,
+      "head_dim": 64,
+      "clip_scale_std": 4.0
+    }
+  ]
+}
