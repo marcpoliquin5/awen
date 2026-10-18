@@ -73,6 +73,49 @@ it never executes code from the file.
 
 `photonic-sim` needs the native extension (`pip install ./awen-native`).
 
+```python
+import awen_native
+from awen import Runtime
+
+contract = awen_native.default_contract()        # illustrative, not a measured device
+contract["photons_per_mac"] = 1e5
+sim = Runtime(device="photonic-sim", noise=contract, seed=0).load_model("awen-mini")
+print(sim.generate("ROMEO:", max_new_tokens=100))   # simulated
+```
+
+### Photonic simulation vs the CPU oracle (simulated)
+
+`python -m awen_models.photonic_demo --out results/photonic-sim-demo.json`
+compares two things against the CPU:
+
+- one AWEN-Mini layer (`blocks.0.ffn.fc`) run on a real validation activation;
+- the whole model's validation loss when all 20 transformer linear layers run
+  on the Rust photonic model. The tied output head stays on the host.
+
+The base contract is the default: 8-bit DAC/ADC, 100 e⁻ thermal noise,
+6 dB insertion loss, 2 mrad phase error and −35 dB crosstalk. Only
+`photons_per_mac` is swept. All photonic rows are **simulated**
+(compact model). The CPU rows are measured.
+
+| Photons per MAC | Layer relative RMS error | Layer effective bits | Model val loss (CPU 1.4548) |
+| --- | --- | --- | --- |
+| ideal contract | 5e-17 | exact | 1.4548 |
+| 10 | 4.8 | < 0 | 5.006 |
+| 100 | 0.62 | < 0 | 4.839 |
+| 1,000 | 0.090 | 2.7 | 4.239 |
+| 10,000 | 0.027 | 4.4 | 1.706 |
+| 100,000 | 0.018 | 5.0 | 1.527 |
+
+Reading:
+
+- The ideal contract reproduces the CPU exactly.
+- Under the default contract the model only approaches CPU quality at
+  10⁴–10⁵ photons per MAC.
+- The layer error levels off near 5 effective bits. With 8-bit converters
+  and per-vector scaling, typical activations use only a small part of the
+  converter range: the model reproduces this dynamic-range loss of analog
+  accumulation. It is a model result, not a hardware measurement.
+
 ## AWEN-Nonlinear ablation
 
 `python -m awen_models.nonlinear --steps 1500 --seeds 1 2 --out runs/nonlinear`

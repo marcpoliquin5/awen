@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added `awen-native`, a PyO3/maturin binding to the Rust compiler and the
+  photonic GEMM model. `awen_py` operations that target `photonic`, including
+  `torch.compile(backend=awen)` with `target="photonic"`, now run their matrix
+  products in Rust instead of framework math labeled as simulated (#84).
+- `Runtime(device="photonic-sim")` runs every AWEN-Mini transformer linear
+  layer on the Rust photonic simulator. A committed demo compares one layer
+  and the whole model's validation loss against the CPU oracle across optical
+  power (simulated, compact model).
 - Added `awen-models`: the AWEN-Mini character-level language model
   (1,016,320 parameters), trained on CPU on Tiny Shakespeare. It ships with a
   bundled safetensors checkpoint (validation loss 1.4795 nats, measured), int8

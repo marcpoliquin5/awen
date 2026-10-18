@@ -1,0 +1,114 @@
+{
+  "version": "awen.photonic-demo.v1",
+  "model": "awen-mini",
+  "fidelity": "simulated (compact model); CPU rows measured",
+  "evidence": "simulated with the AWEN photonic noise model; not a hardware measurement",
+  "base_contract": {
+    "version": "awen.photonic-noise-contract.v1",
+    "photons_per_mac": 1000.0,
+    "quantum_efficiency": 0.8,
+    "insertion_loss_db": 6.0,
+    "phase_sigma_rad": 0.002,
+    "drift_rad_per_sqrt_s": 0.0,
+    "seconds_since_calibration": 0.0,
+    "rin_db_per_hz": -150.0,
+    "detection_bandwidth_hz": 10000000000.0,
+    "thermal_noise_electrons": 100.0,
+    "crosstalk_db": -35.0,
+    "dac_bits": 8,
+    "adc_bits": 8
+  },
+  "tile_k": 64,
+  "seed": 7,
+  "layer_study": [
+    {
+      "photons_per_mac": null,
+      "contract": "ideal",
+      "relative_rms_error": 5.1072088679499954e-17,
+      "effective_bits": 53.333
+    },
+    {
+      "photons_per_mac": 10.0,
+      "contract": "default with photons_per_mac overridden",
+      "relative_rms_error": 4.798387021163518,
+      "effective_bits": -3.055
+    },
+    {
+      "photons_per_mac": 100.0,
+      "contract": "default with photons_per_mac overridden",
+      "relative_rms_error": 0.617724393234689,
+      "effective_bits": -0.097
+    },
+    {
+      "photons_per_mac": 1000.0,
+      "contract": "default with photons_per_mac overridden",
+      "relative_rms_error": 0.08962538384614131,
+      "effective_bits": 2.688
+    },
+    {
+      "photons_per_mac": 10000.0,
+      "contract": "default with photons_per_mac overridden",
+      "relative_rms_error": 0.027478414708898707,
+      "effective_bits": 4.394
+    },
+    {
+      "photons_per_mac": 100000.0,
+      "contract": "default with photons_per_mac overridden",
+      "relative_rms_error": 0.01818819178645228,
+      "effective_bits": 4.989
+    }
+  ],
+  "model_study": {
+    "batches": 4,
+    "batch_size": 8,
+    "rows": [
+      {
+        "target": "cpu (oracle)",
+        "fidelity": "measured",
+        "val_loss_nats": 1.45482
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": null,
+        "val_loss_nats": 1.45482,
+        "delta_vs_cpu_nats": -0.0
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": 10.0,
+        "val_loss_nats": 5.00583,
+        "delta_vs_cpu_nats": 3.55101
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": 100.0,
+        "val_loss_nats": 4.83895,
+        "delta_vs_cpu_nats": 3.38413
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": 1000.0,
+        "val_loss_nats": 4.23934,
+        "delta_vs_cpu_nats": 2.78452
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": 10000.0,
+        "val_loss_nats": 1.70567,
+        "delta_vs_cpu_nats": 0.25084
+      },
+      {
+        "target": "photonic-sim",
+        "fidelity": "simulated (compact model)",
+        "photons_per_mac": 100000.0,
+        "val_loss_nats": 1.52732,
+        "delta_vs_cpu_nats": 0.0725
+      }
+    ]
+  }
+}

@@ -36,7 +36,7 @@ their testable portion implemented and the blocked boundary written down.
 | M2 | AWEN-Mini ~1M-param char LM trained for real on Tiny Shakespeare (public domain), checkpoint, generate, int8, device=auto | implemented (val loss 1.4795 nats at step 5,750, measured on CPU) | this PR | bundled checkpoint reproduces recorded val loss | |
 | M3 | AWEN-Nonlinear candidates vs matched baseline, ≥2 seeds, Pareto plot | implemented (3 candidates, 2 seeds; low-rank is a negative result) | this PR | harness test; committed results.json | |
 | M4 | External HF adapter with capability report (trust_remote_code=False) | implemented (SmolLM2-135M report committed) | this PR | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
-| M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | proposed | | per-layer error vs CPU oracle within contract | needs #59 |
+| M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | implemented (simulated; ideal contract matches CPU exactly) | this PR | per-layer error vs CPU oracle within contract | needs #59 |
 | M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | proposed | | CPU smoke run on SmolLM2-135M | GPU runs need the user's GPU |
 | M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | proposed | | toy MNIST/MLP run committed | #73 |
 | M8 | Cost/compute plan doc | proposed | | | |
@@ -59,9 +59,9 @@ their testable portion implemented and the blocked boundary written down.
 
 | # | Item | Status | PR | Acceptance test | Blocked boundary |
 | --- | --- | --- | --- | --- | --- |
-| C1 | PyO3/maturin binding to compiler/simulator | proposed | | wheel builds in CI; numeric match | #59 |
+| C1 | PyO3/maturin binding to compiler/simulator | implemented | #84 | wheel builds in CI; numeric match | #59 |
 | C2 | `awenctl execute` runs math with noise model | implemented | #82 | AWENEXE result vs NumPy | #59 |
-| C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | proposed | | call assertion + numeric match | #59 |
+| C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | implemented | #84 | call assertion + numeric match | #59 |
 | C4 | PyTorch PrivateUse1 `awen` device | proposed | | op tests vs CPU | #60 |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |
 | C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | proposed | | round-trip + negative tests | #55 |
