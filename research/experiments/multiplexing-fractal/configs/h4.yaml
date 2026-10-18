@@ -1,0 +1,16 @@
+# H4 full-run config (registered before any full run; see ../PREREGISTRATION.md).
+id: H4
+schema: awen.fractal-prereg-config.v1
+hypothesis: "Fourier (FNO) and Haar-wavelet layers beat dense baselines at matched compute on multi-scale tasks"
+status: registered
+pilot: null  # no H4 pilot ran
+models: [dense_mlp, fno_1d_or_2d, haar_wavelet]
+compute_match: {measure: flops_per_sample, tolerance: 0.05}
+tasks:
+  - {name: burgers_1d, generator: "pseudo-spectral solver, viscosity 0.01, grid 256, 1000 train / 200 test", score: relative_l2_error}
+  - {name: multiscale_denoise_1d, generator: "sum of 3 chirps + white noise SNR 10 dB, length 512, 5000 train / 1000 test", score: relative_l2_error}
+  - {name: mnist_28x28, score: test_accuracy}
+training: {optimizer: adam, lr: 0.001, epochs: 20, batch_size: 64}
+seeds: [101, 102, 103]
+falsification: "Killed if on any task neither FNO nor wavelet beats dense at matched compute (95% paired-t interval over seeds)"
+command: "python research/experiments/multiplexing-fractal/h4_multiscale.py --config research/experiments/multiplexing-fractal/configs/h4.yaml"
