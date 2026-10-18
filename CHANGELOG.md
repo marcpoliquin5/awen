@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `awen-physics`: planar multilayer optics by transfer matrices and an
+  independent Redheffer S-matrix composition (`tmm`), and microring
+  all-pass/add-drop transmission with explicit round-trip propagation, FSR
+  and FWHM (`rings`). Checked against Fresnel, quarter-wave-mirror and
+  Beer–Lambert closed forms (fidelity: analytic / numerical propagation;
+  #94, refs #68).
 - Added minimal ONNX import (`awen_models.onnx_import`, `awen-onnx-report`,
   `awen.onnx-report.v1`). It maps constant-weight MatMul/Gemm and 2-D Conv
   onto the AWEN `gemm`/`conv2d` operators, keeps activation-activation
