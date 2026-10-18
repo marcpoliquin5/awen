@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added AWEN-Photon noise-injection training (`awen_models.photon_training`).
+  An MNIST MLP is trained standard and noise-aware, then evaluated with its
+  GEMMs on the Rust photonic noise model (simulated). It writes
+  accuracy-vs-ENOB and accuracy-vs-modeled-optical-energy curves and commits
+  results for two seeds (#73).
 - Added `awen-native`, a PyO3/maturin binding to the Rust compiler and the
   photonic GEMM model. `awen_py` operations that target `photonic`, including
   `torch.compile(backend=awen)` with `target="photonic"`, now run their matrix
