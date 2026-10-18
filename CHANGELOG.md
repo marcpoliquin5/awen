@@ -7,6 +7,37 @@
   simulated; a few shape and elementwise ops electronically) and refuses
   other operations by name. Checked against JAX CPU. This is not yet a PJRT
   plugin; `docs/PJRT_BOUNDARY.md` records what remains (#100, refs #61).
+- Added the quantum-photonic resource model (`awen_qphotonic.resources`) and
+  a small quantum-kernel experiment (`awen_qphotonic.kernel`,
+  `awen-qkernel`) compared with RBF and linear baselines on the same
+  splits. Committed results (simulation, three seeds): the photonic kernel
+  scores below RBF on both toy datasets; no advantage is claimed (#99,
+  closes #69).
+- Added Gaussian states to `awen-qphotonic` (`gaussian`, covariance
+  formalism with hbar = 2): squeezing, two-mode squeezing, passive
+  interferometers, displacement, pure loss, thermal states, purity,
+  symplectic eigenvalues, vacuum probability, homodyne sampling and
+  conditioning. Checked against closed forms and a truncated-Fock-space
+  squeeze operator. Simulation only (#98, refs #69).
+- Added `awen-qphotonic`, the quantum-photonic reference simulators, kept
+  separate from the classical photonic domain (AEP-0020): permanents by
+  Ryser's formula, Fock-space linear optics, exact boson sampling for small
+  n, the Hong-Ou-Mandel dip with partial distinguishability, and photon
+  counting with detection efficiency, uniform loss and dark counts. Checked
+  against brute-force permutation sums, explicit creation-operator
+  expansion, closed-form HOM coincidence and an environment-mode loss
+  oracle. Simulation only (#97, refs #69).
+- `awen-physics`: χ⁽²⁾ second-harmonic generation by integrating the
+  coupled-wave equations (`shg`), checked against the undepleted sinc²,
+  depleted tanh² and first-order quasi-phase-matching closed forms; and a
+  1-D frequency-domain Helmholtz solver with adjoint permittivity gradients
+  (`fdfd_adjoint`), checked against central finite differences and the
+  transfer-matrix reflectance (#96, refs #68).
+- `awen-physics`: 1-D Yee FDTD reflectance spectra (`fdtd1d`, full-wave 1-D)
+  converging at second order to the transfer-matrix result, and a 2-D
+  scalar paraxial Crank–Nicolson BPM with imaginary-distance mode solving
+  (`bpm`), checked against the Gaussian-beam width and the analytic slab
+  mode (#95, refs #68).
 - `awen-physics`: planar multilayer optics by transfer matrices and an
   independent Redheffer S-matrix composition (`tmm`), and microring
   all-pass/add-drop transmission with explicit round-trip propagation, FSR

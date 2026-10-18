@@ -1,0 +1,25 @@
+[project]
+name = "awen-qphotonic"
+version = "0.1.0"
+description = "Quantum-photonic reference simulators for AWEN (Fock linear optics, Gaussian states, detection, resources). Simulation only; separate from the classical photonic domain."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "AWEN contributors" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3", "scipy>=1.11,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+awen-qkernel = "awen_qphotonic.kernel:main"
+
+[project.urls]
+Repository = "https://github.com/marcpoliquin5/awen"
+
+[tool.setuptools]
+packages = ["awen_qphotonic"]
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
