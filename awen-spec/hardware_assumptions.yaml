@@ -9,6 +9,9 @@
 #   measured  - peer-reviewed measurement (citation)
 #   vendor    - manufacturer claim, not independently verified
 #   estimate  - derived by AWEN with the stated formula
+# Per-parameter keys: `source_type: estimate` marks a value AWEN derived (formula in `notes`);
+# `type` on modulator entries is the device type (tfln_mzm, silicon_unspecified, unspecified).
+# Every parameter has `notes` ("no checked source yet" when the value is null and unsourced).
 # A value of null means no checked source yet. A null is never filled with a guess.
 # Sources were checked on 2026-10-18 against the publisher page or the Crossref record.
 version: awen.hardware-assumptions.v0
@@ -48,42 +51,45 @@ parameters:
     channel_optical_power:
       {low: null, typical: null, high: 30.0, unit: mW, source: hua2025,
        notes: "per laser channel, 'sub-mW to about 30 mW' in the PACE system"}
-    wall_plug_efficiency: {low: null, typical: null, high: null, unit: fraction, source: null}
+    wall_plug_efficiency: {low: null, typical: null, high: null, unit: fraction, source: null, notes: "no checked source yet"}
     rin: {low: null, typical: null, high: null, unit: dB/Hz, source: null,
           notes: "the noise contract default (-150 dB/Hz) is an illustrative operating point, not sourced"}
-    linewidth: {low: null, typical: null, high: null, unit: Hz, source: null}
+    linewidth: {low: null, typical: null, high: null, unit: Hz, source: null, notes: "no checked source yet"}
   coupler:
     grating_coupler_loss:
       {low: null, typical: 1.0, high: null, unit: dB, source: hua2025,
        notes: "average coupling efficiency about -1 dB near 1310 nm"}
   modulator:
     tfln_half_wave_voltage:
-      {low: null, typical: 1.4, high: 4.4, unit: V, source: wang2018,
+      {type: tfln_mzm, low: null, typical: 1.4, high: 4.4, unit: V, source: wang2018,
        notes: "1.4 V for a 20-mm device, 4.4 V for 5 mm"}
-    tfln_on_chip_loss: {low: null, typical: null, high: 0.5, unit: dB, source: wang2018,
+    tfln_electro_optic_bandwidth_3dB:
+      {type: tfln_mzm, low: 80.0, typical: null, high: 100.0, unit: GHz, source: wang2018,
+       notes: "3-dB electro-optic bandwidth, Fig. 4a-b: 80 GHz for the 10-mm device, 100 GHz for 5 mm"}
+    tfln_on_chip_loss: {type: tfln_mzm, low: null, typical: null, high: 0.5, unit: dB, source: wang2018,
                         notes: "reported as less than 0.5 dB"}
-    tfln_extinction_ratio: {low: null, typical: 30.0, high: null, unit: dB, source: wang2018}
-    tfln_data_rate: {low: null, typical: null, high: 210.0, unit: Gbit/s, source: wang2018}
-    silicon_vector_modulator_rate: {low: null, typical: 1.0, high: null, unit: GHz, source: hua2025}
-    silicon_weight_modulator_rate: {low: null, typical: 0.01, high: null, unit: GHz, source: hua2025,
+    tfln_extinction_ratio: {type: tfln_mzm, low: null, typical: 30.0, high: null, unit: dB, source: wang2018, notes: "Fig. 1c / Extended Data Fig. 1, 20-mm device"}
+    tfln_data_rate: {type: tfln_mzm, low: null, typical: null, high: 210.0, unit: Gbit/s, source: wang2018, notes: "100 Gbaud, 210 Gbit/s; a data rate, not a bandwidth (see tfln_electro_optic_bandwidth_3dB)"}
+    silicon_vector_modulator_rate: {type: silicon_unspecified, low: null, typical: 1.0, high: null, unit: GHz, source: hua2025, notes: "input-vector update rate of the PACE system; a modulation rate, not a 3-dB bandwidth"}
+    silicon_weight_modulator_rate: {type: silicon_unspecified, low: null, typical: 0.01, high: null, unit: GHz, source: hua2025,
                                     notes: "10 MHz weight update with 8-bit design accuracy"}
-    energy_per_symbol: {low: null, typical: null, high: null, unit: fJ, source: null}
+    energy_per_symbol: {type: unspecified, low: null, typical: null, high: null, unit: fJ, source: null, notes: "no checked source yet"}
   phase_shifter:
-    thermo_optic_power_per_pi: {low: null, typical: null, high: null, unit: mW, source: harris2014}
-    thermo_optic_reconfiguration_time: {low: null, typical: null, high: null, unit: us, source: harris2014}
+    thermo_optic_power_per_pi: {low: null, typical: null, high: null, unit: mW, source: harris2014, notes: "citation checked; value not yet read from the paper"}
+    thermo_optic_reconfiguration_time: {low: null, typical: null, high: null, unit: us, source: harris2014, notes: "citation checked; value not yet read from the paper"}
   mzi:
-    insertion_loss: {low: null, typical: null, high: null, unit: dB, source: null}
-    splitter_imbalance: {low: null, typical: null, high: null, unit: fraction, source: null}
-    crosstalk: {low: null, typical: null, high: null, unit: dB, source: null}
+    insertion_loss: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
+    splitter_imbalance: {low: null, typical: null, high: null, unit: fraction, source: null, notes: "no checked source yet"}
+    crosstalk: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
   microring:
-    quality_factor: {low: null, typical: null, high: null, unit: dimensionless, source: null}
-    thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null}
-    locking_overhead: {low: null, typical: null, high: null, unit: mW, source: null}
+    quality_factor: {low: null, typical: null, high: null, unit: dimensionless, source: null, notes: "no checked source yet"}
+    thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null, notes: "no checked source yet"}
+    locking_overhead: {low: null, typical: null, high: null, unit: mW, source: null, notes: "no checked source yet"}
   photodetector:
     responsivity: {low: null, typical: 1.0, high: null, unit: A/W, source: hua2025,
                    notes: "germanium detectors, around 1 A/W"}
-    dark_current: {low: null, typical: null, high: null, unit: nA, source: null}
-    bandwidth: {low: null, typical: null, high: null, unit: GHz, source: null}
+    dark_current: {low: null, typical: null, high: null, unit: nA, source: null, notes: "no checked source yet"}
+    bandwidth: {low: null, typical: null, high: null, unit: GHz, source: null, notes: "no checked source yet"}
   adc:
     energy_per_conversion:
       low: 6.35
@@ -91,7 +97,7 @@ parameters:
       high: 31.7
       unit: pJ
       source: [lagos2021, ramkaj2020]
-      type: estimate
+      source_type: estimate
       notes: >-
         low = Walden FOM x 2^ENOB = 6.2 fJ x 2^10.0 (500 MS/s);
         high = power / sample rate = 158.6 mW / 5 GS/s (9.4 ENOB)
@@ -99,8 +105,8 @@ parameters:
       {low: 9.4, typical: null, high: 10.0, unit: bits, source: [ramkaj2020, lagos2021],
        notes: "ENOB of the two cited standalone CMOS ADCs (9.4 at 5 GS/s, 10.0 at 500 MS/s); not a photonic-system ENOB"}
   dac:
-    weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025}
-    energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null}
+    weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025, notes: "weight DAC resolution of the PACE system"}
+    energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null, notes: "no checked source yet"}
   shot_noise:
     # A keyed sweep by bit depth, NOT an uncertainty range: each entry is the shot-noise floor
     # for one target precision.
@@ -109,7 +115,7 @@ parameters:
       sweep_over: effective_bits
       unit: J
       source: null
-      type: estimate
+      source_type: estimate
       values: {4: 3.28e-17, 6: 5.25e-16, 8: 8.39e-15}
       per_mac_formula: "E_per_MAC = E_per_detection / N for an N-input dot product (one detection per output)"
       notes: >-
@@ -122,7 +128,7 @@ parameters:
     wavelengths: null
     modes: null
     polarizations: null
-    inter_channel_crosstalk: {low: null, typical: null, high: null, unit: dB, source: null}
+    inter_channel_crosstalk: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
   system:
     pace_enob:
       {low: null, typical: 7.61, high: null, unit: bits, source: hua2025,
@@ -133,6 +139,6 @@ parameters:
     on_chip_efficiency_reported:
       {low: null, typical: 160.0, high: null, unit: TOPS/W, source: xu2024,
        notes: "on-chip figure; not comparable to system figures"}
-    control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null}
-    host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null}
-    thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null}
+    control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}
+    host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null, notes: "no checked source yet"}
+    thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}

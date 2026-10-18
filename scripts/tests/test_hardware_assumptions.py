@@ -36,11 +36,10 @@ def test_parameter_has_range_unit_and_source(name, p):
     assert values == sorted(values), f"{name}: low <= typical <= high"
     sources = p["source"] if isinstance(p["source"], list) else [p["source"]]
     if values:  # a number needs a checked source or an estimate formula
-        assert p.get("type") == "estimate" or all(s in DATA["sources"] for s in sources), name
+        assert p.get("source_type") == "estimate" or all(s in DATA["sources"] for s in sources), name
     for s in sources:
         assert s is None or s in DATA["sources"], f"{name}: unknown source {s}"
-    if p.get("type") == "estimate":
-        assert p.get("notes"), f"{name}: estimates must state their formula"
+    assert isinstance(p.get("notes"), str) and p["notes"].strip(), f"{name}: every parameter needs notes"
 
 
 def test_channel_counts_are_not_assumed():
@@ -52,6 +51,7 @@ def test_shot_noise_is_a_per_detection_sweep_by_bit_depth():
     h, c = 6.62607015e-34, 299792458.0
     photon = h * c / 1550e-9
     p = DATA["parameters"]["shot_noise"]["shot_noise_energy_per_detection_J"]
+    assert p["notes"].strip() and p["source_type"] == "estimate"
     assert p["kind"] == "sweep" and p["sweep_over"] == "effective_bits" and p["unit"] == "J"
     assert not {"low", "typical", "high"} & set(p), "a sweep is not an uncertainty range"
     assert set(p["values"]) == {4, 6, 8}
@@ -73,3 +73,21 @@ def test_adc_estimate_matches_formula():
     p = DATA["parameters"]["adc"]["energy_per_conversion"]
     assert p["low"] == pytest.approx(6.2e-15 * 2 ** 10.0 * 1e12, rel=1e-3)
     assert p["high"] == pytest.approx(158.6e-3 / 5e9 * 1e12, rel=1e-3)
+
+
+MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecified", "unspecified"}
+
+
+def test_every_parameter_counted_and_has_notes():
+    sweeps = [k for k, v in DATA["parameters"]["shot_noise"].items() if v.get("kind") == "sweep"]
+    assert len(PARAMS) + len(sweeps) == 36
+
+
+def test_modulator_entries_have_device_type_and_separate_bandwidth():
+    mod = DATA["parameters"]["modulator"]
+    for name, p in mod.items():
+        assert p.get("type") in MODULATOR_TYPES, name
+    bw = mod["tfln_electro_optic_bandwidth_3dB"]
+    assert bw["unit"] == "GHz" and bw["source"] == "wang2018"
+    assert (bw["low"], bw["high"]) == (80.0, 100.0)
+    assert mod["tfln_data_rate"]["unit"] == "Gbit/s"  # a data rate is not a bandwidth
