@@ -1,0 +1,22 @@
+{
+  "version": "awen.vpisa.v1",
+  "abi": {"major": 1, "minor": 0},
+  "program_id": "homodyne-feed-forward",
+  "requirements": {"min_effective_bits": 0, "max_tile_k": 0, "quantum": true, "feed_forward": true},
+  "buffers": [
+    {"id": 0, "space": "host", "dtype": "f64", "shape": [1]}
+  ],
+  "events": 0,
+  "fields": 0,
+  "meshes": 0,
+  "modes": 2,
+  "registers": 1,
+  "instructions": [
+    {"op": "prepare_squeezed", "mode": 0, "r": 0.5, "phi": 0.0},
+    {"op": "prepare_squeezed", "mode": 1, "r": 0.5, "phi": 1.5707963267948966},
+    {"op": "beamsplitter", "mode_a": 0, "mode_b": 1, "theta": 0.7853981633974483, "phi": 0.0},
+    {"op": "measure_homodyne", "mode": 0, "phi": 0.0, "register": 0},
+    {"op": "conditional_phase", "register": 0, "mode": 1, "scale": 1.0, "offset": 0.0},
+    {"op": "read_register", "register": 0, "dst": 0}
+  ]
+}
