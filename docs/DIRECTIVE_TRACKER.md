@@ -32,10 +32,10 @@ their testable portion implemented and the blocked boundary written down.
 
 | # | Item | Status | PR | Acceptance test | Blocked boundary |
 | --- | --- | --- | --- | --- | --- |
-| M1 | `awen-models` installable package | proposed | | `pip install ./awen-models` + pytest | |
-| M2 | AWEN-Mini ~1M-param char LM trained for real on Tiny Shakespeare (public domain), checkpoint, generate, int8, device=auto | proposed | | bundled checkpoint reproduces recorded val loss | |
-| M3 | AWEN-Nonlinear candidates vs matched baseline, ≥2 seeds, Pareto plot | proposed | | harness test; committed results.json | |
-| M4 | External HF adapter with capability report (trust_remote_code=False) | proposed | | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
+| M1 | `awen-models` installable package | implemented | this PR | `pip install ./awen-models` + pytest | |
+| M2 | AWEN-Mini ~1M-param char LM trained for real on Tiny Shakespeare (public domain), checkpoint, generate, int8, device=auto | implemented (val loss 1.4795 nats at step 5,750, measured on CPU) | this PR | bundled checkpoint reproduces recorded val loss | |
+| M3 | AWEN-Nonlinear candidates vs matched baseline, ≥2 seeds, Pareto plot | implemented (3 candidates, 2 seeds; low-rank is a negative result) | this PR | harness test; committed results.json | |
+| M4 | External HF adapter with capability report (trust_remote_code=False) | implemented (SmolLM2-135M report committed) | this PR | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
 | M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | proposed | | per-layer error vs CPU oracle within contract | needs #59 |
 | M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | proposed | | CPU smoke run on SmolLM2-135M | GPU runs need the user's GPU |
 | M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | proposed | | toy MNIST/MLP run committed | #73 |
@@ -45,8 +45,8 @@ their testable portion implemented and the blocked boundary written down.
 
 | # | Item | Status | PR | Acceptance test | Blocked boundary |
 | --- | --- | --- | --- | --- | --- |
-| T1 | Physical-unit precision/noise contracts (schema, Rust types, docs) | proposed | | round-trip + rejection tests | #56 |
-| T2 | Noise model: shot, thermal, RIN, phase, ADC/DAC, insertion loss, crosstalk, drift | proposed | | Monte Carlo vs analytic variance | values need measured devices; #57 |
+| T1 | Physical-unit precision/noise contracts (schema, Rust types, docs) | numerically validated | #80 | round-trip + rejection tests | #56 |
+| T2 | Noise model: shot, thermal, RIN, phase, ADC/DAC, insertion loss, crosstalk, drift | numerically validated (Monte Carlo vs closed form) | #80 | Monte Carlo vs analytic variance | values need measured devices; #57 |
 | T3 | Notebook (a): slab waveguide TE modes vs analytic dispersion | proposed | | stated tolerance in pytest | #58 |
 | T4 | Notebook (b): MZI mesh vs Clements 2016 | proposed | | unitarity + reconstruction error | #58 |
 | T5 | Notebook (c): shot-noise-limited ENOB vs theory | proposed | | stated tolerance | #58 |
@@ -60,7 +60,7 @@ their testable portion implemented and the blocked boundary written down.
 | # | Item | Status | PR | Acceptance test | Blocked boundary |
 | --- | --- | --- | --- | --- | --- |
 | C1 | PyO3/maturin binding to compiler/simulator | proposed | | wheel builds in CI; numeric match | #59 |
-| C2 | `awenctl execute` runs math with noise model | proposed | | AWENEXE result vs NumPy | #59 |
+| C2 | `awenctl execute` runs math with noise model | implemented | #82 | AWENEXE result vs NumPy | #59 |
 | C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | proposed | | call assertion + numeric match | #59 |
 | C4 | PyTorch PrivateUse1 `awen` device | proposed | | op tests vs CPU | #60 |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |

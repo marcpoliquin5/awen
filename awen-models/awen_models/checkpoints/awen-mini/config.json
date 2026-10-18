@@ -1,0 +1,14 @@
+{
+  "bias": true,
+  "block_size": 128,
+  "dropout": 0.1,
+  "extra": {},
+  "ffn": "gelu",
+  "ffn_hidden": 512,
+  "ffn_rank": 32,
+  "n_embd": 128,
+  "n_head": 4,
+  "n_layer": 5,
+  "shared_layers": false,
+  "vocab_size": 65
+}
