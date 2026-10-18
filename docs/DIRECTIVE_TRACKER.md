@@ -37,9 +37,9 @@ their testable portion implemented and the blocked boundary written down.
 | M3 | AWEN-Nonlinear candidates vs matched baseline, ≥2 seeds, Pareto plot | implemented (3 candidates, 2 seeds; low-rank is a negative result) | #83 | harness test; committed results.json | |
 | M4 | External HF adapter with capability report (trust_remote_code=False) | implemented (SmolLM2-135M report committed) | #83 | tiny local Llama test | Full SmolLM2-135M run is a manual demo (270 MB download) |
 | M5 | Photonic execution demo + `Runtime(device='photonic-sim')` | implemented (simulated; ideal contract matches CPU exactly) | #85 | per-layer error vs CPU oracle within contract | |
-| M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | proposed | | CPU smoke run on SmolLM2-135M | GPU runs need the user's GPU |
+| M6 | AWEN-Mini fine-tune/distill scripts (Qwen3-0.6B/1.7B, SmolLM2; QLoRA for 12 GB RTX 5070 Ti, cu128+) | implemented (LoRA + KD measured on CPU with SmolLM2-135M; QLoRA path needs CUDA) | #91 | `tests/test_finetune.py` (tiny Llama: LoRA lowers loss, exact merge, KD both arms); committed `results/finetune/` | QLoRA and Qwen3 runs need the user's GPU |
 | M7 | AWEN-Photon noise-injection training with accuracy-vs-ENOB and accuracy-vs-optical-energy curves | implemented (MNIST MLP, 3 regimes × 2 seeds, evaluated on the Rust noise model; simulated) | #88 | `tests/test_photon_training.py`: surrogate vs Rust error std within 5%; harness end to end; committed `results/photon-training/results.json` | differentiable MZI-mesh layers (E2) still open; #73 |
-| M8 | Cost/compute plan doc | proposed | | | |
+| M8 | Cost/compute plan doc | implemented (`docs/COMPUTE_PLAN.md`; estimates labeled) | #91 | parameter counts equal instantiated Llama/Qwen3 models | memory model not yet checked on a GPU |
 
 ## Truth layer and physics
 
@@ -64,8 +64,8 @@ their testable portion implemented and the blocked boundary written down.
 | C3 | `torch.compile(backend=awen)` routes GEMMs through Rust | implemented | #84 | call assertion + numeric match | #59 |
 | C4 | PyTorch PrivateUse1 `awen` device | implemented (inference: mm/addmm/bmm on the Rust photonic model, add/relu electronic; simulated device, host memory) | #87 | 6 op tests vs CPU within 1e-5 under the ideal contract | backward/reductions not implemented; no hardware driver |
 | C5 | OpenXLA PJRT plugin for dot/dot_general | proposed | | JAX dot vs CPU | #61 |
-| C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | proposed | | round-trip + negative tests | #55 |
-| C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | proposed | | per-op oracle tests | hardware levels; #62, #63 |
+| C6 | Virtual Photonic ISA + ABI, codec, validator, quantum domain | implemented (VPISA v1; classical domain executes on the noise model, quantum domain validated but not executed) | #89 | `awen-compiler/tests/isa.rs`: 2,000-program byte round trip, all truncations rejected, per-rule negative tests, domain separation, decomposed = fused GEMM | quantum execution needs the T7 simulator; #55 |
+| C7 | Compiler ops beyond GEMM with 4-level labels + ONNX import + compatibility report | implemented (12-op library: gemm hardware_lowerable, 11 photonic_sim, none measured; minimal ONNX import: MatMul/Gemm/Conv + 13 electronic ops, report + execution) | #92, #93 | `awen-compiler/tests/ops.rs` (7), `awen-native/tests/test_ops.py` (15, NumPy oracles), `awen-models/tests/test_onnx_import.py` (7, onnx ReferenceEvaluator oracle) | hardware levels need a device; ONNX LayerNorm/Gather/attention fusions not mapped yet |
 | C8 | Runtime extensions (discovery, streams/events, multi-device, residency, leases, remap, fallback, deterministic mode, recording, profiling, plugin isolation) | proposed | | | #64 |
 | C9 | awenBLAS extensions | proposed | | per-kernel oracle | #65 |
 | C10 | SDKs: Python, C/C++ header + example, CLI tools, conversion utility, compatibility metadata | proposed | | | #66 |

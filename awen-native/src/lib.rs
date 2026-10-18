@@ -127,6 +127,25 @@ fn compile_program(
     serde_json::to_string(&artifact).map_err(value_error)
 }
 
+/// Machine-readable operator support table (`awen.op-table.v1`) as JSON.
+#[pyfunction]
+fn op_table_json() -> PyResult<String> {
+    serde_json::to_string(&awen_compiler::ops::op_table()).map_err(value_error)
+}
+
+/// Run one operator from the table. `request_json` is an `OpRequest`;
+/// returns the `OpResponse` as JSON. With no contract the f64 reference runs;
+/// with a contract every matrix product runs on the compact noise model.
+#[pyfunction]
+fn run_op_json(py: Python<'_>, request_json: &str) -> PyResult<String> {
+    let request: awen_compiler::ops::OpRequest =
+        serde_json::from_str(request_json).map_err(value_error)?;
+    let response = py
+        .detach(|| awen_compiler::ops::run_op(&request))
+        .map_err(value_error)?;
+    serde_json::to_string(&response).map_err(value_error)
+}
+
 #[pymodule]
 fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -139,5 +158,7 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shot_limited_effective_bits, m)?)?;
     m.add_function(wrap_pyfunction!(photonic_gemm, m)?)?;
     m.add_function(wrap_pyfunction!(compile_program, m)?)?;
+    m.add_function(wrap_pyfunction!(op_table_json, m)?)?;
+    m.add_function(wrap_pyfunction!(run_op_json, m)?)?;
     Ok(())
 }
