@@ -25,3 +25,4 @@ Current proposals:
 - `AEP-0019`: reproducible full-system and hardware-in-the-loop benchmark evidence, physical-driver protocol, immutable artifacts, and verified claim generation.
 - `AEP-0020`: independent classical and quantum-photonic contracts, explicit interop, statistical replay, typed runtime dispatch, and fail-closed V5 migration.
 - `AEP-0021`: immutable gdsfactory/Circulax physical-design boundary, verified mapping exchange, PDK/process-corner invalidation, simulator adapters, and proprietary-data redaction.
+- `AEP-0022`: physical-unit noise contracts (photons per MAC, quantum efficiency, insertion loss, phase error and drift, RIN, thermal noise, crosstalk, DAC/ADC bits) and the compact photonic GEMM noise model.

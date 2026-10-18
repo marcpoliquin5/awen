@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://awen.dev/schemas/awen_photonic_noise_contract.v1.json",
+  "title": "AWEN photonic noise contract v1",
+  "description": "Physical-unit analog error sources of a photonic matrix core. Fidelity: compact model. Null disables an optional term. See AEP-0022.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version", "photons_per_mac", "quantum_efficiency", "insertion_loss_db",
+    "phase_sigma_rad", "drift_rad_per_sqrt_s", "seconds_since_calibration",
+    "rin_db_per_hz", "detection_bandwidth_hz", "thermal_noise_electrons",
+    "crosstalk_db", "dac_bits", "adc_bits"
+  ],
+  "properties": {
+    "version": { "const": "awen.photonic-noise-contract.v1" },
+    "photons_per_mac": {
+      "description": "Mean photons contributed by one multiply-accumulate at full scale (unit: photons). Null disables shot and thermal noise.",
+      "type": ["number", "null"], "exclusiveMinimum": 0
+    },
+    "quantum_efficiency": { "description": "Detector quantum efficiency (dimensionless).", "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "insertion_loss_db": { "description": "Total optical insertion loss (unit: dB).", "type": "number", "minimum": 0 },
+    "phase_sigma_rad": { "description": "Static phase-programming error standard deviation (unit: rad).", "type": "number", "minimum": 0 },
+    "drift_rad_per_sqrt_s": { "description": "Phase random-walk coefficient (unit: rad/sqrt(s)).", "type": "number", "minimum": 0 },
+    "seconds_since_calibration": { "description": "Elapsed time since calibration (unit: s).", "type": "number", "minimum": 0 },
+    "rin_db_per_hz": { "description": "Laser relative intensity noise (unit: dB/Hz). Null disables RIN.", "type": ["number", "null"], "exclusiveMaximum": 0 },
+    "detection_bandwidth_hz": { "description": "Detection bandwidth for RIN integration (unit: Hz).", "type": "number", "exclusiveMinimum": 0 },
+    "thermal_noise_electrons": { "description": "Input-referred detector thermal noise (unit: electrons rms per sample).", "type": "number", "minimum": 0 },
+    "crosstalk_db": { "description": "Adjacent-channel power crosstalk (unit: dB). Null disables crosstalk.", "type": ["number", "null"], "exclusiveMaximum": 0 },
+    "dac_bits": { "description": "Signed DAC resolution (unit: bits). Null means ideal conversion.", "type": ["integer", "null"], "minimum": 2, "maximum": 24 },
+    "adc_bits": { "description": "Signed ADC resolution (unit: bits). Null means ideal conversion.", "type": ["integer", "null"], "minimum": 2, "maximum": 24 }
+  }
+}
