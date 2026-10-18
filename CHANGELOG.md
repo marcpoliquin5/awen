@@ -12,6 +12,10 @@
   unsourced parameters are null; shot-noise energy is per detection, as a 4/6/8-bit sweep; PACE ENOB is
   `system.pace_enob`. Tested by `scripts/tests/test_hardware_assumptions.py` (pyyaml pinned, no skip).
 - Docs: first Master Prompt v2 session report, `docs/sessions/2026-10-18-01.md`.
+- Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
+  half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
+  modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;
+  `notes` on all 35 parameters; derived values marked `source_type: estimate`.
 - CI: the release and hardware-benchmark workflows install `rustfmt` and
   `clippy` with the pinned toolchain, matching `rust-toolchain.toml`, so
   rustup no longer installs them mid-build where they conflicted with the
