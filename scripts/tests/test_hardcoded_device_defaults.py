@@ -17,10 +17,8 @@ INVENTORY = yaml.safe_load(hd.INVENTORY.read_text())
 
 
 def copy_tree(tmp_path: Path) -> Path:
-    for block in INVENTORY["blocks"]:
-        dest = tmp_path / block["file"]
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(ROOT / block["file"], dest)
+    for tree in INVENTORY["scope"]:
+        shutil.copytree(ROOT / tree, tmp_path / tree)
     (tmp_path / "awen-spec").mkdir(exist_ok=True)
     for name in ("hardcoded_device_defaults.yaml", "hardware_assumptions.yaml"):
         shutil.copy(ROOT / "awen-spec" / name, tmp_path / "awen-spec" / name)
@@ -39,9 +37,12 @@ def test_inventory_matches_code_and_assumptions():
 
 def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
-    assert len(INVENTORY["entries"]) == 40
+    assert INVENTORY["scope"] == ["awen-compiler/src"]
+    assert any(item.startswith("awen-runtime/src") for item in INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 95
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 36,
+        "unsourced": 76,
+        "definitional": 15,
         "differs_from_assumption": 3,
         "matches_assumption": 1,
     }
@@ -82,9 +83,26 @@ def test_unknown_assumption_key_is_caught(tmp_path):
     assert any("not a parameter" in p for p in hd.check(root))
 
 
-def test_block_anchor_must_be_unique():
-    with pytest.raises(ValueError, match="found 2 times"):
-        hd.block_lines("fn a() {\n}\nfn a() {\n}\n", "fn a()")
+def test_literal_in_a_new_function_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-compiler/src/cost.rs"
+    path.write_text(path.read_text().replace("#[cfg(test)]\nmod tests", "pub fn new_profile() -> Profile {\n    Profile {\n        laser_power_mw: 9.0,\n    }\n}\n\n#[cfg(test)]\nmod tests", 1))
+    assert any("new_profile" in p and "laser_power_mw" in p for p in hd.check(root))
+
+
+def test_contexts_numbering_and_test_module_cut():
+    text = (
+        "impl Default for Thing {\n    fn default() -> Self {\n        Self {\n"
+        "            gain: 0.9,\n            inner: Inner {\n                gain: 0.8,\n            },\n"
+        "            label: 3.0,\n        }\n    }\n}\n\n"
+        "fn free() {\n    let x = Y { energy_uj: 0.0, };\n    let y = Y {\n        energy_uj: 0.5,\n    };\n}\n\n"
+        "#[cfg(test)]\nmod tests {\n    fn t() { Z {\n        laser_power_mw: 1.0,\n    }; }\n}\n"
+    )
+    assert hd.literals(text) == {
+        ("impl Default for Thing::default", "gain"): 0.9,
+        ("impl Default for Thing::default", "gain#2"): 0.8,
+        ("free", "energy_uj"): 0.5,
+    }
 
 
 @pytest.mark.parametrize(

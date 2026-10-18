@@ -1,37 +1,71 @@
-# Device energies, noise and precision still hard-coded in Rust defaults (Master Prompt v2, section 9).
+# Device energies, noise, calibration and precision literals still hard-coded in Rust (Master Prompt v2, section 9).
 #
 # The rule is that every simulator and cost estimate reads these from hardware_assumptions.yaml.
-# Until the compiler does, this file lists every literal that is still hard-coded, so none is
-# added silently. scripts/hardcoded_defaults.py --check (run in CI via scripts/tests) fails when
-#   - a scanned block gains a device literal that is not listed here,
+# Until the compiler does, this file lists every such literal in the non-test Rust source under
+# `scope`, so none is added silently. scripts/hardcoded_defaults.py --check (run in CI via
+# scripts/tests) fails when
+#   - a scoped file gains a device literal that is not listed here (including in a new function),
 #   - a listed literal changed or no longer exists in the code, or
 #   - a status disagrees with hardware_assumptions.yaml:
 #       unsourced               - the named assumption has no value yet, or no assumption entry exists
 #       matches_assumption      - the code value equals a value stored for that assumption
 #       differs_from_assumption - the assumption has values and the code value is none of them
-# Statuses describe the code as it is; no default is changed by this file.
+#       definitional            - fixed by construction (ideal contract, identity calibration,
+#                                 zero-initialized accumulator); not a device assumption
+# A block is one function (`impl <header>::<fn>` for methods); a field repeated in one block is
+# numbered `#2`, `#3`... in source order. Only single-line literals are seen: a number inside a
+# longer expression (for example a `map_or(20.0, ...)` fallback) is not, and `not_yet_inventoried`
+# names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
+scope: [awen-compiler/src]
+not_yet_inventoried:
+  - "awen-runtime/src (for example hal_v0.rs device descriptors and executable.rs noise\
+  \ contracts)"
+  - "awen-native/src"
+  - "awen-mlir"
+  - "Python packages (awen-models, awen-physics, awen-systems, awen-qphotonic, awen-lab,\
+  \ awen-studio, awen-ecosystem)"
 blocks:
-  - {id: noise_contract_default, file: awen-compiler/src/noise.rs, anchor: impl Default for PhotonicNoiseContract}
-  - {id: pace_like_128_descriptor, file: awen-compiler/src/capability.rs, anchor: 'let mut capabilities = Self {'}
-  - {id: digital_baseline_default, file: awen-compiler/src/cost.rs, anchor: impl Default for DigitalBaseline}
-  - {id: cost_inputs_from_capabilities, file: awen-compiler/src/cost.rs, anchor: 'pub fn from_capabilities(capabilities: &DeviceCapabilities'}
-  - {id: decide_placement_with_tuning, file: awen-compiler/src/cost.rs, anchor: pub fn decide_placement_with_tuning(}
-  - {id: compile_options_default, file: awen-compiler/src/compiler.rs, anchor: impl Default for CompileOptions}
-  - {id: awenblas_cpu_reference, file: awen-compiler/src/awenblas/kernels.rs, anchor: pub fn cpu_reference() -> Self}
+  - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
+  - {id: noise_contract_ideal, file: awen-compiler/src/noise.rs, context: 'impl PhotonicNoiseContract::ideal'}
+  - {id: pace_like_128_descriptor, file: awen-compiler/src/capability.rs, context: 'impl DeviceCapabilities::pace_like_128'}
+  - {id: offline_snapshot_health, file: awen-compiler/src/capability.rs, context: 'impl BackendSnapshot::offline'}
+  - {id: analog_noise_default, file: awen-compiler/src/precision.rs, context: 'impl Default for AnalogNoiseModel::default'}
+  - {id: digital_baseline_default, file: awen-compiler/src/cost.rs, context: 'impl Default for DigitalBaseline::default'}
+  - {id: cost_inputs_from_capabilities, file: awen-compiler/src/cost.rs, context: 'impl CostModelInputs::from_capabilities'}
+  - {id: decide_placement_with_tuning, file: awen-compiler/src/cost.rs, context: decide_placement_with_tuning}
+  - {id: estimate_cpu, file: awen-compiler/src/cost.rs, context: estimate_cpu}
+  - {id: estimate_digital_with_context, file: awen-compiler/src/cost.rs, context: estimate_digital_with_context}
+  - {id: compile_options_default, file: awen-compiler/src/compiler.rs, context: 'impl Default for CompileOptions::default'}
+  - {id: compile_with_cost_model, file: awen-compiler/src/compiler.rs, context: compile_with_cost_model}
+  - {id: partition_options_default, file: awen-compiler/src/partition.rs, context: 'impl Default for PartitionOptions::default'}
+  - {id: partition_partial_score, file: awen-compiler/src/partition.rs, context: partial_score}
+  - {id: partition_evaluate_assignment, file: awen-compiler/src/partition.rs, context: evaluate_assignment}
+  - {id: partition_build_regions, file: awen-compiler/src/partition.rs, context: build_regions}
+  - {id: calibration_uncalibrated_route, file: awen-compiler/src/calibration.rs, context: route_calibrated_hardware}
+  - {id: awenblas_cpu_reference, file: awen-compiler/src/awenblas/kernels.rs, context: 'impl KernelBackendProfile::cpu_reference'}
+  - {id: awenblas_simulator_options_default, file: awen-compiler/src/awenblas/kernels.rs, context: 'impl Default for KernelSimulatorOptions::default'}
+  - {id: isa_validate, file: awen-compiler/src/isa/validate.rs, context: validate}
+  - {id: open_pdk_reference_binding, file: awen-compiler/src/physical_design.rs, context: 'impl PhysicalDesignBinding::reference_open_pdk'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
   - {block: noise_contract_default, field: insertion_loss_db, value: 6.0, unit: dB, assumption: mzi.insertion_loss, status: unsourced, notes: total optical path loss in the noise contract; the assumption entry is per MZI and has no value yet}
   - {block: noise_contract_default, field: phase_sigma_rad, value: 0.002, unit: rad, assumption: null, status: unsourced, notes: no phase-error entry in the assumption set yet}
-  - {block: noise_contract_default, field: drift_rad_per_sqrt_s, value: 0.0, unit: rad/sqrt(s), assumption: null, status: unsourced, notes: drift disabled by default; no drift entry in the assumption set yet}
+  - {block: noise_contract_default, field: drift_rad_per_sqrt_s, value: 0.0, unit: rad/sqrt(s), assumption: null, status: unsourced, notes: drift switched off by default in a non-ideal model; no drift entry in the assumption set yet}
   - {block: noise_contract_default, field: rin_db_per_hz, value: -150.0, unit: dB/Hz, assumption: laser.rin, status: unsourced, notes: illustrative; laser.rin has no checked value yet}
   - {block: noise_contract_default, field: detection_bandwidth_hz, value: 10000000000.0, unit: Hz, assumption: photodetector.bandwidth, status: unsourced, notes: photodetector.bandwidth has no checked value yet (unit GHz there)}
   - {block: noise_contract_default, field: thermal_noise_electrons, value: 100.0, unit: electrons rms, assumption: null, status: unsourced, notes: no detector thermal-noise entry in the assumption set yet}
   - {block: noise_contract_default, field: crosstalk_db, value: -35.0, unit: dB, assumption: mzi.crosstalk, status: unsourced, notes: mzi.crosstalk has no checked value yet}
   - {block: noise_contract_default, field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: matches_assumption, notes: equals the 8-bit weight DAC of the PACE system (hua2025)}
   - {block: noise_contract_default, field: adc_bits, value: 8, unit: bits, assumption: null, status: unsourced, notes: 'no ADC bit-depth entry; system.pace_enob (7.61) is a whole-system ENOB, not an ADC resolution'}
+  - {block: noise_contract_ideal, field: quantum_efficiency, value: 1.0, unit: fraction, assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
+  - {block: noise_contract_ideal, field: insertion_loss_db, value: 0.0, unit: dB, assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
+  - {block: noise_contract_ideal, field: phase_sigma_rad, value: 0.0, unit: rad, assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
+  - {block: noise_contract_ideal, field: drift_rad_per_sqrt_s, value: 0.0, unit: rad/sqrt(s), assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
+  - {block: noise_contract_ideal, field: detection_bandwidth_hz, value: 1.0, unit: Hz, assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
+  - {block: noise_contract_ideal, field: thermal_noise_electrons, value: 0.0, unit: electrons rms, assumption: null, status: definitional, notes: 'ideal contract: every noise source disabled by construction (exact arithmetic)'}
   - {block: pace_like_128_descriptor, field: adc_bits, value: 10, unit: bits, assumption: null, status: unsourced, notes: reference descriptor 'reference-pace-like-128'; no ADC bit-depth entry in the assumption set}
   - {block: pace_like_128_descriptor, field: dac_bits, value: 10, unit: bits, assumption: dac.weight_dac_bits, status: differs_from_assumption, notes: 'descriptor is named PACE-like, but the PACE weight DAC is 8-bit (hua2025)'}
   - {block: pace_like_128_descriptor, field: effective_bits, value: 8, unit: bits, assumption: system.pace_enob, status: differs_from_assumption, notes: PACE system average channel ENOB is 7.61 bits (hua2025)}
@@ -42,10 +76,39 @@ entries:
   - {block: pace_like_128_descriptor, field: reconfiguration_latency_ns, value: 2000.0, unit: ns, assumption: phase_shifter.thermo_optic_reconfiguration_time, status: unsourced, notes: thermo-optic reconfiguration time has no checked value yet}
   - {block: pace_like_128_descriptor, field: detector_bandwidth_ghz, value: 20.0, unit: GHz, assumption: photodetector.bandwidth, status: unsourced, notes: photodetector.bandwidth has no checked value yet}
   - {block: pace_like_128_descriptor, field: insertion_loss_budget_db, value: 12.0, unit: dB, assumption: null, status: unsourced, notes: no system loss-budget entry in the assumption set yet}
+  - {block: pace_like_128_descriptor, field: temperature_tolerance_c, value: 0.5, unit: degC, assumption: null, status: unsourced, notes: calibration requirement; no thermal-stabilization entry in the assumption set yet}
+  - {block: pace_like_128_descriptor, field: drift_tolerance, value: 0.01, unit: fraction, assumption: null, status: unsourced, notes: calibration requirement; no drift entry in the assumption set yet}
   - {block: pace_like_128_descriptor, field: laser_power_mw, value: 500.0, unit: mW, assumption: null, status: unsourced, notes: 'total laser power; laser.channel_optical_power is per channel (up to 30 mW in hua2025), so not comparable'}
   - {block: pace_like_128_descriptor, field: total_power_budget_mw, value: 2000.0, unit: mW, assumption: null, status: unsourced, notes: no system power-budget entry in the assumption set yet}
   - {block: pace_like_128_descriptor, field: dac_energy_pj_per_sample, value: 2.0, unit: pJ, assumption: dac.energy_per_conversion, status: unsourced, notes: dac.energy_per_conversion has no checked value yet}
   - {block: pace_like_128_descriptor, field: adc_energy_pj_per_sample, value: 4.0, unit: pJ, assumption: adc.published_designs, status: differs_from_assumption, notes: 'below both published designs (6.35 pJ at 10.0 ENOB, 0.5 GS/s, 16 nm; 31.7 pJ at 9.4 ENOB, 5 GS/s, 28 nm) while the descriptor declares 10-bit ADCs at 20 GS/s; do not interpolate between the points'}
+  - {block: pace_like_128_descriptor, field: temperature_c, value: 22.0, unit: degC, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (environment temperature)'}
+  - {block: pace_like_128_descriptor, field: laser_power_mw#2, value: 500.0, unit: mW, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (environment laser power)'}
+  - {block: pace_like_128_descriptor, field: gain, value: 0.997, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (profile)'}
+  - {block: pace_like_128_descriptor, field: offset, value: 0.0002, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (profile)'}
+  - {block: pace_like_128_descriptor, field: phase_error_radians, value: 0.001, unit: rad, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (profile)'}
+  - {block: pace_like_128_descriptor, field: insertion_loss_db, value: 1.2, unit: dB, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (profile)'}
+  - {block: pace_like_128_descriptor, field: uncertainty, value: 0.002, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (profile)'}
+  - {block: pace_like_128_descriptor, field: gain#2, value: 0.996, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (cell-0-0)'}
+  - {block: pace_like_128_descriptor, field: offset#2, value: 0.0001, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (cell-0-0)'}
+  - {block: pace_like_128_descriptor, field: phase_error_radians#2, value: 0.0011, unit: rad, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (cell-0-0)'}
+  - {block: pace_like_128_descriptor, field: insertion_loss_db#2, value: 1.25, unit: dB, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (cell-0-0)'}
+  - {block: pace_like_128_descriptor, field: uncertainty#2, value: 0.0021, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (cell-0-0)'}
+  - {block: pace_like_128_descriptor, field: gain#3, value: 0.998, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-a)'}
+  - {block: pace_like_128_descriptor, field: offset#3, value: 0.0001, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-a)'}
+  - {block: pace_like_128_descriptor, field: phase_error_radians#3, value: 0.0008, unit: rad, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-a)'}
+  - {block: pace_like_128_descriptor, field: insertion_loss_db#3, value: 1.1, unit: dB, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-a)'}
+  - {block: pace_like_128_descriptor, field: uncertainty#3, value: 0.0015, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-a)'}
+  - {block: pace_like_128_descriptor, field: gain#4, value: 0.994, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-b)'}
+  - {block: pace_like_128_descriptor, field: offset#4, value: 0.0002, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-b)'}
+  - {block: pace_like_128_descriptor, field: phase_error_radians#4, value: 0.0014, unit: rad, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-b)'}
+  - {block: pace_like_128_descriptor, field: insertion_loss_db#4, value: 1.4, unit: dB, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-b)'}
+  - {block: pace_like_128_descriptor, field: uncertainty#4, value: 0.0025, unit: fraction, assumption: null, status: unsourced, notes: 'synthetic reference calibration fixture ''reference-room-temperature-v1'' in the descriptor; its measured_at timestamp notwithstanding, no device was measured (nothing in AWEN is L3) (spare-cell-b)'}
+  - {block: offline_snapshot_health, field: drift, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: an offline snapshot reports zero drift; no drift entry in the assumption set yet}
+  - {block: analog_noise_default, field: shot_noise_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: 'the Default analog noise model is noise-free; real devices are not, and the assumption set has no entry in this form'}
+  - {block: analog_noise_default, field: thermal_noise_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: 'the Default analog noise model is noise-free; real devices are not, and the assumption set has no entry in this form'}
+  - {block: analog_noise_default, field: phase_noise_radians, value: 0.0, unit: rad, assumption: null, status: unsourced, notes: 'the Default analog noise model is noise-free; real devices are not, and the assumption set has no entry in this form'}
+  - {block: analog_noise_default, field: detector_noise_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: 'the Default analog noise model is noise-free; real devices are not, and the assumption set has no entry in this form'}
   - {block: digital_baseline_default, field: energy_pj_per_mac, value: 20.0, unit: pJ, assumption: null, status: unsourced, notes: digital (CPU) baseline; the v0 assumption set has no digital-baseline section}
   - {block: digital_baseline_default, field: effective_bits, value: 16, unit: bits, assumption: null, status: unsourced, notes: digital baseline precision; no digital-baseline section in the assumption set}
   - {block: cost_inputs_from_capabilities, field: memory_energy_pj_per_byte, value: 0.5, unit: pJ/byte, assumption: null, status: unsourced, notes: no memory-energy entry in the assumption set yet}
@@ -54,10 +117,30 @@ entries:
   - {block: cost_inputs_from_capabilities, field: detector_energy_pj_per_sample, value: 1.0, unit: pJ, assumption: null, status: unsourced, notes: no detector-energy entry in the assumption set yet}
   - {block: cost_inputs_from_capabilities, field: digital_accumulation_energy_pj_per_mac, value: 0.25, unit: pJ, assumption: null, status: unsourced, notes: no digital-accumulation entry in the assumption set yet}
   - {block: cost_inputs_from_capabilities, field: calibration_amortization_energy_uj, value: 0.001, unit: uJ, assumption: null, status: unsourced, notes: no calibration-energy entry in the assumption set yet}
-  - {block: decide_placement_with_tuning, field: energy_pj_per_mac, value: 10.0, unit: pJ, assumption: null, status: unsourced, notes: digital (GPU) baseline used by decide_placement_with_tuning; no digital-baseline section}
+  - {block: cost_inputs_from_capabilities, field: drift_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: cost model assumes zero drift by default; no drift entry in the assumption set yet}
+  - {block: decide_placement_with_tuning, field: energy_pj_per_mac, value: 10.0, unit: pJ, assumption: null, status: unsourced, notes: digital (GPU) baseline; no digital-baseline section}
   - {block: decide_placement_with_tuning, field: effective_bits, value: 16, unit: bits, assumption: null, status: unsourced, notes: digital baseline precision; no digital-baseline section}
+  - {block: estimate_cpu, field: uncertainty_fraction, value: 0.1, unit: fraction, assumption: null, status: unsourced, notes: uncertainty attached to the CPU estimate; not derived from a stated formula or source}
+  - {block: estimate_digital_with_context, field: uncertainty_fraction, value: 0.1, unit: fraction, assumption: null, status: unsourced, notes: uncertainty attached to the digital estimate; not derived from a stated formula or source}
   - {block: compile_options_default, field: cpu_energy_pj_per_mac, value: 20.0, unit: pJ, assumption: null, status: unsourced, notes: digital (CPU) baseline; no digital-baseline section}
   - {block: compile_options_default, field: gpu_energy_pj_per_mac, value: 10.0, unit: pJ, assumption: null, status: unsourced, notes: digital (GPU) baseline; no digital-baseline section}
   - {block: compile_options_default, field: transfer_energy_pj_per_byte, value: 1.0, unit: pJ/byte, assumption: null, status: unsourced, notes: no host-transfer entry in the assumption set yet}
+  - {block: compile_options_default, field: crossing_penalty_uj, value: 0.001, unit: uJ, assumption: null, status: unsourced, notes: energy charged per domain crossing; no entry in the assumption set yet}
+  - {block: compile_with_cost_model, field: effective_bits, value: 16, unit: bits, assumption: null, status: unsourced, notes: CPU baseline precision built from CompileOptions; no digital-baseline section}
+  - {block: compile_with_cost_model, field: effective_bits#2, value: 16, unit: bits, assumption: null, status: unsourced, notes: GPU baseline precision built from CompileOptions; no digital-baseline section}
+  - {block: partition_options_default, field: transfer_energy_pj_per_byte, value: 1.0, unit: pJ/byte, assumption: null, status: unsourced, notes: no host-transfer entry in the assumption set yet}
+  - {block: partition_options_default, field: crossing_penalty_uj, value: 0.001, unit: uJ, assumption: null, status: unsourced, notes: energy charged per domain crossing; no entry in the assumption set yet}
+  - {block: partition_partial_score, field: energy_uj, value: 0.0, unit: uJ, assumption: null, status: definitional, notes: zero-initialized accumulator}
+  - {block: partition_evaluate_assignment, field: energy_uj, value: 0.0, unit: uJ, assumption: null, status: definitional, notes: zero-initialized accumulator}
+  - {block: partition_build_regions, field: energy_uj, value: 0.0, unit: uJ, assumption: null, status: definitional, notes: zero-initialized accumulator}
+  - {block: calibration_uncalibrated_route, field: gain, value: 1.0, unit: fraction, assumption: null, status: definitional, notes: identity effective transfer used when the device has no calibration profile}
+  - {block: calibration_uncalibrated_route, field: offset, value: 0.0, unit: fraction, assumption: null, status: definitional, notes: identity effective transfer used when the device has no calibration profile}
+  - {block: calibration_uncalibrated_route, field: phase_error_radians, value: 0.0, unit: rad, assumption: null, status: definitional, notes: identity effective transfer used when the device has no calibration profile}
+  - {block: calibration_uncalibrated_route, field: insertion_loss_db, value: 0.0, unit: dB, assumption: null, status: definitional, notes: identity effective transfer used when the device has no calibration profile}
+  - {block: calibration_uncalibrated_route, field: uncertainty, value: 0.0, unit: fraction, assumption: null, status: definitional, notes: identity effective transfer used when the device has no calibration profile}
   - {block: awenblas_cpu_reference, field: effective_bits, value: 64, unit: bits, assumption: null, status: unsourced, notes: awenBLAS CPU reference profile (f64 arithmetic); not a photonic device value}
   - {block: awenblas_cpu_reference, field: energy_pj_per_operation, value: 20.0, unit: pJ, assumption: null, status: unsourced, notes: awenBLAS CPU reference profile; no digital-baseline section}
+  - {block: awenblas_simulator_options_default, field: effective_bits, value: 8, unit: bits, assumption: null, status: unsourced, notes: default kernel-simulator precision; no assumption entry for it}
+  - {block: awenblas_simulator_options_default, field: noise_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: kernel simulator is noise-free by default; no entry in this form in the assumption set}
+  - {block: isa_validate, field: max_bits, value: 0, unit: bits, assumption: null, status: definitional, notes: zero-initialized running maximum in the ISA validator}
+  - {block: open_pdk_reference_binding, field: temperature_c, value: 22.0, unit: degC, assumption: null, status: unsourced, notes: reference open-PDK binding temperature; no entry in the assumption set}

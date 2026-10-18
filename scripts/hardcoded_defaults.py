@@ -4,9 +4,10 @@
 Master Prompt v2 section 9: every simulator and cost estimate should read device energies
 and noise from awen-spec/hardware_assumptions.yaml, and no other file may hard-code them.
 Until the compiler reads that file, this script keeps an exact list of the literals that are
-still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against the code:
+still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
+non-test Rust file in the inventory's `scope` (awen-compiler/src today):
 
-* every scanned literal must be listed with the same value (no new silent defaults), and
+* every device literal found must be listed with the same value (no new silent defaults), and
 * every listed entry must still exist in the code (no stale entries), and
 * each entry's status must agree with hardware_assumptions.yaml (``unsourced`` only when
   the assumption set has no value for it).
@@ -27,47 +28,70 @@ ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = ROOT / "awen-spec" / "hardcoded_device_defaults.yaml"
 ASSUMPTIONS = ROOT / "awen-spec" / "hardware_assumptions.yaml"
 
-# Field names that carry a device energy, power, noise, loss or precision value
+# Field names that carry a device energy, power, noise, loss, calibration or precision value
 # (dimensionless `*_factor` multipliers are skipped).
 DEVICE_FIELD = re.compile(
-    r"(energy|power|noise|rin_|crosstalk|insertion_loss|quantum_efficiency|phase_sigma"
-    r"|photons|drift_rad|_bits$|bandwidth_hz|bandwidth_ghz|reconfiguration_latency)"
+    r"(energy|power|noise|rin_|crosstalk|insertion_loss|quantum_efficiency|phase_sigma|phase_error"
+    r"|photons|drift|_bits$|bandwidth_hz|bandwidth_ghz|reconfiguration_latency|_uj$"
+    r"|^gain$|^offset$|uncertainty|temperature)"
 )
 # `name: 1.0,` / `name: Some(-150.0),` / `name: 2_000.0,` on one line (formulas are skipped).
 LITERAL = re.compile(r"^\s*([a-z_][a-z0-9_]*):\s*(?:Some\()?(-?[0-9][0-9_]*(?:\.[0-9_]*)?(?:e-?[0-9]+)?)\)?,\s*$")
-STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption"}
-
-
-def block_lines(text: str, anchor: str) -> list[str]:
-    """Lines from `anchor` to the closing `}` or `};` at the anchor's own indentation."""
-    lines = text.splitlines()
-    starts = [i for i, line in enumerate(lines) if line.strip().startswith(anchor)]
-    if len(starts) != 1:
-        raise ValueError(f"anchor {anchor!r} found {len(starts)} times (need exactly 1)")
-    start = starts[0]
-    indent = lines[start][: len(lines[start]) - len(lines[start].lstrip())]
-    for end in range(start + 1, len(lines)):
-        if lines[end] in (indent + "}", indent + "};"):
-            return lines[start : end + 1]
-    raise ValueError(f"anchor {anchor!r}: no closing brace")
+ITEM = re.compile(r"^(\s*)(?:pub(?:\([a-z]+\))?\s+)?(fn|impl)\b")
+FN_NAME = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
+STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional"}
 
 
 def parse_number(raw: str) -> float:
     return float(raw.replace("_", ""))
 
 
-def scan(root: Path, blocks: list[dict]) -> dict[tuple[str, str], float]:
-    """Return {(block id, field): value} for every device literal in the listed blocks."""
+def is_device_field(name: str) -> bool:
+    return bool(DEVICE_FIELD.search(name)) and not name.endswith("_factor")
+
+
+def literals(text: str) -> dict[tuple[str, str], float]:
+    """{(context, field): value} for device literals in non-test Rust source.
+
+    The context is the enclosing function, prefixed by its `impl` header when it is a method
+    (e.g. ``impl Default for PhotonicNoiseContract::default``). A field that appears more than
+    once in one context gets ``#2``, ``#3``... in source order. Scanning stops at the
+    ``#[cfg(test)] mod tests`` module.
+    """
+    found: dict[tuple[str, str], float] = {}
+    lines = text.splitlines()
+    impl_header, context = None, "<file scope>"
+    for index, line in enumerate(lines):
+        if line.strip() == "#[cfg(test)]" and index + 1 < len(lines) and lines[index + 1].lstrip().startswith("mod tests"):
+            break
+        if line == "}":
+            impl_header, context = None, "<file scope>"
+            continue
+        item = ITEM.match(line)
+        if item:
+            if item.group(2) == "impl" and not item.group(1):
+                impl_header = " ".join(line.strip().rstrip("{").split())
+                context = impl_header
+            elif item.group(2) == "fn" and (name := FN_NAME.search(line)):
+                context = f"{impl_header}::{name.group(1)}" if item.group(1) and impl_header else name.group(1)
+            continue
+        match = LITERAL.match(line)
+        if match and is_device_field(match.group(1)):
+            field, n = match.group(1), 1
+            while (context, field if n == 1 else f"{field}#{n}") in found:
+                n += 1
+            found[(context, field if n == 1 else f"{field}#{n}")] = parse_number(match.group(2))
+    return found
+
+
+def scan(root: Path, scope: list[str]) -> dict[tuple[str, str, str], float]:
+    """{(file, context, field): value} for every device literal in the scoped source trees."""
     found: dict[tuple[str, str, str], float] = {}
-    for block in blocks:
-        text = (root / block["file"]).read_text()
-        for line in block_lines(text, block["anchor"]):
-            match = LITERAL.match(line)
-            if match and DEVICE_FIELD.search(match.group(1)) and not match.group(1).endswith("_factor"):
-                key = (block["id"], match.group(1))
-                if key in found:
-                    raise ValueError(f"duplicate field in block: {key}")
-                found[key] = parse_number(match.group(2))
+    for tree in scope:
+        for path in sorted((root / tree).rglob("*.rs")):
+            rel = path.relative_to(root).as_posix()
+            for (context, field), value in literals(path.read_text()).items():
+                found[(rel, context, field)] = value
     return found
 
 
@@ -95,15 +119,16 @@ def check(root: Path = ROOT) -> list[str]:
     problems: list[str] = []
     if inventory.get("assumption_set") != assumptions["version"]:
         problems.append(f"inventory assumption_set {inventory.get('assumption_set')!r} != {assumptions['version']!r}")
-    found = scan(root, inventory["blocks"])
-    listed: dict[tuple[str, str], dict] = {}
-    block_ids = [block["id"] for block in inventory["blocks"]]
-    if len(block_ids) != len(set(block_ids)):
-        problems.append(f"duplicate block ids: {block_ids}")
+    found = scan(root, inventory["scope"])
+    blocks = {block["id"]: (block["file"], block["context"]) for block in inventory["blocks"]}
+    if len(blocks) != len(inventory["blocks"]) or len(set(blocks.values())) != len(blocks):
+        problems.append("duplicate block ids or contexts")
+    listed: dict[tuple[str, str, str], dict] = {}
     for entry in inventory["entries"]:
-        key = (entry["block"], entry["field"])
-        if entry["block"] not in block_ids:
-            problems.append(f"{key}: unknown block {entry['block']!r}")
+        if entry["block"] not in blocks:
+            problems.append(f"{entry['field']}: unknown block {entry['block']!r}")
+            continue
+        key = (*blocks[entry["block"]], entry["field"])
         if key in listed:
             problems.append(f"listed twice: {key}")
         listed[key] = entry
@@ -122,8 +147,8 @@ def check(root: Path = ROOT) -> list[str]:
         except KeyError:
             problems.append(f"{key}: assumption {target!r} is not a parameter in {ASSUMPTIONS.name}")
             continue
-        if entry.get("status") == "unsourced" and values:
-            problems.append(f"{key}: marked unsourced but {target} has values {values}")
+        if entry.get("status") in {"unsourced", "definitional"} and values:
+            problems.append(f"{key}: marked {entry['status']} but {target} has values {values}")
         if entry.get("status") in {"matches_assumption", "differs_from_assumption"}:
             if not values:
                 problems.append(f"{key}: status {entry['status']} needs an assumption with a value")
@@ -142,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     inventory = yaml.safe_load(INVENTORY.read_text())
     files = {block["id"]: block["file"] for block in inventory["blocks"]}
+    print("scope:", ", ".join(inventory["scope"]), "| not yet inventoried:", "; ".join(inventory["not_yet_inventoried"]))
     counts: dict[str, int] = {}
     for entry in inventory["entries"]:
         counts[entry["status"]] = counts.get(entry["status"], 0) + 1

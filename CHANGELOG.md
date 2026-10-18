@@ -12,11 +12,12 @@
   unsourced parameters are null; shot-noise energy is per detection, as a 4/6/8-bit sweep; PACE ENOB is
   `system.pace_enob`. Tested by `scripts/tests/test_hardware_assumptions.py` (pyyaml pinned, no skip).
 - Docs: first Master Prompt v2 session report, `docs/sessions/2026-10-18-01.md`.
-- Spec: `awen-spec/hardcoded_device_defaults.yaml` lists the 40 device energy, noise and precision
-  literals still hard-coded in `awen-compiler` defaults, each with unit, target assumption and a status
-  against `hardware_assumptions.yaml` (36 unsourced, 3 differ, 1 matches). `scripts/hardcoded_defaults.py
-  --check` and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears, a
-  listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
+- Spec: `awen-spec/hardcoded_device_defaults.yaml` lists the 95 device energy, noise, calibration and
+  precision literals in non-test `awen-compiler/src` code, each with unit, target assumption and a status
+  against `hardware_assumptions.yaml` (76 unsourced, 15 definitional, 3 differ, 1 matches); it names
+  `awen-runtime` and the Python packages as not yet inventoried. `scripts/hardcoded_defaults.py --check`
+  and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
+  scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
