@@ -82,7 +82,7 @@ their testable portion implemented and the blocked boundary written down.
 | E2 | AWEN-Photon differentiable MZI layers vs independent reference; six nonlinearity categories | proposed | | | #73 |
 | B1 | Benchmarks with immutable evidence, CIs, multiple seeds, LM metrics | proposed | | | #74 |
 | S1 | Studio local web app wired to real backends | proposed | | | #75 |
-| S2 | Lab Agent (simulation only, approval gates) | implemented (`awen-lab`: Quick/Truth/Repro/Compare/Publish over the Rust photonic GEMM model and the quantum-photonic simulators; immutable content-addressed lab states with branch/restore/history/diff; provenance in every state; operating bounds; Publish needs a recorded approval; every hardware action refused, approval or not; `awen-lab` CLI) | #PRN | `awen-lab/tests/test_lab.py` (11) | no hardware path by design; #76 |
+| S2 | Lab Agent (simulation only, approval gates) | implemented (`awen-lab`: Quick/Truth/Repro/Compare/Publish over the Rust photonic GEMM model and the quantum-photonic simulators; immutable content-addressed lab states with branch/restore/history/diff; provenance in every state; operating bounds; Publish needs a recorded approval; every hardware action refused, approval or not; `awen-lab` CLI) | #113 | `awen-lab/tests/test_lab.py` (11) | no hardware path by design; #76 |
 | S3 | Cloud architecture doc, marked not available | proposed | | | no service |
 | X1a | SECURITY.md, ed25519 plugin-manifest signing, dependency license scan, gitleaks | implemented | before #50 | `scripts/check_dependency_licenses.py`, plugin signature tests | |
 | X1b | SBOM, release checksums, reproducible builds, safe model loading, compatibility docs | proposed | | | #78 |
