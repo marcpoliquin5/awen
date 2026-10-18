@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-10-18 11:30 ET. Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-10-18 11:30 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 Main is `0235668` (#125). Its required quality gate is CI run 39140149777 (started 11:22 ET); the
 last green gate on main is run 39131215603 on `e6d4224`.
 
@@ -21,8 +21,8 @@ generated, no device), L3 measured on hardware. **Nothing in AWEN is L3.**
 
 Source labels: **measured @ 0235668** = run by the agent on the build box at commit `0235668`
 (Linux 6.12, Intel Xeon 8 vCPU, no GPU, rustc 1.99.1, Python 3.13.5) with the command shown;
-**stored result** = read from the named committed file; **agent count** = counted by the agent in an
-earlier session and not re-run for this table.
+**stored result** = read from the named committed file; **counted @ 0235668** = exact count
+command shown.
 
 | Capability | Where | Level | Evidence |
 | --- | --- | --- | --- |
@@ -30,8 +30,8 @@ earlier session and not re-run for this table.
 | StableHLO GEMM lowering (rank 2, equal-batch rank 3) | `awen-mlir` | L1 | MLIR ctest |
 | Virtual photonic ISA v1 (encode, validate, interpret) | `awen-compiler/src/isa` | L2 (virtual ISA only, no vendor command set) | `tests/isa.rs` |
 | Photonic GEMM noise model (shot, thermal, RIN, phase, DAC/ADC, crosstalk) | `awen-compiler/src/noise.rs` | L1 | AEP-0022, noise tests |
-| Ops beyond GEMM (12 ops, agent count, each labeled) | `awen-compiler/src/ops.rs` | L0/L1 per op | ops tests, `awen-spec/specs/ops.md` |
-| awenBLAS kernels (22 + extensions, agent count) | `awen-runtime` | L0/L1 | runtime tests |
+| Ops beyond GEMM (12 ops, each labeled) | `awen-compiler/src/ops.rs` | L0/L1 per op | 12 counted @ 0235668 (command C1 below); ops tests |
+| awenBLAS kernels (25 kernel kinds; C ABI in `awen-runtime`) | `awen-compiler/src/awenblas` | L0/L1 | 25 counted @ 0235668 (command C2 below); runtime tests |
 | Runtime, HAL, scheduler, streams, fallback, replay, profiler | `awen-runtime` | L1 (simulated device) | 305 tests, measured @ 0235668: `cd awen-runtime && cargo test -q` |
 | C SDK, `awenctl` CLI, model conversion | `awen-runtime`, `awen-models` | L0/L1 | CI C example, CLI tests |
 | Python SDK `Runtime(device="photonic-sim")`, PyO3 binding | `awen-ecosystem`, `awen-native` | L1 | 48 + 23 tests, measured @ 0235668: `pytest -q` in `awen-ecosystem/python_awen` and `awen-native/tests` |
@@ -47,6 +47,13 @@ earlier session and not re-run for this table.
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
 | Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | missing on main | PR #126 in review (v2 section 9) |
+
+Count commands (run at `0235668`):
+
+```
+C1: rg -c '^\| `[a-z_0-9]+` \| (hardware_lowerable|photonic_sim|math_reference)' awen-spec/specs/ops.md   # 12
+C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs | grep -c 'KernelKind::'          # 25
+```
 
 ## Gap list against Master Prompt v2
 
@@ -64,7 +71,7 @@ earlier session and not re-run for this table.
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | starts with 2026-10-18-01 | every session |
+| Session reports in `docs/sessions/` | 3, 17 | 2026-10-18-01 in review (#127) | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -84,8 +91,12 @@ earlier session and not re-run for this table.
 - No GPU on the build box: CUDA paths are untested; Marc's RTX 5070 Ti laptop would cover this.
 - **Marc's 72-paper ledger export is missing.** `research/ledger/ledger.json` is an empty index; the 15
   agent-written entries live separately in `research/reference/agent-sourced.json`.
-- Section 16 decisions pending: v0.1.0 tag (D-007), AWEN-Mini base model (D-008, D-009); see DECISIONS.md.
-  Settled by Marc: MIT license (D-001), agent self-merge after green checks (D-002).
+- Section 16 decisions pending Marc: D-007 to D-012 (v0.1.0 tag, AWEN-Mini design, SmolLM2 base,
+  physics solvers, Studio location, frontier directory); see DECISIONS.md. Settled by Marc: MIT
+  license (D-001), agent self-merge after green checks (D-002), v0.1.0 marked pre-release (D-015).
+- Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
+  and held by Marc only; the agent must never create or hold it. Blocked on Marc.
+- Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
 - Device energies and noise defaults are still hard-coded in the noise contract until
   `hardware_assumptions.yaml` exists and is wired in.
 
