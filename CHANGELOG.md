@@ -19,6 +19,10 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
+  (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
+  entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
+  (38 in-expression: 12 unsourced device or modeling fallbacks, 21 numeric guards, 5 definitional). No default changed.
 - Research: pre-registration of the multiplexing/fractal hypotheses H1-H4
   (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, full-run configs in `configs/`), with
   the H1-H3 pilots of draft #128 (`0974f38`) disclosed as exploratory. Tested by

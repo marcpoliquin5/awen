@@ -11,11 +11,16 @@
 #       matches_assumption      - the code value equals a value stored for that assumption
 #       differs_from_assumption - the assumption has values and the code value is none of them
 #       definitional            - fixed by construction (ideal contract, identity calibration,
-#                                 zero-initialized accumulator); not a device assumption
+#                                 zero-initialized accumulator, a disabled term contributing 0)
+#       numeric_guard           - a floor, cap or clamp that keeps arithmetic defined (divide-by-zero
+#                                 guards, fractions capped at 1, non-negative clamps); not a device value
 # A block is one function (`impl <header>::<fn>` for methods); a field repeated in one block is
-# numbered `#2`, `#3`... in source order. Only single-line literals are seen: a number inside a
-# longer expression (for example a `map_or(20.0, ...)` fallback) is not, and `not_yet_inventoried`
-# names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
+# numbered `#2`, `#3`... in source order. Two forms are seen: single-line `field: <number>,`
+# literals, and float literals passed to `.map_or`, `.unwrap_or`, `.max`, `.min` or `.clamp`
+# inside an expression (listed as field `expr:<method>`; for `clamp` the lower bound). Not seen:
+# integer arguments (count guards such as `.max(1)`), `fold` initial values, arithmetic factors
+# such as `latency * 0.01`, and fields whose names do not match the device-field pattern in the
+# script (for example `optical_propagation_ns: 0.1`). `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src]
@@ -48,6 +53,21 @@ blocks:
   - {id: awenblas_simulator_options_default, file: awen-compiler/src/awenblas/kernels.rs, context: 'impl Default for KernelSimulatorOptions::default'}
   - {id: isa_validate, file: awen-compiler/src/isa/validate.rs, context: validate}
   - {id: open_pdk_reference_binding, file: awen-compiler/src/physical_design.rs, context: 'impl PhysicalDesignBinding::reference_open_pdk'}
+  - {id: awenblas_estimate_operations, file: awen-compiler/src/awenblas/kernels.rs, context: estimate_operations}
+  - {id: compiler_graph_internal_cost, file: awen-compiler/src/compiler.rs, context: graph_internal_cost}
+  - {id: cost_inputs_from_snapshot, file: awen-compiler/src/cost.rs, context: 'impl CostModelInputs::from_snapshot'}
+  - {id: cost_inputs_calibrated_from_reports, file: awen-compiler/src/cost.rs, context: 'impl CostModelInputs::calibrated_from_reports'}
+  - {id: cost_error_contract_satisfied, file: awen-compiler/src/cost.rs, context: 'impl OperationCostProfile::error_contract_satisfied'}
+  - {id: cost_estimate_photonic_plan, file: awen-compiler/src/cost.rs, context: estimate_photonic_plan_with_profile}
+  - {id: cost_interval, file: awen-compiler/src/cost.rs, context: interval}
+  - {id: isa_interp_run, file: awen-compiler/src/isa/interp.rs, context: run}
+  - {id: lowering_output_dynamic_range, file: awen-compiler/src/lowering.rs, context: output_dynamic_range}
+  - {id: noise_predicted_sigmas, file: awen-compiler/src/noise.rs, context: 'impl PhotonicNoiseContract::predicted_sigmas'}
+  - {id: noise_photonic_gemm, file: awen-compiler/src/noise.rs, context: photonic_gemm}
+  - {id: noise_quantize_signed, file: awen-compiler/src/noise.rs, context: quantize_signed}
+  - {id: precision_default_quantization, file: awen-compiler/src/precision.rs, context: default_quantization}
+  - {id: precision_error_attribution_checked, file: awen-compiler/src/precision.rs, context: 'impl ErrorAttribution::checked'}
+  - {id: simulator_compare, file: awen-compiler/src/simulator.rs, context: compare}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -144,3 +164,41 @@ entries:
   - {block: awenblas_simulator_options_default, field: noise_fraction, value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: kernel simulator is noise-free by default; no entry in this form in the assumption set}
   - {block: isa_validate, field: max_bits, value: 0, unit: bits, assumption: null, status: definitional, notes: zero-initialized running maximum in the ISA validator}
   - {block: open_pdk_reference_binding, field: temperature_c, value: 22.0, unit: degC, assumption: null, status: unsourced, notes: reference open-PDK binding temperature; no entry in the assumption set}
+  - {block: cost_inputs_from_capabilities, field: 'expr:map_or', value: 0.05, unit: fraction, assumption: null, status: unsourced, notes: calibration-uncertainty fallback (cost.rs L378) when the device has no calibration profile; no calibration-uncertainty entry in the assumption set}
+  - {block: cost_inputs_from_capabilities, field: 'expr:max', value: 0.001, unit: fraction, assumption: null, status: unsourced, notes: floor on calibration uncertainty (cost.rs L379); not derived from a stated formula}
+  - {block: cost_inputs_from_capabilities, field: 'expr:max#2', value: 0.0, unit: mW, assumption: null, status: numeric_guard, notes: non-negative clamp on support power (budget minus laser power)}
+  - {block: cost_inputs_from_capabilities, field: 'expr:map_or#2', value: 0.0, unit: dB, assumption: null, status: unsourced, notes: insertion loss taken as 0 dB when the device has no calibration profile (lossless fallback); mzi.insertion_loss has no value yet}
+  - {block: cost_inputs_from_snapshot, field: 'expr:map_or', value: 0.05, unit: fraction, assumption: null, status: unsourced, notes: 'calibration-uncertainty fallback (cost.rs L457), same value as from_capabilities; no assumption entry'}
+  - {block: cost_inputs_from_snapshot, field: 'expr:max', value: 0.001, unit: fraction, assumption: null, status: unsourced, notes: floor on calibration uncertainty (cost.rs L458); not derived from a stated formula}
+  - {block: cost_inputs_calibrated_from_reports, field: 'expr:max', value: 0.0, unit: fraction, assumption: null, status: numeric_guard, notes: non-negative clamp on the calibration offset}
+  - {block: cost_inputs_calibrated_from_reports, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on an error fraction at 1}
+  - {block: cost_error_contract_satisfied, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on summed error fractions at 1}
+  - {block: cost_estimate_photonic_plan, field: 'expr:map_or', value: 0.0, unit: fraction, assumption: null, status: definitional, notes: no saturation error when the operation states no maximum input magnitude}
+  - {block: cost_estimate_photonic_plan, field: 'expr:max', value: 0.01, unit: fraction, assumption: null, status: unsourced, notes: floor on the active-component fraction (at most 99% disabled); not derived from a stated formula}
+  - {block: cost_estimate_photonic_plan, field: 'expr:map_or#2', value: 0.0, unit: fraction, assumption: null, status: unsourced, notes: calibration uncertainty taken as 0 when the device has no calibration profile; differs from the 0.05 fallback in from_capabilities and from_snapshot}
+  - {block: cost_estimate_photonic_plan, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on overflow error fraction at 1}
+  - {block: estimate_digital_with_context, field: 'expr:max', value: 0.1, unit: fraction, assumption: null, status: unsourced, notes: floor of 10% on the digital estimate's uncertainty; not derived from a stated formula}
+  - {block: cost_interval, field: 'expr:max', value: 0.0, unit: same as value, assumption: null, status: numeric_guard, notes: non-negative lower bound of an estimate interval}
+  - {block: offline_snapshot_health, field: 'expr:map_or', value: 20.0, unit: degC, assumption: null, status: unsourced, notes: temperature reported by an offline snapshot when the device has no calibration profile (capability.rs L728); no thermal entry in the assumption set}
+  - {block: calibration_uncalibrated_route, field: 'expr:map_or', value: 1.0, unit: score, assumption: null, status: unsourced, notes: transfer score for a channel with no measurement is taken as perfect (1.0); not a device value from the assumption set}
+  - {block: calibration_uncalibrated_route, field: 'expr:max', value: 1.0, unit: count, assumption: null, status: numeric_guard, notes: divide-by-zero guard on the channel count}
+  - {block: calibration_uncalibrated_route, field: 'expr:max#2', value: 1.0, unit: count, assumption: null, status: numeric_guard, notes: divide-by-zero guard on the active-cell count}
+  - {block: calibration_uncalibrated_route, field: 'expr:max#3', value: 1.0, unit: count, assumption: null, status: numeric_guard, notes: divide-by-zero guard on the remap count}
+  - {block: lowering_output_dynamic_range, field: 'expr:map_or', value: 1.0, unit: magnitude, assumption: null, status: unsourced, notes: 'left-operand magnitude assumed 1.0 when the tensor has no data; a modeling assumption, not a device value'}
+  - {block: lowering_output_dynamic_range, field: 'expr:map_or#2', value: 1.0, unit: magnitude, assumption: null, status: unsourced, notes: 'right-operand magnitude assumed 1.0 when the tensor has no data; a modeling assumption, not a device value'}
+  - {block: noise_predicted_sigmas, field: 'expr:unwrap_or', value: 0.0, unit: fraction, assumption: null, status: definitional, notes: shot term is zero when the contract disables it}
+  - {block: noise_predicted_sigmas, field: 'expr:unwrap_or#2', value: 0.0, unit: fraction, assumption: null, status: definitional, notes: RIN term is zero when the contract disables it}
+  - {block: noise_predicted_sigmas, field: 'expr:unwrap_or#3', value: 0.0, unit: fraction, assumption: null, status: definitional, notes: ADC term is zero when the contract disables ADC quantization}
+  - {block: noise_photonic_gemm, field: 'expr:max', value: 0.0, unit: fraction, assumption: null, status: numeric_guard, notes: non-negative clamp inside a square root}
+  - {block: noise_photonic_gemm, field: 'expr:clamp', value: -1.0, unit: fraction, assumption: null, status: numeric_guard, notes: 'clamp to [-1, 1] (normalized full scale)'}
+  - {block: noise_quantize_signed, field: 'expr:clamp', value: -1.0, unit: fraction, assumption: null, status: numeric_guard, notes: 'clamp to [-1, 1] before quantization'}
+  - {block: partition_partial_score, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on an error fraction at 1}
+  - {block: partition_evaluate_assignment, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on an error fraction at 1}
+  - {block: partition_build_regions, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on an error fraction at 1}
+  - {block: compiler_graph_internal_cost, field: 'expr:max', value: 0.0, unit: uJ, assumption: null, status: numeric_guard, notes: non-negative clamp on energy after excluding a sub-cost}
+  - {block: awenblas_estimate_operations, field: 'expr:max', value: 1.0, unit: count, assumption: null, status: numeric_guard, notes: guard so log2 of the element count is defined}
+  - {block: awenblas_estimate_operations, field: 'expr:max#2', value: 1.0, unit: count, assumption: null, status: numeric_guard, notes: floor of 1 on log2 in the FFT operation count}
+  - {block: isa_interp_run, field: 'expr:max', value: 0.0, unit: value, assumption: null, status: definitional, notes: 'ReLU: max(x, 0)'}
+  - {block: precision_default_quantization, field: 'expr:max', value: 1.0, unit: levels, assumption: null, status: numeric_guard, notes: divide-by-zero guard on quantization levels}
+  - {block: precision_error_attribution_checked, field: 'expr:min', value: 1.0, unit: fraction, assumption: null, status: numeric_guard, notes: cap on total error fraction at 1}
+  - {block: simulator_compare, field: 'expr:max', value: 1e-12, unit: magnitude, assumption: null, status: numeric_guard, notes: divide-by-zero guard for relative error}
