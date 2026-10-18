@@ -106,8 +106,22 @@ def latency_summary(runs: Sequence[Sequence[float]], seed: int = 0) -> dict[str,
 
 # --------------------------------------------------------------------------- environment
 
+def repo_root() -> Optional[Path]:
+    """The AWEN checkout: $AWEN_REPO, else the first parent of cwd or of this file with awen-compiler/."""
+    candidates = [Path(os.environ["AWEN_REPO"])] if os.environ.get("AWEN_REPO") else []
+    for start in (Path.cwd().resolve(), Path(__file__).resolve()):
+        candidates.extend([start, *start.parents])
+    for path in candidates:
+        if (path / "awen-compiler/capabilities").is_dir():
+            return path
+    return None
+
+
 def git_state(repo: Optional[Path] = None) -> dict[str, Any]:
-    cwd = str(repo or Path(__file__).resolve().parents[2])
+    repo = repo or repo_root()
+    if repo is None:
+        return {"sha": None, "dirty": None, "note": "AWEN checkout not found"}
+    cwd = str(repo)
     try:
         sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True,
                              check=True).stdout.strip()
@@ -207,15 +221,18 @@ def gemm_program(m: int, k: int, n: int) -> dict[str, Any]:
     return {"ir_version": "awen.tensor.v1", "tensors": tensors, "ops": ops}
 
 
-def capabilities() -> dict[str, Any]:
-    path = Path(__file__).resolve().parents[2] / "awen-compiler/capabilities/pace_like_128.json"
-    return json.loads(path.read_text())
+def capabilities() -> Optional[dict[str, Any]]:
+    root = repo_root()
+    path = root / "awen-compiler/capabilities/pace_like_128.json" if root else None
+    return json.loads(path.read_text()) if path and path.is_file() else None
 
 
 def compile_seconds(m: int, k: int, n: int, repeats: int) -> list[float]:
     import awen_native
 
     caps, program = capabilities(), gemm_program(m, k, n)
+    if caps is None:
+        return []
     out = []
     for _ in range(repeats):
         start = time.perf_counter()
@@ -290,7 +307,11 @@ def bench_gemm(backends: Sequence[str], shapes: Sequence[tuple[int, int, int]], 
                 "process_max_rss_mib": max_rss_mib(),
             })
             if backend in ("awen-reference", "photonic-sim"):
-                row["compile"] = latency_summary([compile_seconds(m, k, n, repeats)], seed)
+                compile_samples = compile_seconds(m, k, n, repeats)
+                if compile_samples:
+                    row["compile"] = latency_summary([compile_samples], seed)
+                else:
+                    row["compile_note"] = "capability file not found (run from an AWEN checkout or set AWEN_REPO)"
             rows.append(row)
     return rows
 
