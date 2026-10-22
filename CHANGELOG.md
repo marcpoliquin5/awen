@@ -19,6 +19,13 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Compiler: `awen_compiler::assumptions` parses `awen-spec/hardware_assumptions.yaml` (bundled at build time
+  or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
+  nulls kept as `None`, plus each value's citation key and source type (measured, vendor or estimate). No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
+  (MIT OR Apache-2.0, pure Rust).
+- Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
+  `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
+  identical before and after (`awen-compiler/results/assumptions-wiring/`).
 - Spec: the hard-coded defaults inventory also covers `awen-runtime/src`, and the device-field pattern now also
   matches latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence-time and `_loss_` fields
   (66 runtime entries: 41 unsourced, 19 definitional, 6 numeric guards; 12 new compiler latency entries), 211 entries
