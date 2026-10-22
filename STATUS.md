@@ -1,7 +1,7 @@
 # AWEN status
 
-Updated 2026-10-18 13:36 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `c1086fc` (#132), after `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129),
+Updated 2026-10-22 18:29 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `01b927f` (#133), after `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129),
 `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125). Truth-table test counts were measured at `0235668`; the
 inventory counts at `c1086fc`. Gates passed on `0235668` (run 39140149777), `840f5c5` (run 39141006838),
 `132d4d9` (run 39143781587) and `c02eee9` (run 39147442569); the gate on `c1086fc` (run 39150273629) was running at commit time.
@@ -117,10 +117,13 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 ## Next 3 tasks
 
-1. Wiring `hardware_assumptions.yaml`, slice 2 (slice 1, the CI-checked inventory, is done): load the file
-   in `awen-compiler`, record the assumption-set version in cost estimates, and make the 3 literals that
-   differ from it (reference descriptor ADC energy 4.0 pJ, DAC 10 bits, effective bits 8) either read the
-   file or carry an explicit "illustrative" label, with compatibility notes.
+1. Wiring `hardware_assumptions.yaml`, slice 2 (slice 1, the CI-checked inventory, is done), split in two so each
+   PR stays one concern and under ~400 lines: **2a** (this PR, #134) loads the file in `awen-compiler`
+   (`awen_compiler::assumptions`, versions, units, citation key and source type per value; no consumer yet);
+   **2b** (#135, stacked on #134) applies it opt-in to the noise model and cost estimates, records the
+   assumption-set version in cost estimates, and stores before/after outputs. The 3 literals that differ from
+   the set (reference descriptor ADC energy 4.0 pJ, DAC 10 bits, effective bits 8) keep their defaults; changing
+   them is a separate proposal for Marc.
 2. Run H1 and H3 on CPU from the registered configs (`research/experiments/multiplexing-fractal/configs/`,
    `PREREGISTRATION.md`; H1-H4 registered in #133): add the `--config` entry points first, draft PRs only.
 3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).
