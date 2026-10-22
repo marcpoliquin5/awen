@@ -23,6 +23,9 @@
   or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
   nulls kept as `None`, plus each value's citation key and source type (measured, vendor or estimate). No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
   (MIT OR Apache-2.0, pure Rust).
+- Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
+  `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
+  identical before and after (`awen-compiler/results/assumptions-wiring/`).
 - Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
   (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
   entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
