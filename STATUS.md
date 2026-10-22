@@ -50,7 +50,7 @@ command shown.
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
 | Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`) |
-| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` and `awen-runtime/src` code, two literal forms: single-line `field: <number>,` device literals (95) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38 compiler + 26 runtime); 176 entries (compiler 133 in 36 functions, runtime 43 in 21 functions; 108 unsourced, 27 numeric guards, 37 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern (e.g. `coupling_q`, `read_efficiency` in `awen-runtime/src/state/memory.rs`), test modules (e.g. `photons_per_mac: Some(10.0)` in an `executable.rs` test); `awen-native`, `awen-mlir` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
+| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` and `awen-runtime/src` code, two literal forms: single-line `field: <number>,` device literals whose field name matches the device-field pattern (energy, power, noise, loss, crosstalk, precision, calibration, temperature, and since #139 also latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence time; 107 compiler + 40 runtime) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38 compiler + 26 runtime); 211 entries (compiler 145 in 36 functions, runtime 66 in 28 functions; 138 unsourced, 27 numeric guards, 42 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern (e.g. `coupling_q`, `read_efficiency`, `t1_ns`, `photon_count`, `click_probability`), lines with a trailing comment (e.g. `read_latency_ns: 1000, // ...` in `awen-runtime/src/state/memory.rs`), tuple values (e.g. `nominal_voltage_range: (0.0, 10.0)` in `hal_v0.rs`), test modules (e.g. `photons_per_mac: Some(10.0)` in an `executable.rs` test); `awen-native`, `awen-mlir` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
 
@@ -63,7 +63,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 | Gap | v2 section | Current level | Needed |
 | --- | --- | --- | --- |
-| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; `awen-compiler` and `awen-runtime` device literals and in-expression fallbacks (176 entries, forms listed in the truth table) inventoried and checked in CI, `awen-native` and Python not yet | loader in `awen-compiler`, then replace inventoried literals one block at a time |
+| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; `awen-compiler` and `awen-runtime` device literals and in-expression fallbacks (211 entries, forms listed in the truth table) inventoried and checked in CI, `awen-native` and Python not yet | loader in `awen-compiler`, then replace inventoried literals one block at a time |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
@@ -101,10 +101,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
   and held by Marc only; the agent must never create or hold it. Blocked on Marc.
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
-- Device energies and noise defaults are still hard-coded in `awen-compiler` (133 entries) and
-  `awen-runtime` (43 entries, mostly `hal_v0.rs` defaults and reference-simulator fallbacks), all listed in
+- Device energies and noise defaults are still hard-coded in `awen-compiler` (145 entries) and
+  `awen-runtime` (66 entries, mostly `hal_v0.rs` defaults, quantum/state simulator constants and reference-simulator fallbacks), all listed in
   `awen-spec/hardcoded_device_defaults.yaml`, until the noise model and cost estimates read
-  `hardware_assumptions.yaml`. 108 have no checked value in the assumption set yet, so wiring them needs
+  `hardware_assumptions.yaml`. 138 have no checked value in the assumption set yet, so wiring them needs
   sourced values first, never guesses. `awen-native` and the Python packages are not inventoried yet.
 
 ## In progress (draft, not merged)

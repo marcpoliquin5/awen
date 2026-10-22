@@ -20,7 +20,9 @@
 # inside an expression (listed as field `expr:<method>`; for `clamp` the lower bound). Not seen:
 # integer arguments (count guards such as `.max(1)`), `fold` initial values, arithmetic factors
 # such as `latency * 0.01`, and fields whose names do not match the device-field pattern in the
-# script (for example `optical_propagation_ns: 0.1`). `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
+# script (for example `optical_propagation_ns: 0.1`, `t1_ns`, `photon_count`, `click_probability`, `coupling_q`),
+# lines with a trailing comment (for example `read_latency_ns: 1000, // ...` in state/memory.rs) and
+# tuple values (for example `nominal_voltage_range: (0.0, 10.0)` in hal_v0.rs). `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src]
@@ -87,6 +89,13 @@ blocks:
   - {id: rt_memory_memory_primitive_hybrid_register_write, file: awen-runtime/src/state/memory.rs, context: 'impl MemoryPrimitive for HybridRegister::write'}
   - {id: rt_memory_resonator_store_new, file: awen-runtime/src/state/memory.rs, context: 'impl ResonatorStore::new'}
   - {id: rt_mod_state_evolver_reference_state_evolver_evolve_state, file: awen-runtime/src/state/mod.rs, context: 'impl StateEvolver for ReferenceStateEvolver::evolve_state'}
+  - {id: rt_hal_v0_simulator_backend_measure_direct, file: awen-runtime/src/hal_v0.rs, context: 'impl PhotonicBackend for SimulatorBackend::measure_direct'}
+  - {id: rt_quantum_artifact_new, file: awen-runtime/src/quantum.rs, context: 'impl QuantumArtifact::new'}
+  - {id: rt_quantum_gaussian_simulator_new, file: awen-runtime/src/quantum.rs, context: 'impl GaussianSimulator::new'}
+  - {id: rt_quantum_gaussian_simulator_measurement_latency, file: awen-runtime/src/quantum.rs, context: 'impl QuantumBackend for GaussianSimulator::measurement_latency'}
+  - {id: rt_memory_hybrid_register_new, file: awen-runtime/src/state/memory.rs, context: 'impl HybridRegister::new'}
+  - {id: rt_state_coherence_window_new, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceWindow::new'}
+  - {id: rt_state_reference_coherence_manager_create_window, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceManager for ReferenceCoherenceManager::create_window'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -264,3 +273,38 @@ entries:
   - {block: rt_memory_memory_primitive_hybrid_register_write, field: 'expr:unwrap_or', value: 0.0, unit: 'amplitude', assumption: null, status: definitional, notes: 'empty amplitude list reads as 0 (L262)'}
   - {block: rt_memory_resonator_store_new, field: 'bandwidth_ghz', value: 10.0, unit: 'GHz', assumption: null, status: unsourced, notes: 'resonator store bandwidth (L131); no entry in the assumption set'}
   - {block: rt_mod_state_evolver_reference_state_evolver_evolve_state, field: 'expr:unwrap_or', value: 0.1, unit: 'value', assumption: null, status: unsourced, notes: 'nonlinearity used when a node has none (0.1, L223); no source'}
+  - {block: awenblas_cpu_reference, field: 'launch_latency_ns', value: 2500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'CPU reference kernel launch latency (awenblas/kernels.rs L395); illustrative, no entry in the assumption set'}
+  - {block: pace_like_128_descriptor, field: 'boundary_latency_ns', value: 500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'electronic/photonic boundary latency of the reference descriptor (capability.rs L296); no entry in the assumption set'}
+  - {block: compile_options_default, field: 'cpu_launch_latency_ns', value: 2500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'CPU launch latency default (compiler.rs L61); illustrative'}
+  - {block: compile_options_default, field: 'gpu_launch_latency_ns', value: 5000.0, unit: 'ns', assumption: null, status: unsourced, notes: 'GPU launch latency default (compiler.rs L64); illustrative'}
+  - {block: compile_options_default, field: 'transfer_latency_ns', value: 100.0, unit: 'ns', assumption: null, status: unsourced, notes: 'host transfer latency default (compiler.rs L73); system.host_transfer_energy is energy, not latency'}
+  - {block: decide_placement_with_tuning, field: 'launch_latency_ns', value: 5000.0, unit: 'ns', assumption: null, status: unsourced, notes: 'digital baseline launch latency used for placement (cost.rs L770); illustrative'}
+  - {block: cost_inputs_from_capabilities, field: 'scheduling_latency_ns', value: 250.0, unit: 'ns', assumption: null, status: unsourced, notes: 'scheduling latency in cost inputs (cost.rs L394); no entry in the assumption set'}
+  - {block: digital_baseline_default, field: 'launch_latency_ns', value: 2500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'digital baseline launch latency default (cost.rs L340); illustrative'}
+  - {block: partition_options_default, field: 'transfer_latency_ns', value: 100.0, unit: 'ns', assumption: null, status: unsourced, notes: 'partition transfer latency default (partition.rs L119); illustrative'}
+  - {block: partition_partial_score, field: 'latency_ns', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'zero-initialized latency accumulator (partition.rs L682)'}
+  - {block: partition_evaluate_assignment, field: 'latency_ns', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'zero-initialized latency accumulator (partition.rs L714)'}
+  - {block: partition_build_regions, field: 'latency_ns', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'zero-initialized region latency accumulator (partition.rs L1034)'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'phase_change_latency_ns', value: 100.0, unit: 'ns', assumption: null, status: unsourced, notes: 'phase change latency default (hal_v0.rs L76); phase_shifter.thermo_optic_reconfiguration_time (us) has no value yet and thermo-optic devices are us-ms'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'measurement_readout_latency_ns', value: 1000.0, unit: 'ns', assumption: null, status: unsourced, notes: 'readout latency default (hal_v0.rs L77); no entry in the assumption set'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'coherence_time_us', value: 10000.0, unit: 'us', assumption: null, status: unsourced, notes: 'device coherence time default (hal_v0.rs L78); no entry in the assumption set'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'min_phase_voltage', value: 0.0, unit: 'V', assumption: null, status: unsourced, notes: 'phase-shifter drive voltage lower bound (hal_v0.rs L79); no drive-voltage entry in the assumption set'}
+  - {block: rt_hal_v0_device_capabilities_default, field: 'max_phase_voltage', value: 10.0, unit: 'V', assumption: null, status: unsourced, notes: 'phase-shifter drive voltage upper bound (hal_v0.rs L80); modulator.tfln_half_wave_voltage is a TFLN Vpi keyed by device length, not a drive limit'}
+  - {block: rt_hal_v0_phase_calibration_default, field: 'hysteresis_radians', value: 0.01, unit: 'rad', assumption: null, status: unsourced, notes: 'phase-shifter hysteresis default (hal_v0.rs L171); no entry in the assumption set'}
+  - {block: rt_hal_v0_detector_calibration_default, field: 'dark_count_hz', value: 100.0, unit: 'Hz', assumption: null, status: unsourced, notes: 'detector dark count rate default (hal_v0.rs L187); photodetector.dark_current is in nA and has no value yet'}
+  - {block: rt_hal_v0_detector_calibration_default, field: 'saturation_count_khz', value: 10.0, unit: 'kHz', assumption: null, status: unsourced, notes: 'detector saturation count rate default (hal_v0.rs L188); no entry in the assumption set'}
+  - {block: rt_hal_v0_device_metrics_default, field: 'average_fidelity', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'initial reported fidelity before any measurement (hal_v0.rs L215); not measured'}
+  - {block: rt_hal_v0_fault_detection_thresholds_default, field: 'waveguide_loss_threshold_db', value: 0.5, unit: 'dB', assumption: null, status: unsourced, notes: 'fault threshold for waveguide loss (hal_v0.rs L259); no waveguide-loss entry in the assumption set'}
+  - {block: rt_hal_v0_fault_detection_thresholds_default, field: 'detector_dark_current_threshold_hz', value: 1000.0, unit: 'Hz', assumption: null, status: unsourced, notes: 'fault threshold for detector dark counts (hal_v0.rs L261); photodetector.dark_current is in nA and has no value yet'}
+  - {block: rt_hal_v0_hal_manager_new, field: 'average_fidelity', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (hal_v0.rs L424)'}
+  - {block: rt_hal_v0_simulator_backend_measure_direct, field: 'dark_count', value: 2.0, unit: 'counts', assumption: null, status: unsourced, notes: 'fixed dark count in the simulator''s placeholder direct-detection result (hal_v0.rs L510); not modeled'}
+  - {block: rt_hal_v0_simulator_backend_new, field: 'average_fidelity', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'same initial metrics value as DeviceMetrics::default (hal_v0.rs L557)'}
+  - {block: rt_quantum_artifact_new, field: 'fidelity_estimate', value: 0.99, unit: 'fraction', assumption: null, status: unsourced, notes: 'fixed fidelity estimate in a new quantum artifact''s metrics (quantum.rs L653); not computed'}
+  - {block: rt_quantum_gaussian_simulator_new, field: 'coherence_time_ns', value: 500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'Gaussian simulator coherence time (quantum.rs L728); no entry in the assumption set'}
+  - {block: rt_quantum_gaussian_simulator_measurement_latency, field: 'detection_latency_ns', value: 20.0, unit: 'ns', assumption: null, status: unsourced, notes: 'Gaussian simulator detection latency (quantum.rs L767); no entry in the assumption set'}
+  - {block: rt_quantum_gaussian_simulator_measurement_latency, field: 'electronics_latency_ns', value: 5.0, unit: 'ns', assumption: null, status: unsourced, notes: 'Gaussian simulator electronics latency (quantum.rs L768); no entry in the assumption set'}
+  - {block: rt_quantum_gaussian_simulator_measurement_latency, field: 'transport_latency_ns', value: 0.0, unit: 'ns', assumption: null, status: definitional, notes: 'no transport stage in the simulator, contributes 0 (quantum.rs L769)'}
+  - {block: rt_memory_hybrid_register_new, field: 'fidelity', value: 0.99, unit: 'fraction', assumption: null, status: unsourced, notes: 'hybrid register storage fidelity (state/memory.rs L224); no entry in the assumption set'}
+  - {block: rt_state_coherence_window_new, field: 'fidelity_threshold', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'a bare coherence window has no fidelity threshold (state/mod.rs L47)'}
+  - {block: rt_state_reference_coherence_manager_create_window, field: 'decoherence_timescale_ns', value: 500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'reference coherence manager decoherence timescale (state/mod.rs L347); no entry in the assumption set'}
+  - {block: rt_state_reference_coherence_manager_create_window, field: 'fidelity_threshold', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'reference coherence manager fidelity threshold (state/mod.rs L350); no source'}
