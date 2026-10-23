@@ -148,11 +148,129 @@ def study(n_a: float = 2.3, n_b: float = 1.38) -> dict:
             "evidence": "exact transfer-matrix calculation (lossless, normal incidence)"}
 
 
+# ---------------------------------------------------------------------------
+# Registered full run (configs/h3.yaml, PREREGISTRATION.md section H3).
+#
+# Operationalization used by this entry point (stated here before any full run):
+# * A channel is a maximal contiguous run of frequency samples with T >= passband_T_min.
+# * The crosstalk between two adjacent channels is 10*log10(T_floor / T_peak), where T_floor is the
+#   minimum transmission between them and T_peak the smaller of the two channel peaks (<= 0 dB).
+# * A channel's isolation is the minimum of -crosstalk over its existing neighbours; a channel with no
+#   neighbour has infinite isolation. A channel is usable if its isolation >= isolation_db_min.
+# * Channel density = usable channels / width of the frequency grid (normalized frequency units).
+# * Footprint = layer count and total physical thickness (quarter-wave layers, in units of lambda0).
+# The uniform-grid comparator stack is not built here yet; its result fields are "not run".
+
+CONFIG_SCHEMA = "awen.fractal-prereg-config.v1"
+PILOT_SEEDS = (0, 1, 2)
+_REQUIRED = ("id", "schema", "free_parameters", "cantor_generations", "uniform_grid", "frequency_grid",
+             "usable_channel", "seeds")
+
+
+def load_config(path) -> dict:
+    """Load and validate a registered H3 config (YAML)."""
+    import yaml
+
+    cfg = yaml.safe_load(Path(path).read_text())
+    missing = [k for k in _REQUIRED if k not in cfg]
+    if missing:
+        raise ValueError(f"H3 config missing keys: {missing}")
+    if cfg["id"] != "H3" or cfg["schema"] != CONFIG_SCHEMA:
+        raise ValueError(f"not an H3 {CONFIG_SCHEMA} config: id={cfg['id']!r} schema={cfg['schema']!r}")
+    reused = sorted(set(cfg["seeds"]) & set(PILOT_SEEDS))
+    if reused:
+        raise ValueError(f"confirmatory seeds must not reuse pilot seeds: {reused}")
+    fg = cfg["frequency_grid"]
+    if not (0 < fg["min"] < fg["max"]) or int(fg["points"]) < 2:
+        raise ValueError(f"bad frequency_grid: {fg}")
+    return cfg
+
+
+def perturbed_stack_matrix(word: str, n_a: float, n_b: float, omega: np.ndarray,
+                           factors: np.ndarray) -> np.ndarray:
+    """Stack matrix with layer k's thickness scaled by ``factors[k]`` (1.0 = quarter-wave)."""
+    m = np.broadcast_to(np.eye(2, dtype=complex), (omega.size, 2, 2)).copy()
+    for ch, f in zip(word, factors):
+        m = m @ layer_matrices(n_a if ch == "A" else n_b, omega * f)
+    return m
+
+
+def thickness_factors(n_layers: int, sigma: float, seed: int) -> np.ndarray:
+    """Independent Gaussian thickness errors, 1 + sigma * N(0, 1) per layer (seeded)."""
+    if sigma == 0.0:
+        return np.ones(n_layers)
+    return 1.0 + sigma * np.random.default_rng(seed).standard_normal(n_layers)
+
+
+def footprint(word: str, n_a: float, n_b: float, factors: np.ndarray) -> dict:
+    th = [0.25 * f / (n_a if ch == "A" else n_b) for ch, f in zip(word, factors)]
+    return {"layers": len(word), "total_thickness_lambda0": float(sum(th))}
+
+
+def channels(t: np.ndarray, omega: np.ndarray, t_min: float, isolation_db_min: float) -> dict:
+    """Channel metrics of one spectrum under the operationalization stated above."""
+    above = t >= t_min
+    edges = np.flatnonzero(np.diff(above.astype(np.int8)))
+    starts = list(edges[~above[edges]] + 1)
+    stops = list(edges[above[edges]] + 1)
+    if above[0]:
+        starts.insert(0, 0)
+    if above[-1]:
+        stops.append(above.size)
+    bands = [(int(a), int(b)) for a, b in zip(starts, stops)]
+    peaks = [float(t[a:b].max()) for a, b in bands]
+    xtalk = []
+    for i in range(len(bands) - 1):
+        floor = float(t[bands[i][1]:bands[i + 1][0]].min())
+        xtalk.append(10 * np.log10(max(floor, 1e-300) / min(peaks[i], peaks[i + 1])))
+    iso = []
+    for i in range(len(bands)):
+        nb = [-xtalk[j] for j in (i - 1, i) if 0 <= j < len(xtalk)]
+        iso.append(min(nb) if nb else float("inf"))
+    usable = [i for i, v in enumerate(iso) if v >= isolation_db_min]
+    width = float(omega[-1] - omega[0])
+    worst = max(xtalk) if xtalk else None
+    return {"channels": len(bands), "usable_channels": len(usable),
+            "worst_adjacent_crosstalk_db": None if worst is None else round(float(worst), 6),
+            "channels_per_unit_normalized_frequency": round(len(usable) / width, 6),
+            "centers": [round(float(omega[(a + b - 1) // 2]), 6) for a, b in bands]}
+
+
+def run_config(cfg: dict) -> dict:
+    fp, fg, uc = cfg["free_parameters"], cfg["frequency_grid"], cfg["usable_channel"]
+    n_a, n_b = float(fp["n_high"]), float(fp["n_low"])
+    omega = np.linspace(float(fg["min"]), float(fg["max"]), int(fg["points"]))
+    runs = []
+    for g in cfg["cantor_generations"]:
+        word = cantor_word(int(g))
+        for sigma in fp["thickness_sigma_fraction"]:
+            for seed in cfg["seeds"]:
+                f = thickness_factors(len(word), float(sigma), int(seed))
+                t = transmission(perturbed_stack_matrix(word, n_a, n_b, omega, f))
+                runs.append({"plan": "cantor", "generation": int(g), "thickness_sigma_fraction": float(sigma),
+                             "seed": int(seed), "footprint": footprint(word, n_a, n_b, f),
+                             **channels(t, omega, float(uc["passband_T_min"]), float(uc["isolation_db_min"]))})
+    return {"study": "awen.h3-channel-plans.v1", "config_id": cfg["id"], "n_high": n_a, "n_low": n_b,
+            "frequency_grid": fg, "usable_channel": uc, "runs": runs,
+            "uniform_grid": {"status": "not run",
+                             "reason": "equal-footprint uniform-grid comparator stack not implemented yet"},
+            "verdict": "not evaluated (comparator not run)",
+            "evidence": "exact transfer-matrix calculation (lossless, normal incidence)"}
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Fibonacci and Cantor multilayer study")
-    ap.add_argument("--out", default=str(Path(__file__).parent / "results" / "pilot"))
+    ap = argparse.ArgumentParser(description="Fibonacci and Cantor multilayer study (pilot) or registered H3 run (--config)")
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--config", default=None, help="registered H3 config (configs/h3.yaml)")
     a = ap.parse_args(argv)
-    out = Path(a.out)
+    if a.config:
+        rep = run_config(load_config(a.config))
+        out = Path(a.out or Path(__file__).parent / "results" / "h3")
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "h3_channel_plans.json").write_text(json.dumps(rep, indent=2) + "\n")
+        print(json.dumps({"runs": len(rep["runs"]), "uniform_grid": rep["uniform_grid"]["status"]}))
+        return
+    out = Path(a.out or Path(__file__).parent / "results" / "pilot")
     out.mkdir(parents=True, exist_ok=True)
     rep = study()
     (out / "stacks.json").write_text(json.dumps(rep, indent=2) + "\n")
