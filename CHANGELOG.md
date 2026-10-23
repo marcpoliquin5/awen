@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Models: `kron3` variant in `awen_models.efficiency` (`Kron3Linear`, `Kron3FeedForward`; W = sum of
+  289 three-factor Kronecker products, hidden 2048, 817,792 stored parameters vs 818,048 baseline), the
+  harness named by `research/experiments/multiplexing-fractal/configs/h2.yaml`. `macs_per_token` counts its
+  executed contraction path. Tests in `awen-models/tests/test_efficiency.py`. No results produced; the
+  default `python -m awen_models.efficiency` sweep now includes `kron3`.
 - Docs: Master Prompt v2 state files `STATUS.md` (truth table, gap list, Phase 1 plan),
   `DECISIONS.md` and `EXPERIMENTS.md`; `research/ledger/schema.yaml` with the v2 entry fields.
 - Research: the 15 agent-written, Crossref-checked directions moved from

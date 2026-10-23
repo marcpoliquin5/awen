@@ -156,6 +156,14 @@ seeds 1 and 2, on this machine's CPU. Results: `results/efficiency/results.json`
 and `results/efficiency/pareto.png` (quality vs parameters, latency, weight
 memory and MACs per token).
 
+Since 2026-10-23 the module also builds an eleventh variant, `kron3` (both MLP
+matrices as sums of 289 three-factor Kronecker products, hidden 2048, 817,792
+stored parameters), for the registered H2 experiment
+(`research/experiments/multiplexing-fractal/configs/h2.yaml`). It has no stored
+result in the table below: not run under this harness yet. Its executed
+per-token contraction costs about 45x the baseline's MACs per token at full
+context (counted by `macs_per_token`), so it saves no compute on a CPU.
+
 | variant | stored params | val loss (mean ± sd, nats/char) | latency b1 (ms) | weight memory (KiB) | MACs/token (rel.) |
 |---|---|---|---|---|---|
 | baseline (GELU MLP 512, tied head) | 818,048 | 1.7182 ± 0.0039 | 1.28 | 3,196 | 1.00 |

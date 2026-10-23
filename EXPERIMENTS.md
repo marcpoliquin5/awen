@@ -23,7 +23,7 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 | P-001 | H1 pilot: butterfly vs Clements expressivity vs depth (N = 8, 16) | branch `research/fractal-track` | 1 | pilot | draft #128 @ `0974f38`: `meshes_n8.json`, `meshes_n16.json` |
 | P-002 | H3 pilot: Fibonacci/Cantor stacks (trace map, quarter-wave 6-cycle, scaling scan) | branch `research/fractal-track` | n/a | pilot | draft #128 @ `0974f38`: `stacks.json` |
 | P-003 | H2 pilot: Monarch / 3-factor Kronecker FFNs vs dense at matched params | branch `research/fractal-track` | 2 | pilot (baseline, monarch, kron3, recursive stored; recursive-monarch not run to completion) | draft #128 @ `0974f38`: `h2_pilot_runs.jsonl` |
-| H1-H4 | Multiplexing/fractal hypotheses (v2 section 10) | [`configs/h1.yaml`-`h4.yaml`](research/experiments/multiplexing-fractal/configs/) | H1: 5 init x 5 fab; H2-H4: 3 (all from 101, disjoint from pilot seeds) | registered (full runs not started) | [PREREGISTRATION.md](research/experiments/multiplexing-fractal/PREREGISTRATION.md) |
+| H1-H4 | Multiplexing/fractal hypotheses (v2 section 10) | [`configs/h1.yaml`-`h4.yaml`](research/experiments/multiplexing-fractal/configs/) | H1: 5 init x 5 fab; H2-H4: 3 (all from 101, disjoint from pilot seeds) | registered (full runs not started; H2 `kron3` variant in `awen_models.efficiency` since 2026-10-23) | [PREREGISTRATION.md](research/experiments/multiplexing-fractal/PREREGISTRATION.md) |
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
 an independently parameterized noise model (sim-to-real control); `awen-spec/hardware_assumptions.yaml`

@@ -1,13 +1,14 @@
 # AWEN status
 
-Updated 2026-10-23 06:34 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `14385b9` (#139), after `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+Updated 2026-10-23 12:45 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `87c3ee2` (#142), after `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
 `840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
 `01b927f` (run 39151136678), `243acef` (run 39868419379) and `950a859` (run 39870091723); PR gates passed for #141
 (run 39903934485, head `5179d23`) and #139 (run 39938827763, head `7d2b985`). The main gates on `c59586b` (run 39938808307)
-and `14385b9` (run 39939861563) were running at commit time.
+and `14385b9` (run 39939861563) were cancelled when newer pushes superseded them; the main gate on `87c3ee2`
+(run 39941103445) passed.
 
 ## Current phase
 
@@ -79,7 +80,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs) | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -115,7 +116,8 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 - Multiplexing/fractal pilots (H1 butterfly vs Clements meshes, H2 Kronecker/Monarch
   layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`, exploratory only; split
-  into per-hypothesis drafts #137 (H1), #136 (H3) and #140 (box-counting), H2 still in #128.
+  into per-hypothesis drafts #137 (H1), #136 (H3) and #140 (box-counting), H2 still in #128. The H2 `kron3`
+  layer is on main in `awen_models.efficiency` (2026-10-23, no results).
   H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); full runs not started.
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
@@ -125,8 +127,9 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 1. Run H1 and H3 on CPU from the registered configs (`research/experiments/multiplexing-fractal/configs/`,
    `PREREGISTRATION.md`; H1-H4 registered in #133): add the `--config` entry points first, draft PRs only.
-2. H2 harness: add `kron3` (3-factor Kronecker FFN, today only in the #128 pilot code) to `awen_models.efficiency`,
-   which `configs/h2.yaml` names, with tests; no full runs yet.
+2. H2 entry point: `h2_structured_weights.py --config configs/h2.yaml` on main, using the `kron3` and
+   `tensor-train` variants now in `awen_models.efficiency`, plus a conversions-per-useful-MAC counter for the
+   `conversion_mapping` in `h2.yaml`; tests with a tiny config, draft PR only, no full runs yet.
 3. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1) and on the
    PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ).
 
