@@ -252,18 +252,27 @@ jobs:
           path: sbom/
           retention-days: 30
 
+      # The LLVM/MLIR 20 packages are ~180 MB. When the runner's Ubuntu mirror is slow the
+      # download alone can exceed the job timeout (run 39870187780 was cancelled mid-download),
+      # so the .deb files are cached and apt retries stalled fetches. Same packages as before.
+      - name: Restore MLIR apt package cache
+        uses: actions/cache@v6
+        with:
+          path: ~/mlir-apt-archives
+          key: mlir-apt-v1-${{ runner.os }}-llvm20-${{ hashFiles('.github/mlir-apt-packages.txt') }}
+          restore-keys: |
+            mlir-apt-v1-${{ runner.os }}-llvm20-
+
       - name: Install MLIR compiler dependencies
         run: |
+          mkdir -p "$HOME/mlir-apt-archives/partial"
           sudo apt-get update -qq
-          sudo apt-get install -y \
-            clang-20 \
-            clang-format-20 \
-            cmake \
-            libmlir-20-dev \
-            lld-20 \
-            llvm-20-dev \
-            mlir-20-tools \
-            ninja-build
+          xargs -a .github/mlir-apt-packages.txt sudo apt-get install -y \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=60 \
+            -o Dir::Cache::Archives="$HOME/mlir-apt-archives"
+          sudo rm -rf "$HOME/mlir-apt-archives/partial" "$HOME/mlir-apt-archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$HOME/mlir-apt-archives"
 
       - name: Configure AWEN MLIR compiler
         run: |
