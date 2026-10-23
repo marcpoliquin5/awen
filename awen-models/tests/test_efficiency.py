@@ -18,6 +18,31 @@ def test_tt_forward_matches_core_contraction_and_rank():
                                     .reshape(8 * 32, 16 * 32)) <= 5
 
 
+def test_kron3_forward_matches_dense_kronecker_sum():
+    torch.manual_seed(0)
+    kl = ef.Kron3Linear((2, 2, 4), (2, 4, 4), 3)
+    x = torch.randn(3, 5, 16)
+    w = kl.dense()
+    assert w.shape == (32, 16)
+    assert torch.allclose(kl(x), x @ w.T + kl.bias, atol=1e-5)
+    # rank 1 reduces to a single Kronecker product
+    k1 = ef.Kron3Linear((2, 3, 2), (3, 2, 2), 1, bias=False)
+    assert torch.allclose(k1.dense(), torch.kron(torch.kron(k1.A[0], k1.B[0]), k1.C[0]))
+
+
+def test_kron3_parameter_count_macs_and_shape_checks():
+    ffn = ef.build("kron3", 65).blocks[0].ffn
+    assert isinstance(ffn, ef.Kron3FeedForward)
+    assert ffn.fc.in_features == 128 and ffn.fc.out_features == 2048
+    assert sum(p.numel() for p in ffn.parameters()) == 131_648  # dense FFN: 131,712
+    # executed path: r*(i1*i2*i3*o3 + i1*i2*o3*o2 + i1*o3*o2*o1)
+    assert ffn.fc.macs_per_token() == 289 * (128 * 16 + 16 * 16 * 16 + 4 * 16 * 16 * 8)
+    base = ef.macs_per_token(ef.build("baseline", 65), 128)
+    assert ef.macs_per_token(ef.build("kron3", 65), 128) != base
+    with pytest.raises(ValueError):
+        ef.Kron3Linear((4, 4), (4, 4, 4), 2)
+
+
 def test_moe_routes_each_token_to_one_expert_and_balance_loss():
     torch.manual_seed(0)
     moe = ef.MoEFeedForward(16, 8, 4)
