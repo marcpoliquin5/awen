@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Models: `kron3` variant in `awen_models.efficiency` (`Kron3Linear`, `Kron3FeedForward`; W = sum of
+  289 three-factor Kronecker products, hidden 2048, 817,792 stored parameters vs 818,048 baseline), the
+  harness named by `research/experiments/multiplexing-fractal/configs/h2.yaml`. `macs_per_token` counts its
+  executed contraction path. Tests in `awen-models/tests/test_efficiency.py`. No results produced; the
+  default `python -m awen_models.efficiency` sweep now includes `kron3`.
 - Docs: Master Prompt v2 state files `STATUS.md` (truth table, gap list, Phase 1 plan),
   `DECISIONS.md` and `EXPERIMENTS.md`; `research/ledger/schema.yaml` with the v2 entry fields.
 - Research: the 15 agent-written, Crossref-checked directions moved from
@@ -19,6 +24,25 @@
   and `scripts/tests/test_hardcoded_device_defaults.py` fail CI when a new literal appears anywhere in
   scope, a listed one changes or disappears, or a status disagrees with the assumption set. No default changed.
 - Docs: session report `docs/sessions/2026-10-18-02.md`.
+- Compiler: `awen_compiler::assumptions` parses `awen-spec/hardware_assumptions.yaml` (bundled at build time
+  or from a path), checks the set version and each parameter's unit, and returns low/typical/high ranges with
+  nulls kept as `None`, plus each value's citation key and source type (measured, vendor or estimate). No code reads it yet, so no output changes. New dependency: `yaml-rust2` 0.13
+  (MIT OR Apache-2.0, pure Rust).
+- Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
+  `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
+  identical before and after (`awen-compiler/results/assumptions-wiring/`).
+- Spec: the hard-coded defaults inventory also covers `awen-runtime/src`, and the device-field pattern now also
+  matches latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence-time and `_loss_` fields
+  (66 runtime entries: 41 unsourced, 19 definitional, 6 numeric guards; 12 new compiler latency entries), 211 entries
+  in total. No default changed.
+- Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
+  (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
+  entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
+  (38 in-expression: 12 unsourced device or modeling fallbacks, 21 numeric guards, 5 definitional). No default changed.
+- Research: pre-registration of the multiplexing/fractal hypotheses H1-H4
+  (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, full-run configs in `configs/`), with
+  the H1-H3 pilots of draft #128 (`0974f38`) disclosed as exploratory. Tested by
+  `research/tests/test_fractal_preregistration.py`. No run started.
 - Spec: `hardware_assumptions.yaml` v0 section 9 follow-up: TFLN 3-dB electro-optic bandwidth and
   half-wave voltage keyed by device length (Wang 2018), separate from data rate; device `type` on every
   modulator entry; ADC energies as two separate published designs (`kind: points`), not a range;

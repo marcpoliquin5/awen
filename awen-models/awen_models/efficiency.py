@@ -12,6 +12,8 @@ Variants
 ``untied-head``         separate output head; MLP narrowed to stay in budget.
 ``low-rank``            factorized MLP (W ~ U V), wider hidden.
 ``tensor-train``        MLP matrices as 2-core tensor-train (TT) matrices.
+``kron3``               MLP matrices as sums of R three-factor Kronecker products
+                        (W = sum_r A_r ⊗ B_r ⊗ C_r), hidden 2048, rank 289 (H2 harness).
 ``moe-top1``            4 experts per layer, top-1 routing (Switch style), load-balance loss.
 ``sparse-50``           2x wider MLP, gradual magnitude pruning to 50% of MLP weights.
 ``qat-int4``            baseline trained with int4 fake-quant weights (STE); evaluated at int4.
@@ -101,6 +103,59 @@ class TTFeedForward(nn.Module):
         super().__init__()
         self.fc = TTLinear(in_shape, hid_shape, rank)
         self.proj = TTLinear(hid_shape, in_shape, rank)
+
+    def forward(self, x):
+        return self.proj(F.gelu(self.fc(x)))
+
+
+class Kron3Linear(nn.Module):
+    """Sum of ``rank`` three-factor Kronecker products: W = sum_r A_r ⊗ B_r ⊗ C_r.
+
+    ``d_in = i1*i2*i3`` and ``d_out = o1*o2*o3``; ``A_r`` is ``[o1, i1]``, ``B_r`` is
+    ``[o2, i2]`` and ``C_r`` is ``[o3, i3]``. ``forward`` contracts the factors per
+    token in a fixed order (C, then B, then A), so :meth:`macs_per_token` is the exact
+    multiply count of the executed path, not an estimate. ``dense`` builds the full
+    ``[d_out, d_in]`` matrix for tests.
+    """
+
+    def __init__(self, ins: tuple[int, int, int], outs: tuple[int, int, int], rank: int, bias: bool = True):
+        super().__init__()
+        if len(ins) != 3 or len(outs) != 3 or rank < 1:
+            raise ValueError("Kron3Linear needs three input factors, three output factors and rank >= 1")
+        self.ins, self.outs, self.rank = tuple(ins), tuple(outs), rank
+        self.in_features, self.out_features = math.prod(ins), math.prod(outs)
+        scale = rank ** (1 / 3)
+        self.A = nn.Parameter(torch.randn(rank, outs[0], ins[0]) / math.sqrt(ins[0] * scale))
+        self.B = nn.Parameter(torch.randn(rank, outs[1], ins[1]) / math.sqrt(ins[1] * scale))
+        self.C = nn.Parameter(torch.randn(rank, outs[2], ins[2]) / math.sqrt(ins[2] * scale))
+        self.bias = nn.Parameter(torch.zeros(self.out_features)) if bias else None
+
+    def dense(self) -> torch.Tensor:
+        """Equivalent dense ``[d_out, d_in]`` matrix."""
+        return sum(torch.kron(torch.kron(self.A[r], self.B[r]), self.C[r]) for r in range(self.rank))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        lead = x.shape[:-1]
+        xi = x.reshape(-1, *self.ins)                               # [n, i1, i2, i3]
+        t = torch.einsum("nijk,rck->nrijc", xi, self.C)            # n*r*i1*i2*i3*o3 MACs
+        t = torch.einsum("nrijc,rbj->nricb", t, self.B)            # n*r*i1*i2*o3*o2 MACs
+        y = torch.einsum("nricb,rai->nabc", t, self.A)             # n*r*i1*o3*o2*o1 MACs
+        y = y.reshape(*lead, self.out_features)
+        return y + self.bias if self.bias is not None else y
+
+    def macs_per_token(self) -> int:
+        """Multiplies per token on the executed contraction path (C, then B, then A)."""
+        (i1, i2, i3), (o1, o2, o3) = self.ins, self.outs
+        return self.rank * (i1 * i2 * i3 * o3 + i1 * i2 * o3 * o2 + i1 * o3 * o2 * o1)
+
+
+class Kron3FeedForward(nn.Module):
+    """GELU MLP whose two matrices are :class:`Kron3Linear` layers."""
+
+    def __init__(self, in_factors: tuple[int, int, int], hid_factors: tuple[int, int, int], rank: int):
+        super().__init__()
+        self.fc = Kron3Linear(in_factors, hid_factors, rank)
+        self.proj = Kron3Linear(hid_factors, in_factors, rank)
 
     def forward(self, x):
         return self.proj(F.gelu(self.fc(x)))
@@ -201,6 +256,10 @@ def build(name: str, vocab: int) -> AwenMini:
         return _mini(vocab, ffn="lowrank", ffn_hidden=1024, ffn_rank=56)
     if name == "tensor-train":
         return _replace_ffn(_mini(vocab), lambda: TTFeedForward(d, (8, 16), (32, 32), 85))
+    if name == "kron3":
+        # d=128=(4,4,8) -> hidden 2048=(8,16,16), rank 289: 131,648 FFN parameters vs 131,712 dense
+        # (layer shapes from the H2 pilot in research/experiments/multiplexing-fractal, registered as h2.yaml).
+        return _replace_ffn(_mini(vocab), lambda: Kron3FeedForward((4, 4, 8), (8, 16, 16), 289))
     if name == "moe-top1":
         return _replace_ffn(_mini(vocab), lambda: MoEFeedForward(d, 128, 4))
     if name == "sparse-50":
@@ -210,7 +269,7 @@ def build(name: str, vocab: int) -> AwenMini:
     raise KeyError(name)
 
 
-VARIANTS = ["baseline", "untied-head", "low-rank", "tensor-train", "moe-top1", "sparse-50",
+VARIANTS = ["baseline", "untied-head", "low-rank", "tensor-train", "kron3", "moe-top1", "sparse-50",
             "qat-int4", "ptq-int4", "distill", "recursive"]
 
 
@@ -253,7 +312,7 @@ def macs_per_token(model: AwenMini, context: int) -> float:
         total += b.attn.qkv.in_features * b.attn.qkv.out_features + d * d
         total += 2 * context * d  # QK^T and AV for one query
         f = b.ffn
-        if isinstance(f, TTFeedForward):
+        if isinstance(f, (TTFeedForward, Kron3FeedForward)):
             total += f.fc.macs_per_token() + f.proj.macs_per_token()
         elif isinstance(f, MoEFeedForward):
             total += 2 * d * f.hidden + d * len(f.experts)  # one expert + router

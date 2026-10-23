@@ -1,9 +1,14 @@
 # AWEN status
 
-Updated 2026-10-18 12:48 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `132d4d9` (#130), after `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and
-`0235668` (#125). Truth-table counts were measured at `0235668`. Gates passed on `0235668` (run 39140149777),
-`840f5c5` (run 39141006838) and `132d4d9` (run 39143781587).
+Updated 2026-10-23 12:45 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `87c3ee2` (#142), after `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+`c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
+Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
+`840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
+`01b927f` (run 39151136678), `243acef` (run 39868419379) and `950a859` (run 39870091723); PR gates passed for #141
+(run 39903934485, head `5179d23`) and #139 (run 39938827763, head `7d2b985`). The main gates on `c59586b` (run 39938808307)
+and `14385b9` (run 39939861563) were cancelled when newer pushes superseded them; the main gate on `87c3ee2`
+(run 39941103445) passed.
 
 ## Current phase
 
@@ -11,8 +16,9 @@ This commit is based on main `132d4d9` (#130), after `75d58f7` (#129), `ee2e8cf`
 engineering already exists from the earlier directive (see the truth table), but
 several earlier agent decisions now need Marc's ratification
 ([DECISIONS.md](DECISIONS.md), D-007 to D-012), so Phase 0 is not done until they
-are settled. `awen-spec/hardware_assumptions.yaml` v0 is merged (#126, #130); no code reads it yet, and the
-device literals still hard-coded in `awen-compiler` are listed in `awen-spec/hardcoded_device_defaults.yaml`.
+are settled. `awen-spec/hardware_assumptions.yaml` v0 is merged (#126, #130). Since #134/#135 `awen-compiler`
+loads it and can apply it opt-in to the noise model and cost estimates (defaults unchanged); the device literals still
+hard-coded in `awen-compiler` and `awen-runtime` are listed in `awen-spec/hardcoded_device_defaults.yaml`.
 
 ## Evidence levels
 
@@ -48,8 +54,8 @@ command shown.
 | Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests, measured @ 0235668: `cd awen-lab && pytest -q` |
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
-| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`) |
-| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | all non-test `awen-compiler/src` code: 95 literals in 21 functions (76 unsourced, 15 definitional, 3 differ from the assumption set, 1 matches); `awen-runtime` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
+| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`); loader `awen_compiler::assumptions` merged #134 (`243acef`); opt-in `with_assumptions` for the noise contract and cost inputs, with before/after outputs in `awen-compiler/results/assumptions-wiring/`, merged #135 (`950a859`) |
+| Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | non-test `awen-compiler/src` and `awen-runtime/src` code, two literal forms: single-line `field: <number>,` device literals whose field name matches the device-field pattern (energy, power, noise, loss, crosstalk, precision, calibration, temperature, and since #139 also latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence time; 107 compiler + 40 runtime) and float fallbacks, floors and caps inside expressions (`map_or`/`unwrap_or`/`max`/`min`/`clamp`, 38 compiler + 26 runtime); 211 entries (compiler 145 in 36 functions, runtime 66 in 28 functions; 138 unsourced, 27 numeric guards, 42 definitional, 3 differ from the assumption set, 1 matches). Not covered: `.clamp` upper bounds (only the lower bound is recorded), integer guards, `fold` initial values, arithmetic factors (e.g. `* 0.01`), fields outside the device-field name pattern (e.g. `coupling_q`, `read_efficiency`, `t1_ns`, `photon_count`, `click_probability`), lines with a trailing comment (e.g. `read_latency_ns: 1000, // ...` in `awen-runtime/src/state/memory.rs`), tuple values (e.g. `nominal_voltage_range: (0.0, 10.0)` in `hal_v0.rs`), test modules (e.g. `photons_per_mac: Some(10.0)` in an `executable.rs` test); `awen-native`, `awen-mlir` and the Python packages not inventoried yet; `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
 
@@ -62,7 +68,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 | Gap | v2 section | Current level | Needed |
 | --- | --- | --- | --- |
-| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130), not read by any code; `awen-compiler` literals (95) inventoried and checked in CI, `awen-runtime` and Python not yet | loader in `awen-compiler`, then replace inventoried literals one block at a time |
+| Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130); loaded by `awen-compiler` and applied opt-in to the noise contract and cost inputs (#134, #135), defaults unchanged; `awen-compiler` and `awen-runtime` device literals and in-expression fallbacks (211 entries, forms listed in the truth table) inventoried and checked in CI, `awen-native` and Python not yet | replace inventoried literals one block at a time, each with a sourced value; runtime and Python readers |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
@@ -71,10 +77,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | ONNX Runtime execution provider | 8 | ONNX import report (L0) | EP |
 | Adapters to Meep, SAX, gdsfactory, Perceval, MrMustard | 8, 11 | own reference solvers (L0) | adapters + oracle comparisons |
 | Reproduce ≥3 published photonic results | 11 | analytic checks only | 3 reproductions |
-| Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch | pre-registration, runs, report |
+| Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` (#127), `2026-10-18-02.md` | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -100,26 +106,31 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release tag signing (v2 section 15): the v0.1.0 tag is unsigned. It needs a signing key created
   and held by Marc only; the agent must never create or hold it. Blocked on Marc.
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
-- Device energies and noise defaults are still hard-coded in `awen-compiler` (95 literals, listed in
-  `awen-spec/hardcoded_device_defaults.yaml`) until the noise model and cost estimates read
-  `hardware_assumptions.yaml`. 76 have no checked value in the assumption set yet, so wiring them needs
-  sourced values first, never guesses. `awen-runtime` (for example `hal_v0.rs`, `executable.rs`) and the
-  Python packages also hard-code device values and are not inventoried yet.
+- Device energies and noise defaults are still hard-coded in `awen-compiler` (145 entries) and
+  `awen-runtime` (66 entries, mostly `hal_v0.rs` defaults, quantum/state simulator constants and reference-simulator fallbacks), all listed in
+  `awen-spec/hardcoded_device_defaults.yaml`. The compiler can read `hardware_assumptions.yaml` opt-in (#135), but the
+  defaults themselves are unchanged. 138 have no checked value in the assumption set yet, so wiring them needs
+  sourced values first, never guesses. `awen-native` and the Python packages are not inventoried yet.
 
 ## In progress (draft, not merged)
 
 - Multiplexing/fractal pilots (H1 butterfly vs Clements meshes, H2 Kronecker/Monarch
-  layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`; pre-registration
-  under `research/experiments/multiplexing-fractal/` comes before any claim.
+  layers, H3 Cantor/Fibonacci stacks): draft #128, branch `research/fractal-track`, exploratory only; split
+  into per-hypothesis drafts #137 (H1), #136 (H3) and #140 (box-counting), H2 still in #128. The H2 `kron3`
+  layer is on main in `awen_models.efficiency` (2026-10-23, no results).
+  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); full runs not started.
+- PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. Wiring `hardware_assumptions.yaml`, slice 2 (slice 1, the CI-checked inventory, is done): load the file
-   in `awen-compiler`, record the assumption-set version in cost estimates, and make the 3 literals that
-   differ from it (reference descriptor ADC energy 4.0 pJ, DAC 10 bits, effective bits 8) either read the
-   file or carry an explicit "illustrative" label, with compatibility notes.
-2. Pre-register H1-H4 with configs, then run H1 (accuracy per dB, ≥3 tasks, ≥5 fabrication-noise
-   seeds) and H3 on CPU; draft PRs only.
-3. Get Marc's answers on D-007 to D-012, starting with the AWEN-Mini base model (Phase 1, session P1-1).
+1. Run H1 and H3 on CPU from the registered configs (`research/experiments/multiplexing-fractal/configs/`,
+   `PREREGISTRATION.md`; H1-H4 registered in #133): add the `--config` entry points first, draft PRs only.
+2. H2 entry point: `h2_structured_weights.py --config configs/h2.yaml` on main, using the `kron3` and
+   `tensor-train` variants now in `awen_models.efficiency`, plus a conversions-per-useful-MAC counter for the
+   `conversion_mapping` in `h2.yaml`; tests with a tiny config, draft PR only, no full runs yet.
+3. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1) and on the
+   PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ).
+
+Wiring slices 2a (#134) and 2b (#135) are merged; replacing further literals waits on sourced values.

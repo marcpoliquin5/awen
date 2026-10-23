@@ -37,15 +37,18 @@ def test_inventory_matches_code_and_assumptions():
 
 def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
-    assert INVENTORY["scope"] == ["awen-compiler/src"]
-    assert any(item.startswith("awen-runtime/src") for item in INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 95
+    assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src"]
+    assert not any(item.startswith("awen-runtime") for item in INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 211
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 76,
-        "definitional": 15,
+        "unsourced": 138,
+        "numeric_guard": 27,
+        "definitional": 42,
         "differs_from_assumption": 3,
         "matches_assumption": 1,
     }
+    assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38 + 26
+    assert sum(b["file"].startswith("awen-runtime/") for b in INVENTORY["blocks"]) == 28
 
 
 def test_new_hard_coded_default_is_caught(tmp_path):
@@ -121,3 +124,79 @@ def test_literal_forms(line, expected):
 
 def test_formulas_are_not_literals():
     assert hd.LITERAL.match("            signal_to_noise_ratio_db: 6.02 * f64::from(bits) + 1.76,") is None
+
+
+def test_in_expression_fallbacks_are_found():
+    text = (
+        "impl CostModelInputs {\n    pub fn from_capabilities() -> Self {\n"
+        "        let u = profile\n            .map_or(0.05, calibration_error_fraction)\n            .max(0.001);\n"
+        "        let t = p.map_or(20.0, |p| p.t).min(1.0e2).clamp(-1.0, 1.0);\n"
+        "        let n = count.max(1);\n        let s = xs.fold(0.0, f64::max);\n"
+        "        // .max(0.5) in a comment\n    }\n}\n"
+    )
+    assert hd.literals(text) == {
+        ("impl CostModelInputs::from_capabilities", "expr:map_or"): 0.05,
+        ("impl CostModelInputs::from_capabilities", "expr:max"): 0.001,
+        ("impl CostModelInputs::from_capabilities", "expr:map_or#2"): 20.0,
+        ("impl CostModelInputs::from_capabilities", "expr:min"): 100.0,
+        ("impl CostModelInputs::from_capabilities", "expr:clamp"): -1.0,
+    }
+
+
+def test_known_fallbacks_are_inventoried():
+    entries = {(e["block"], e["field"]): e for e in INVENTORY["entries"]}
+    assert entries[("cost_inputs_from_capabilities", "expr:map_or")]["value"] == 0.05
+    assert entries[("cost_inputs_from_capabilities", "expr:max")]["value"] == 0.001
+    assert entries[("cost_inputs_from_snapshot", "expr:map_or")]["value"] == 0.05
+    assert entries[("offline_snapshot_health", "expr:map_or")]["value"] == 20.0
+    assert all(entries[k]["status"] == "unsourced" for k in [
+        ("cost_inputs_from_capabilities", "expr:map_or"), ("offline_snapshot_health", "expr:map_or")])
+
+
+def test_changed_fallback_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/capability.rs", ".map_or(20.0, |profile| profile.environment.temperature_c)",
+         ".map_or(25.0, |profile| profile.environment.temperature_c)")
+    assert any("expr:map_or" in p and "code has 25.0" in p for p in hd.check(root))
+
+
+def test_new_fallback_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-compiler/src/cost.rs", "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01);",
+         "let active_fraction = (1.0 - model.disabled_component_fraction).max(0.01).min(0.95);")
+    assert any("new hard-coded device default" in p and "expr:min" in p for p in hd.check(root))
+
+
+def test_runtime_literal_change_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-runtime/src/hal_v0.rs", "insertion_loss_db: 1.5,", "insertion_loss_db: 1.25,")
+    assert any("hal_v0.rs" in p and "insertion_loss_db" in p for p in hd.check(root))
+
+
+def test_widened_pattern_names():
+    for name in ("dark_count_hz", "saturation_count_khz", "hysteresis_radians", "waveguide_loss_threshold_db",
+                 "detector_dark_current_threshold_hz", "coherence_time_us", "phase_change_latency_ns",
+                 "measurement_readout_latency_ns", "max_phase_voltage", "average_fidelity", "launch_latency_ns"):
+        assert hd.is_device_field(name), name
+    for name in ("latency_calibration_factor", "label", "photon_count", "t1_ns"):
+        assert not hd.is_device_field(name), name
+
+
+def test_hal_v0_device_values_are_inventoried():
+    entries = {(e["block"], e["field"]): e["value"] for e in INVENTORY["entries"]}
+    assert entries[("rt_hal_v0_detector_calibration_default", "dark_count_hz")] == 100.0
+    assert entries[("rt_hal_v0_detector_calibration_default", "saturation_count_khz")] == 10.0
+    assert entries[("rt_hal_v0_phase_calibration_default", "hysteresis_radians")] == 0.01
+    assert entries[("rt_hal_v0_fault_detection_thresholds_default", "waveguide_loss_threshold_db")] == 0.5
+    assert entries[("rt_hal_v0_fault_detection_thresholds_default", "detector_dark_current_threshold_hz")] == 1000.0
+    assert entries[("rt_hal_v0_device_capabilities_default", "coherence_time_us")] == 10000
+    assert entries[("rt_hal_v0_device_capabilities_default", "phase_change_latency_ns")] == 100
+    assert entries[("rt_hal_v0_device_capabilities_default", "measurement_readout_latency_ns")] == 1000
+    assert entries[("rt_hal_v0_device_capabilities_default", "max_phase_voltage")] == 10.0
+    assert entries[("rt_hal_v0_device_metrics_default", "average_fidelity")] == 0.95
+
+
+def test_widened_runtime_literal_change_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-runtime/src/hal_v0.rs", "dark_count_hz: 100.0,", "dark_count_hz: 50.0,")
+    assert any("dark_count_hz" in p and "code has 50.0" in p for p in hd.check(root))

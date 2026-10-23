@@ -1,0 +1,8 @@
+clang-20
+clang-format-20
+cmake
+libmlir-20-dev
+lld-20
+llvm-20-dev
+mlir-20-tools
+ninja-build
