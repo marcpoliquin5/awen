@@ -26,6 +26,10 @@
 - Compiler: opt-in `PhotonicNoiseContract::with_assumptions` / `CostModelInputs::with_assumptions` apply
   `hardware_assumptions.yaml` at a corner and report which fields came from it. Defaults unchanged; v0 outputs
   identical before and after (`awen-compiler/results/assumptions-wiring/`).
+- Spec: the hard-coded defaults inventory also covers `awen-runtime/src`, and the device-field pattern now also
+  matches latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence-time and `_loss_` fields
+  (66 runtime entries: 41 unsourced, 19 definitional, 6 numeric guards; 12 new compiler latency entries), 211 entries
+  in total. No default changed.
 - Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
   (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
   entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
