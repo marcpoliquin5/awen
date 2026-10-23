@@ -27,6 +27,7 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
 an independently parameterized noise model (sim-to-real control); `awen-spec/hardware_assumptions.yaml`
-exists (merged in #126 and #130) but no experiment reads it yet; the device literals the compiler
+exists (merged in #126 and #130) and `awen-compiler` can apply it opt-in (#134, #135; before/after outputs in
+`awen-compiler/results/assumptions-wiring/`), but no experiment above was run with it; the device literals the compiler
 still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml` (211 entries: 145 in `awen-compiler`, 66 in `awen-runtime`, checked in CI;
 `awen-native` and the Python packages not yet).
