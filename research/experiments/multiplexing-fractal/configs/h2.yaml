@@ -1,0 +1,23 @@
+# H2 full-run config (registered before any full run; see ../PREREGISTRATION.md).
+id: H2
+schema: awen.fractal-prereg-config.v1
+hypothesis: "Kronecker-3 and tensor-train FFN layers give more useful MACs per conversion than dense at matched parameters, without losing accuracy"
+status: registered
+pilot: {pr: 128, commit: 0974f38, files: [h2_pilot_runs.jsonl], role: exploratory}
+task: {name: char_lm_tiny_shakespeare, harness: awen_models.efficiency, split: harness default}
+variants: [baseline, kron3, tensor-train]  # monarch is H1 (v2 section 10)
+parameter_match_tolerance: 0.03
+steps: 1500
+seeds: [101, 102, 103]  # disjoint from pilot seeds 1, 2
+threads: 4
+latency: {batch_size: 1, concurrent_runs: 1, repeats: 50}
+metrics: [val_loss_nats_per_char, conversions_per_useful_mac, forward_latency_ms_b1]
+conversion_mapping:
+  dense: "one DAC per modulated input element and one ADC per detected output, per matrix-vector product"
+  kron3: "A on spatial modes (full mixing), B on polarization (2x2), C on wavelength (diagonal weight + detector sum)"
+  tensor-train: "core 1 on spatial modes (full mixing), core 2 on wavelength (diagonal weight + detector sum)"
+falsification:
+  accuracy: "Killed if val_loss(candidate) - val_loss(baseline) has a 95% paired-t interval over seeds entirely > 0"
+  conversions: "Killed if conversions_per_useful_mac(candidate) >= conversions_per_useful_mac(baseline)"
+  latency: "Killed (v2 section 7) if it wins on parameters but forward latency is > 1.2x baseline"
+command: "python research/experiments/multiplexing-fractal/h2_structured_weights.py --config research/experiments/multiplexing-fractal/configs/h2.yaml"

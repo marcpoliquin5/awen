@@ -1,7 +1,7 @@
 # AWEN experiments
 
 Index of every experiment run so far. Status: **done** (result committed), **pilot**
-(run before pre-registration; not evidence for a hypothesis), **planned**. Levels and
+(run before pre-registration; not evidence for a hypothesis), **registered** (configs committed, full runs not started), **planned**. Levels and
 source labels follow Master Prompt v2 section 2. All runs so far were on the build box:
 Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 
@@ -23,10 +23,11 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 | P-001 | H1 pilot: butterfly vs Clements expressivity vs depth (N = 8, 16) | branch `research/fractal-track` | 1 | pilot | draft #128 @ `0974f38`: `meshes_n8.json`, `meshes_n16.json` |
 | P-002 | H3 pilot: Fibonacci/Cantor stacks (trace map, quarter-wave 6-cycle, scaling scan) | branch `research/fractal-track` | n/a | pilot | draft #128 @ `0974f38`: `stacks.json` |
 | P-003 | H2 pilot: Monarch / 3-factor Kronecker FFNs vs dense at matched params | branch `research/fractal-track` | 2 | pilot (baseline, monarch, kron3, recursive stored; recursive-monarch not run to completion) | draft #128 @ `0974f38`: `h2_pilot_runs.jsonl` |
-| H1-H4 | Multiplexing/fractal hypotheses (v2 section 10) | `research/experiments/multiplexing-fractal/` | ≥3 | planned | pre-registration first |
+| H1-H4 | Multiplexing/fractal hypotheses (v2 section 10) | [`configs/h1.yaml`-`h4.yaml`](research/experiments/multiplexing-fractal/configs/) | H1: 5 init x 5 fab; H2, H4: 3; H3: 5 (all from 101, disjoint from pilot seeds) | registered (H2 `kron3` variant in `awen_models.efficiency` since 2026-10-23; H3 registered run done 2026-10-24 in draft #144 under rule `h3-cells-v1`: **not kept**, 7 of 9 cells better on both, 2 mixed, see `results/h3/RESULT.md` there; H1, H2, H4 full runs not started) | [PREREGISTRATION.md](research/experiments/multiplexing-fractal/PREREGISTRATION.md) |
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
 an independently parameterized noise model (sim-to-real control); `awen-spec/hardware_assumptions.yaml`
-exists (merged in #126 and #130) but no experiment reads it yet; the device literals the compiler
-still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml` (133 entries in `awen-compiler`: 95 field literals and 38 in-expression fallbacks, checked in CI;
-`awen-runtime` and the Python packages not yet).
+exists (merged in #126 and #130) and `awen-compiler` can apply it opt-in (#134, #135; before/after outputs in
+`awen-compiler/results/assumptions-wiring/`), but no experiment above was run with it; the device literals the compiler
+still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml` (211 entries: 145 in `awen-compiler`, 66 in `awen-runtime`, checked in CI;
+`awen-native` and the Python packages not yet).

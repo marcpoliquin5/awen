@@ -5,7 +5,7 @@ Master Prompt v2 section 9: every simulator and cost estimate should read device
 and noise from awen-spec/hardware_assumptions.yaml, and no other file may hard-code them.
 Until the compiler reads that file, this script keeps an exact list of the literals that are
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
-non-test Rust file in the inventory's `scope` (awen-compiler/src today):
+non-test Rust file in the inventory's `scope` (awen-compiler/src and awen-runtime/src):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
@@ -31,12 +31,13 @@ ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = ROOT / "awen-spec" / "hardcoded_device_defaults.yaml"
 ASSUMPTIONS = ROOT / "awen-spec" / "hardware_assumptions.yaml"
 
-# Field names that carry a device energy, power, noise, loss, calibration or precision value
-# (dimensionless `*_factor` multipliers are skipped).
+# Field names that carry a device energy, power, noise, loss, latency, voltage, fidelity, calibration or
+# precision value (dimensionless `*_factor` multipliers are skipped).
 DEVICE_FIELD = re.compile(
     r"(energy|power|noise|rin_|crosstalk|insertion_loss|quantum_efficiency|phase_sigma|phase_error"
     r"|photons|drift|_bits$|bandwidth_hz|bandwidth_ghz|reconfiguration_latency|_uj$"
-    r"|^gain$|^offset$|uncertainty|temperature)"
+    r"|^gain$|^offset$|uncertainty|temperature"
+    r"|dark_count|dark_current|saturation|hysteresis|_loss_|coherence_time|latency|voltage|fidelity)"
 )
 # `name: 1.0,` / `name: Some(-150.0),` / `name: 2_000.0,` on one line (formulas are skipped).
 LITERAL = re.compile(r"^\s*([a-z_][a-z0-9_]*):\s*(?:Some\()?(-?[0-9][0-9_]*(?:\.[0-9_]*)?(?:e-?[0-9]+)?)\)?,\s*$")
