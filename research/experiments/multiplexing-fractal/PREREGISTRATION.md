@@ -103,6 +103,17 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
 - **Falsified if** the Cantor plan's crosstalk and channel density are worse than the uniform grid at equal
   footprint (as in v2: worse on both kills it). Better on one and worse on the other is reported as
   **not kept**.
+- **Verdict rule** (`verdict_rule` id `h3-cells-v1` in `configs/h3.yaml`, registered 2026-10-24 before any
+  registered run). A comparison cell is one (generation, sigma, spacing) combination; it compares the seed means
+  of the Cantor plan and the equal-footprint uniform-grid comb and is "cantor better on both", "cantor worse on
+  both", "mixed" or "not comparable" (a plan has fewer than two channels in some seed). Spacings whose comb does
+  not fit at equal footprint form no cell and are listed. With C = comparable cells:
+  - **kept** if every cell is comparable and every cell is "cantor better on both";
+  - otherwise **killed** if "cantor worse on both" holds in more than half of C;
+  - otherwise **not kept**;
+  - **not evaluable** (no verdict) if C is empty.
+  The count of each cell outcome is reported whatever the verdict. Cells use seed means (5 seeds) of
+  integer-valued channel counts and dB crosstalk, so no per-cell interval is used in the verdict.
 
 ## H4: multi-scale (Fourier / wavelet) layers
 

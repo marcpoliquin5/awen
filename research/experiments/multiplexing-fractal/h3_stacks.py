@@ -171,7 +171,10 @@ def study(n_a: float = 2.3, n_b: float = 1.38) -> dict:
 # * Comparison cell = (generation, sigma, spacing), seed means of each plan. Lower worst adjacent crosstalk
 #   and higher usable-channel density are better. A cell is "cantor better on both", "cantor worse on both",
 #   "mixed", or "not comparable" (a plan has fewer than two channels in some seed, so no crosstalk value).
-# * How cells combine into keep/kill is not registered yet, so the verdict stays "not evaluated".
+# * Verdict (rule h3-cells-v1, registered in configs/h3.yaml and PREREGISTRATION.md before any registered run):
+#   no comparable cell -> "not evaluable"; every cell comparable and better on both -> "kept"; worse on both in a
+#   strict majority of comparable cells -> "killed"; anything else -> "not kept". A config without that rule id
+#   gets "not evaluated".
 
 CONFIG_SCHEMA = "awen.fractal-prereg-config.v1"
 PILOT_SEEDS = (0, 1, 2)
@@ -322,6 +325,26 @@ def compare_cell(cantor_runs: list, uniform_runs: list) -> dict:
     return {**out, "outcome": outcome}
 
 
+VERDICT_RULE = "h3-cells-v1"
+OUTCOMES = ("cantor better on both", "cantor worse on both", "mixed", "not comparable")
+
+
+def verdict(cells: list) -> dict:
+    """Combine comparison cells into one H3 verdict under rule h3-cells-v1 (see the operationalization above)."""
+    counts = {o: sum(c["outcome"] == o for c in cells) for o in OUTCOMES}
+    comparable = len(cells) - counts["not comparable"]
+    if comparable == 0:
+        v = "not evaluable"
+    elif counts["not comparable"] == 0 and counts["cantor better on both"] == len(cells):
+        v = "kept"
+    elif 2 * counts["cantor worse on both"] > comparable:
+        v = "killed"
+    else:
+        v = "not kept"
+    return {"rule": VERDICT_RULE, "verdict": v, "cells": len(cells), "comparable_cells": comparable,
+            "outcome_counts": counts}
+
+
 def run_config(cfg: dict) -> dict:
     fp, fg, uc = cfg["free_parameters"], cfg["frequency_grid"], cfg["usable_channel"]
     n_a, n_b = float(fp["n_high"]), float(fp["n_low"])
@@ -364,8 +387,15 @@ def run_config(cfg: dict) -> dict:
             "frequency_grid": fg, "usable_channel": uc, "runs": runs,
             "uniform_grid": {"status": "run", "runs": uniform, "infeasible": infeasible},
             "comparison_cells": cells,
-            "verdict": "not evaluated (rule combining comparison cells into keep/kill not registered yet)",
+            **_verdict_fields(cfg, cells),
             "evidence": "exact transfer-matrix calculation (lossless, normal incidence)"}
+
+
+def _verdict_fields(cfg: dict, cells: list) -> dict:
+    if (cfg.get("verdict_rule") or {}).get("id") != VERDICT_RULE:
+        return {"verdict": f"not evaluated (config does not register verdict rule {VERDICT_RULE})"}
+    v = verdict(cells)
+    return {"verdict": v["verdict"], "verdict_detail": v}
 
 
 def main(argv=None):

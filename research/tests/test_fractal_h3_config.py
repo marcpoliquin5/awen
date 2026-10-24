@@ -79,7 +79,7 @@ def test_tiny_run_writes_report(tmp_path):
     assert rep["uniform_grid"]["status"] == "run"
     # generations 1 and 2 are too thin for any registered spacing's cavity
     assert len(rep["uniform_grid"]["infeasible"]) == 2 * 3 and rep["comparison_cells"] == []
-    assert rep["verdict"].startswith("not evaluated")
+    assert rep["verdict"] == "not evaluable" and rep["verdict_detail"]["comparable_cells"] == 0
     assert {r["footprint"]["layers"] for r in rep["runs"]} == {3, 9}
     assert all(r["usable_channels"] <= r["channels"] for r in rep["runs"])
 
@@ -145,3 +145,37 @@ def test_tiny_feasible_run_compares_cells(tmp_path):
     assert {r["footprint"]["layers"] for r in rep["uniform_grid"]["runs"]} == {27}
     assert all(c["outcome"] in {"cantor better on both", "cantor worse on both", "mixed", "not comparable"}
                for c in rep["comparison_cells"])
+
+
+def test_verdict_rule_is_registered_in_config_and_preregistration():
+    cfg = yaml.safe_load(H3_YAML.read_text())
+    assert cfg["verdict_rule"]["id"] == stacks.VERDICT_RULE
+    assert {"kept", "killed", "not_kept", "not_evaluable"} <= set(cfg["verdict_rule"])
+    assert stacks.VERDICT_RULE in (FRACTAL / "PREREGISTRATION.md").read_text()
+
+
+def test_verdict_rule_outcomes():
+    def cells(*outcomes):
+        return [{"outcome": o} for o in outcomes]
+    b, w, m, n = stacks.OUTCOMES
+    assert stacks.verdict(cells(b, b, b))["verdict"] == "kept"
+    assert stacks.verdict(cells(b, b, n))["verdict"] == "not kept"  # kept needs every cell comparable
+    assert stacks.verdict(cells(w, w, b))["verdict"] == "killed"
+    assert stacks.verdict(cells(w, m))["verdict"] == "not kept"  # exactly half is not a strict majority
+    assert stacks.verdict(cells(w, w, n))["verdict"] == "killed"  # majority of the comparable cells
+    assert stacks.verdict(cells(m, m, b))["verdict"] == "not kept"
+    assert stacks.verdict(cells(n, n))["verdict"] == "not evaluable"
+    assert stacks.verdict([])["verdict"] == "not evaluable"
+    d = stacks.verdict(cells(w, w, b, n))
+    assert d["comparable_cells"] == 3 and d["outcome_counts"] == {b: 1, w: 2, m: 0, n: 1}
+
+
+def test_config_without_rule_is_not_evaluated(tmp_path):
+    out = tmp_path / "out"
+    cfg = yaml.safe_load(_tiny(tmp_path).read_text())
+    del cfg["verdict_rule"]
+    p = tmp_path / "norule.yaml"
+    p.write_text(yaml.safe_dump(cfg))
+    stacks.main(["--config", str(p), "--out", str(out)])
+    rep = json.loads((out / "h3_channel_plans.json").read_text())
+    assert rep["verdict"].startswith("not evaluated") and "verdict_detail" not in rep

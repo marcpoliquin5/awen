@@ -17,4 +17,14 @@ usable_channel: {passband_T_min: 0.5, isolation_db_min: 15.0}
 metrics: [usable_channels, worst_adjacent_crosstalk_db, channels_per_unit_normalized_frequency]
 seeds: [101, 102, 103, 104, 105]
 falsification: "Killed if the Cantor plan is worse than the uniform grid on both crosstalk and channel density at equal footprint; better on one only is reported as not kept"
+verdict_rule:
+  id: h3-cells-v1
+  registered: "2026-10-24, before any registered run (no results/h3/ output exists at this commit)"
+  cell: "(generation, thickness_sigma_fraction, spacing); each cell compares the seed means of the Cantor plan and the equal-footprint uniform-grid comb"
+  infeasible: "a spacing whose comb does not fit at equal footprint forms no cell; it is listed, not counted"
+  not_evaluable: "no comparable cell (every cell infeasible or not comparable): no verdict"
+  kept: "every cell is comparable and every cell is 'cantor better on both'"
+  killed: "'cantor worse on both' in a strict majority of comparable cells"
+  not_kept: "any other outcome (mixed cells, a minority of worse-on-both cells, or some cells not comparable)"
+  order: "kept, then killed, then not kept; the counts of every outcome are reported whatever the verdict"
 command: "python research/experiments/multiplexing-fractal/h3_stacks.py --config research/experiments/multiplexing-fractal/configs/h3.yaml"
