@@ -158,8 +158,20 @@ def study(n_a: float = 2.3, n_b: float = 1.38) -> dict:
 # * A channel's isolation is the minimum of -crosstalk over its existing neighbours; a channel with no
 #   neighbour has infinite isolation. A channel is usable if its isolation >= isolation_db_min.
 # * Channel density = usable channels / width of the frequency grid (normalized frequency units).
-# * Footprint = layer count and total physical thickness (quarter-wave layers, in units of lambda0).
-# The uniform-grid comparator stack is not built here yet; its result fields are "not run".
+# * Footprint = layer count and total physical thickness (in units of lambda0).
+# * Uniform-grid comparator (one per channel spacing in the config): a symmetric Fabry-Perot comb
+#   [spacer B] (AB)^p A [cavity B] A (BA)^p [spacer B]. The cavity is m = round(1/spacing) half-waves of B
+#   at lambda0, so its resonances sit on a uniform grid with free spectral range ~spacing (ignoring mirror
+#   penetration) and one of them at omega0. p is the fewest mirror pairs whose unperturbed comb has at
+#   least two usable channels on the config's frequency grid (a design-to-spec rule: stronger mirrors give
+#   channels narrower than the grid step); if no p that fits reaches that, the most pairs that fit. The leftover thickness is split equally between the two outer B spacers, and
+#   the cavity is split into equal B sublayers until the layer count matches (adjacent equal-index layers act
+#   as one layer, as the B runs in cantor_word do). Both footprints are then equal (thickness to float
+#   rounding). A spacing whose cavity does not fit is recorded as "infeasible at equal footprint".
+# * Comparison cell = (generation, sigma, spacing), seed means of each plan. Lower worst adjacent crosstalk
+#   and higher usable-channel density are better. A cell is "cantor better on both", "cantor worse on both",
+#   "mixed", or "not comparable" (a plan has fewer than two channels in some seed, so no crosstalk value).
+# * How cells combine into keep/kill is not registered yet, so the verdict stays "not evaluated".
 
 CONFIG_SCHEMA = "awen.fractal-prereg-config.v1"
 PILOT_SEEDS = (0, 1, 2)
@@ -236,6 +248,80 @@ def channels(t: np.ndarray, omega: np.ndarray, t_min: float, isolation_db_min: f
             "centers": [round(float(omega[(a + b - 1) // 2]), 6) for a, b in bands]}
 
 
+def layers_matrix(ns, ds, omega: np.ndarray) -> np.ndarray:
+    """Stack matrix for layers of index ``ns[k]`` and thickness ``ds[k]`` (units of lambda0)."""
+    m = np.broadcast_to(np.eye(2, dtype=complex), (omega.size, 2, 2)).copy()
+    for n, d in zip(ns, ds):
+        # layer_matrices uses phase (pi/2) * x; a layer of optical thickness n*d has phase 2*pi*n*d*omega.
+        m = m @ layer_matrices(float(n), omega * (4.0 * float(n) * float(d)))
+    return m
+
+
+def _comb(n_a: float, n_b: float, p: int, cavity: float, layers: int, thickness: float):
+    """Fabry-Perot comb with p mirror pairs at the given footprint; None if it does not fit."""
+    qa, qb = 0.25 / n_a, 0.25 / n_b
+    left = thickness - cavity - 2 * ((p + 1) * qa + p * qb)
+    spacers = 2 if left > 1e-12 else 0
+    cav_layers = layers - 2 * (2 * p + 1) - spacers
+    if left < -1e-12 or cav_layers < 1:
+        return None
+    mir_ns, mir_ds = [n_a] + [n_b, n_a] * p, [qa] + [qb, qa] * p  # outside to cavity: A (BA)^p
+    sp_ns, sp_ds = [n_b] * (spacers // 2), [left / 2] * (spacers // 2)
+    ns = sp_ns + mir_ns + [n_b] * cav_layers + mir_ns[::-1] + sp_ns
+    ds = sp_ds + mir_ds + [cavity / cav_layers] * cav_layers + mir_ds[::-1] + sp_ds
+    return np.array(ns), np.array(ds), {"mirror_pairs": p, "cavity_sublayers": cav_layers,
+                                        "spacer_thickness_lambda0_each": left / 2 if spacers else 0.0}
+
+
+def uniform_grid_stack(n_a: float, n_b: float, spacing: float, layers: int, thickness: float,
+                       omega: np.ndarray | None = None, t_min: float = 0.5, isolation_db_min: float = 15.0):
+    """Equal-footprint Fabry-Perot comb (see the operationalization above); None if it cannot fit.
+
+    Mirror rule: the fewest mirror pairs whose unperturbed comb has at least two usable channels on
+    ``omega`` (the design spec); if no pair count reaches that, or ``omega`` is None, the most pairs that fit.
+    """
+    cavity = round(1.0 / spacing) * 0.5 / n_b
+    fits = [c for c in (_comb(n_a, n_b, p, cavity, layers, thickness) for p in range(layers // 4 + 1)) if c]
+    if not fits:
+        return None
+    chosen, rule = fits[-1], "most pairs that fit (no pair count met the spec)"
+    if omega is not None:
+        for c in fits:
+            t = transmission(layers_matrix(c[0], c[1], omega))
+            if channels(t, omega, t_min, isolation_db_min)["usable_channels"] >= 2:
+                chosen, rule = c, "fewest pairs with >= 2 usable channels unperturbed"
+                break
+    ns, ds, info = chosen
+    return ns, ds, {**info, "cavity_half_waves": round(1.0 / spacing), "mirror_rule": rule,
+                    "measured_spacing_near_omega0": measured_spacing(ns, ds)}
+
+
+def measured_spacing(ns, ds, half_window: float = 0.2, points: int = 8001) -> float | None:
+    """Mean gap between unperturbed channel centers within omega0 +/- half_window (T >= 0.5, any isolation).
+
+    Mirror penetration makes this smaller than the nominal spacing, so the actual grid is recorded per stack.
+    """
+    omega = np.linspace(1.0 - half_window, 1.0 + half_window, points)
+    centers = channels(transmission(layers_matrix(ns, ds, omega)), omega, 0.5, 0.0)["centers"]
+    return round(float(np.mean(np.diff(centers))), 6) if len(centers) >= 2 else None
+
+
+def compare_cell(cantor_runs: list, uniform_runs: list) -> dict:
+    """Seed-mean comparison of one (generation, sigma, spacing) cell; see the operationalization above."""
+    def mean(runs, key):
+        vals = [r[key] for r in runs]
+        return None if any(v is None for v in vals) else float(np.mean(vals))
+    cd, ud = (mean(r, "channels_per_unit_normalized_frequency") for r in (cantor_runs, uniform_runs))
+    cx, ux = (mean(r, "worst_adjacent_crosstalk_db") for r in (cantor_runs, uniform_runs))
+    out = {"cantor_density": cd, "uniform_density": ud, "cantor_worst_xtalk_db": cx, "uniform_worst_xtalk_db": ux}
+    if cx is None or ux is None:
+        return {**out, "outcome": "not comparable"}
+    better = (cx < ux, cd > ud)
+    worse = (cx > ux, cd < ud)
+    outcome = ("cantor better on both" if all(better) else "cantor worse on both" if all(worse) else "mixed")
+    return {**out, "outcome": outcome}
+
+
 def run_config(cfg: dict) -> dict:
     fp, fg, uc = cfg["free_parameters"], cfg["frequency_grid"], cfg["usable_channel"]
     n_a, n_b = float(fp["n_high"]), float(fp["n_low"])
@@ -250,11 +336,35 @@ def run_config(cfg: dict) -> dict:
                 runs.append({"plan": "cantor", "generation": int(g), "thickness_sigma_fraction": float(sigma),
                              "seed": int(seed), "footprint": footprint(word, n_a, n_b, f),
                              **channels(t, omega, float(uc["passband_T_min"]), float(uc["isolation_db_min"]))})
+    uniform, cells, infeasible = [], [], []
+    for g in cfg["cantor_generations"]:
+        base = footprint(cantor_word(int(g)), n_a, n_b, np.ones(3 ** int(g)))
+        for spacing in cfg["uniform_grid"]["channel_spacings_normalized"]:
+            built = uniform_grid_stack(n_a, n_b, float(spacing), base["layers"], base["total_thickness_lambda0"],
+                                       omega, float(uc["passband_T_min"]), float(uc["isolation_db_min"]))
+            if built is None:
+                infeasible.append({"generation": int(g), "spacing": float(spacing),
+                                   "status": "infeasible at equal footprint"})
+                continue
+            ns, ds, info = built
+            for sigma in fp["thickness_sigma_fraction"]:
+                cell = []
+                for seed in cfg["seeds"]:
+                    f = thickness_factors(len(ns), float(sigma), int(seed))
+                    t = transmission(layers_matrix(ns, ds * f, omega))
+                    cell.append({"plan": "uniform", "generation": int(g), "spacing": float(spacing),
+                                 "thickness_sigma_fraction": float(sigma), "seed": int(seed), **info,
+                                 "footprint": {"layers": len(ns), "total_thickness_lambda0": float((ds * f).sum())},
+                                 **channels(t, omega, float(uc["passband_T_min"]), float(uc["isolation_db_min"]))})
+                uniform += cell
+                cantor = [r for r in runs if r["generation"] == int(g) and r["thickness_sigma_fraction"] == float(sigma)]
+                cells.append({"generation": int(g), "spacing": float(spacing), "thickness_sigma_fraction": float(sigma),
+                              **compare_cell(cantor, cell)})
     return {"study": "awen.h3-channel-plans.v1", "config_id": cfg["id"], "n_high": n_a, "n_low": n_b,
             "frequency_grid": fg, "usable_channel": uc, "runs": runs,
-            "uniform_grid": {"status": "not run",
-                             "reason": "equal-footprint uniform-grid comparator stack not implemented yet"},
-            "verdict": "not evaluated (comparator not run)",
+            "uniform_grid": {"status": "run", "runs": uniform, "infeasible": infeasible},
+            "comparison_cells": cells,
+            "verdict": "not evaluated (rule combining comparison cells into keep/kill not registered yet)",
             "evidence": "exact transfer-matrix calculation (lossless, normal incidence)"}
 
 
@@ -268,7 +378,8 @@ def main(argv=None):
         out = Path(a.out or Path(__file__).parent / "results" / "h3")
         out.mkdir(parents=True, exist_ok=True)
         (out / "h3_channel_plans.json").write_text(json.dumps(rep, indent=2) + "\n")
-        print(json.dumps({"runs": len(rep["runs"]), "uniform_grid": rep["uniform_grid"]["status"]}))
+        print(json.dumps({"runs": len(rep["runs"]), "uniform_runs": len(rep["uniform_grid"]["runs"]),
+                          "cells": len(rep["comparison_cells"]), "verdict": rep["verdict"]}))
         return
     out = Path(a.out or Path(__file__).parent / "results" / "pilot")
     out.mkdir(parents=True, exist_ok=True)

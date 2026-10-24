@@ -76,6 +76,72 @@ def test_tiny_run_writes_report(tmp_path):
     stacks.main(["--config", str(_tiny(tmp_path)), "--out", str(out)])
     rep = json.loads((out / "h3_channel_plans.json").read_text())
     assert len(rep["runs"]) == 2 * 2 * 2
-    assert rep["uniform_grid"]["status"] == "not run"
+    assert rep["uniform_grid"]["status"] == "run"
+    # generations 1 and 2 are too thin for any registered spacing's cavity
+    assert len(rep["uniform_grid"]["infeasible"]) == 2 * 3 and rep["comparison_cells"] == []
+    assert rep["verdict"].startswith("not evaluated")
     assert {r["footprint"]["layers"] for r in rep["runs"]} == {3, 9}
     assert all(r["usable_channels"] <= r["channels"] for r in rep["runs"])
+
+
+def test_layers_matrix_matches_quarter_wave_stack():
+    omega = np.linspace(0.5, 1.5, 201)
+    w = stacks.cantor_word(2)
+    ns = np.array([2.3 if ch == "A" else 1.38 for ch in w])
+    ref = stacks.stack_matrix(w, 2.3, 1.38, omega)
+    assert np.allclose(stacks.layers_matrix(ns, 0.25 / ns, omega), ref, atol=1e-12)
+
+
+@pytest.mark.parametrize("g,spacing", [(3, 0.1), (4, 0.1), (4, 0.05)])
+def test_uniform_grid_stack_has_equal_footprint(g, spacing):
+    base = stacks.footprint(stacks.cantor_word(g), 2.3, 1.38, np.ones(3 ** g))
+    ns, ds, info = stacks.uniform_grid_stack(2.3, 1.38, spacing, base["layers"], base["total_thickness_lambda0"])
+    assert len(ns) == base["layers"]
+    assert ds.sum() == pytest.approx(base["total_thickness_lambda0"], abs=1e-12)
+    assert np.all(ds > 0) and info["cavity_half_waves"] == round(1 / spacing)
+
+
+def test_uniform_grid_infeasible_when_cavity_does_not_fit():
+    base = stacks.footprint(stacks.cantor_word(2), 2.3, 1.38, np.ones(9))
+    assert stacks.uniform_grid_stack(2.3, 1.38, 0.1, 9, base["total_thickness_lambda0"]) is None
+    base4 = stacks.footprint(stacks.cantor_word(4), 2.3, 1.38, np.ones(81))
+    assert stacks.uniform_grid_stack(2.3, 1.38, 0.02, 81, base4["total_thickness_lambda0"]) is None
+
+
+def test_uniform_grid_comb_passes_design_frequency_on_a_near_uniform_grid():
+    base = stacks.footprint(stacks.cantor_word(4), 2.3, 1.38, np.ones(81))
+    grid = np.linspace(0.5, 1.5, 4001)
+    ns, ds, info = stacks.uniform_grid_stack(2.3, 1.38, 0.1, 81, base["total_thickness_lambda0"], grid)
+    assert info["mirror_rule"].startswith("fewest pairs")
+    omega = np.linspace(0.85, 1.15, 6001)
+    m = stacks.layers_matrix(ns, ds, omega)
+    assert np.allclose(np.linalg.det(m), 1.0, atol=1e-8)
+    t = stacks.transmission(m)
+    # omega0 lies in a passband; the outer spacers (weak air/B etalons) keep it from reaching T = 1
+    assert t[int(np.argmin(abs(omega - 1.0)))] > 0.5
+    gaps = np.diff(stacks.channels(t, omega, 0.5, 0.0)["centers"])
+    assert len(gaps) >= 2 and np.ptp(gaps) < 0.1 * gaps.mean()  # near-uniform grid around omega0
+    # mirror penetration makes the real grid finer than the nominal spacing; it is recorded, not hidden
+    assert 0.0 < info["measured_spacing_near_omega0"] < 0.1
+
+
+def test_compare_cell_outcomes():
+    def runs(d, x):
+        return [{"channels_per_unit_normalized_frequency": d, "worst_adjacent_crosstalk_db": x}] * 2
+    assert stacks.compare_cell(runs(5, -30), runs(3, -20))["outcome"] == "cantor better on both"
+    assert stacks.compare_cell(runs(2, -10), runs(3, -20))["outcome"] == "cantor worse on both"
+    assert stacks.compare_cell(runs(5, -10), runs(3, -20))["outcome"] == "mixed"
+    assert stacks.compare_cell(runs(5, None), runs(3, -20))["outcome"] == "not comparable"
+
+
+def test_tiny_feasible_run_compares_cells(tmp_path):
+    out = tmp_path / "out"
+    cfg = _tiny(tmp_path, cantor_generations=[3], uniform_grid={"channel_spacings_normalized": [0.1, 0.02]})
+    stacks.main(["--config", str(cfg), "--out", str(out)])
+    rep = json.loads((out / "h3_channel_plans.json").read_text())
+    assert rep["uniform_grid"]["infeasible"] == [{"generation": 3, "spacing": 0.02,
+                                                   "status": "infeasible at equal footprint"}]
+    assert len(rep["uniform_grid"]["runs"]) == 2 * 2 and len(rep["comparison_cells"]) == 2
+    assert {r["footprint"]["layers"] for r in rep["uniform_grid"]["runs"]} == {27}
+    assert all(c["outcome"] in {"cantor better on both", "cantor worse on both", "mixed", "not comparable"}
+               for c in rep["comparison_cells"])
