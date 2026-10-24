@@ -119,13 +119,102 @@ def test_dft_unitary_and_t_quantile():
 
 def test_tiny_run_writes_report(tmp_path):
     out = tmp_path / "out"
-    meshes.main(["--config", str(_tiny(tmp_path)), "--out", str(out)])
+    cfg = yaml.safe_load(_tiny(tmp_path).read_text())
+    cfg["meshes"]["low_rank_svd"]["ranks"] = [1, 2]
+    p = tmp_path / "h1_tiny_lr.yaml"
+    p.write_text(yaml.safe_dump(cfg))
+    meshes.main(["--config", str(p), "--out", str(out)])
     rep = json.loads((out / "h1_meshes_registered.json").read_text())
-    assert rep["not_built"] == {"families": ["low_rank_svd"], "tasks": ["mnist_pca16_linear"]}
+    assert rep["not_built"] == {"families": [], "tasks": []}
     assert set(rep["scores_per_init_seed"]) == {"haar_unitary", "dft_matrix"}
+    assert rep["skipped"] == {"mnist_pca16_linear": {"4": "not applicable: 16 features need 16 modes"}}
     per_seed = rep["scores_per_init_seed"]["dft_matrix"]["4"]["clements"]["4"]
     assert len(per_seed) == 3 and all(0 <= x <= 1 for x in per_seed)
     cmp = rep["comparisons_at_primary_point"]["haar_unitary"]
-    assert cmp["selected"] == {"butterfly": 2, "clements": 4}
-    assert cmp["butterfly_minus_clements"]["n"] == 3
+    assert cmp["selected"] == {"butterfly": 2, "clements": 4, "low_rank_svd": 2}
+    assert cmp["butterfly_minus_clements"]["n"] == 3 and cmp["butterfly_minus_low_rank_svd"]["n"] == 3
+    # MNIST registered but not run at the primary modes, so no verdict
     assert rep["verdict"].startswith("not decided")
+
+
+def test_low_rank_stage_and_budget():
+    for n, r in ((4, 2), (8, 3), (16, 8)):
+        cols = meshes.low_rank_stage_columns(n, r)
+        assert meshes.mzi_count(cols) == r * n - r * (r + 1) // 2
+        assert all(b == a + 1 for c in cols for a, b in c)
+    with pytest.raises(ValueError, match="rank"):
+        meshes.low_rank_stage_columns(4, 4)
+    # n=4, r=2: per-mode MZIs per stage 1, 3, 4, 2; two stages + attenuators on modes 0, 1 -> 3, 7, 8, 4
+    b = meshes.low_rank_budget(4, 2)
+    assert (b.mzis, b.max_mzis_per_path, b.max_crossings_per_path) == (12, 8, 0)
+    assert b.path_loss_db(0.25, 0.05) == pytest.approx(2.0)
+
+
+def test_low_rank_matrix_rank_and_fabrication():
+    n, r = 6, 2
+    g = torch.Generator().manual_seed(5)
+    params = [p.detach() for p in meshes.init_params("low_rank_svd", n, r, 3, g)]
+    m = meshes.implemented("low_rank_svd", n, r, params)
+    sv = torch.linalg.svdvals(m)
+    assert torch.all(sv[:, r:] < 1e-10) and torch.all(sv[:, 0] <= 1 + 1e-12)
+    assert torch.allclose(meshes.implemented("low_rank_svd", n, r, params, 0.0, 0.0, 201), m, atol=1e-12)
+    noisy = meshes.implemented("low_rank_svd", n, r, params, 0.02, 0.02, 201)
+    assert torch.equal(noisy, meshes.implemented("low_rank_svd", n, r, params, 0.02, 0.02, 201))
+    assert not torch.allclose(noisy, m)
+    # mesh families keep the pilot draw order: same phases as fit() for the same seed
+    g1, g2 = torch.Generator().manual_seed(9), torch.Generator().manual_seed(9)
+    a = meshes.init_params("clements", 4, 2, 2, g1)
+    th = torch.rand(2, 3, generator=g2, dtype=torch.float64) * math.pi
+    assert torch.equal(a[0].detach(), th)
+
+
+def test_low_rank_fidelity_bounded_on_unitary_target():
+    n, r = 4, 2
+    tg = torch.as_tensor(meshes.haar_unitary(n, np.random.default_rng(3)))[None]
+    opt = {"lr": 0.05, "steps": 200}
+    _, _, final = meshes.fit_family("low_rank_svd", n, r, lambda m, e: 1 - meshes.fidelity(tg, m), 1, 0, opt, 1)
+    f = 1 - float(final[0])
+    # |Tr(V^dagger M)| <= sum of singular values of M <= r, so F <= (r / N)^2
+    assert 0.1 < f <= (r / n) ** 2 + 1e-9
+
+
+def _synthetic_mnist(train=200, test=100, seed=0):
+    g = torch.Generator().manual_seed(seed)
+    means = torch.rand(10, 784, generator=g)
+    def split(k):
+        y = torch.arange(k) % 10
+        return (means[y] + 0.1 * torch.randn(k, 784, generator=g)).clamp(0, 1).float(), y
+    tx, ty = split(train)
+    vx, vy = split(test)
+    return {"train_x": tx, "train_y": ty, "test_x": vx, "test_y": vy}
+
+
+def test_mnist_pca_and_logits():
+    d = meshes.mnist_pca(16, _synthetic_mnist())
+    assert d["train_x"].shape == (200, 16) and d["test_x"].shape == (100, 16)
+    assert torch.allclose(d["train_x"].norm(dim=1), torch.ones(200, dtype=torch.float64))
+    assert torch.equal(d["train_x"], meshes.mnist_pca(16, _synthetic_mnist())["train_x"])
+    m = torch.eye(16, dtype=torch.complex128)[None].repeat(2, 1, 1)
+    z = meshes.mnist_logits(m, d["test_x"], torch.zeros(2, 1, dtype=torch.float64))
+    assert z.shape == (2, 100, 10)
+    assert torch.allclose(z[0], 10 * d["test_x"][:, :10] ** 2)
+
+
+def test_tiny_run_at_16_modes_gives_verdict(tmp_path):
+    cfg = yaml.safe_load(H1_YAML.read_text())
+    cfg["modes"] = [16]
+    cfg["meshes"] = {"butterfly": {"depths_in_layers_of_log2N_stages": [1]}, "clements": {"depths": [2]},
+                     "low_rank_svd": {"ranks": [2]}}
+    cfg["tasks"] = [{"name": "haar_unitary", "targets": 1, "score": "fidelity"},
+                    {"name": "mnist_pca16_linear", "features": 16, "score": "test_accuracy"},
+                    {"name": "dft_matrix", "score": "fidelity"}]
+    cfg["optimizer"] = {"name": "adam", "lr": 0.05, "steps": 15, "restarts": 2}
+    cfg["seeds"] = [101, 102, 103]
+    cfg["fabrication_noise_seeds"] = [201, 202]
+    rep = meshes.registered_run(cfg, _synthetic_mnist())
+    acc = rep["scores_per_init_seed"]["mnist_pca16_linear"][16]
+    assert set(acc) == {"butterfly", "clements", "low_rank_svd"}
+    assert all(0 <= a <= 1 for fam in acc.values() for xs in fam.values() for a in xs)
+    assert rep["skipped"] == {}
+    assert set(rep["comparisons_at_primary_point"]) == {"haar_unitary", "mnist_pca16_linear", "dft_matrix"}
+    assert rep["verdict"].startswith(("kept", "killed"))

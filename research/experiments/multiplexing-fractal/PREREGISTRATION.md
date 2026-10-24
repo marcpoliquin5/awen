@@ -80,6 +80,21 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
   pilot's `T(theta, phi)` at eta = 0). Each initialization seed s draws its own Haar targets from
   `default_rng(s)` (the DFT target is fixed) and starts the fit from seed s; fabrication draw f for seed s
   uses torch seed `f * 1000 + s`. Phases are fit without noise, then scored on the fabricated mesh.
+- **Low-rank and MNIST definitions fixed 2026-10-24 (session 2026-10-24-04), before any H1 full run**
+  (`configs/h1.yaml` unchanged): the rank-r low-rank SVD mesh is `M = U2[:, :r] diag(a) U1[:r, :]`. U1 is
+  a Reck-style triangle of `r N - r (r + 1) / 2` adjacent-pair MZIs that sets the first r rows; U2 is the
+  same list reversed and sets the first r columns; `a` comes from r attenuator MZIs, each coupling one mode
+  to a dump port (amplitude = element [0, 0] of the two-coupler MZI). Its loss uses the same worst per-mode
+  MZI-count proxy as the other meshes, with no crossings; "depth" for budget selection is the rank. Fabrication
+  draws for U1, the attenuators and U2 use torch seeds `t`, `t + 7e6` and `t + 14e6` (`t = f * 1000 + s`).
+  On a unitary target its fidelity is at most (r / N)^2. MNIST-PCA16: PCA fit on the 60,000 training
+  images only (train mean removed, top-16 covariance eigenvectors, sign fixed), each sample scaled to unit
+  L2 norm and fed to modes 0-15; logits = `10 * exp(g) * |M x|^2` on output modes 0-9 with one trained
+  electronic gain g. Fit: full-batch cross-entropy on the training split, Adam as in the config, the restart
+  with the lowest final training loss is kept (test data never selects). Score = test accuracy on the 10,000
+  test images, mean over the fabrication draws. The task runs only at N = 16 (16 features); at N = 8 it is
+  recorded as not applicable. Verdict: "not decided" if any registered family or task is missing or a family
+  has no configuration within budget; otherwise the registered rule above.
 
 ## H2: dimension-factorized (Kronecker / tensor-train) layers
 
