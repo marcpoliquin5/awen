@@ -1,0 +1,2852 @@
+{
+  "study": "awen.h3-channel-plans.v1",
+  "config_id": "H3",
+  "n_high": 2.3,
+  "n_low": 1.38,
+  "frequency_grid": {
+    "min": 0.5,
+    "max": 1.5,
+    "points": 20001,
+    "unit": "normalized to the quarter-wave design frequency"
+  },
+  "usable_channel": {
+    "passband_T_min": 0.5,
+    "isolation_db_min": 15.0
+  },
+  "runs": [
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 101,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3405797101449277
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.181981,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56465,
+        0.8107,
+        1.1893,
+        1.43535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 102,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3405797101449277
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.181981,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56465,
+        0.8107,
+        1.1893,
+        1.43535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 103,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3405797101449277
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.181981,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56465,
+        0.8107,
+        1.1893,
+        1.43535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 104,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3405797101449277
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.181981,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56465,
+        0.8107,
+        1.1893,
+        1.43535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 105,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3405797101449277
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.181981,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56465,
+        0.8107,
+        1.1893,
+        1.43535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 101,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.342693498182501
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.097491,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.5642,
+        0.80785,
+        1.1849,
+        1.43415
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 102,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3447485234416798
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -5.986943,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.5631,
+        0.8094,
+        1.1873,
+        1.4319
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 103,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3329548766233807
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.155645,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56635,
+        0.8146,
+        1.195,
+        1.43905
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 104,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.343157312531626
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.155869,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56375,
+        0.80885,
+        1.18655,
+        1.43335
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 105,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3496064634638285
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.023647,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56195,
+        0.8059,
+        1.1823,
+        1.42945
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 101,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.344807286220074
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -5.99989,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.5638,
+        0.8051,
+        1.1804,
+        1.4328
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 102,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3489173367384328
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -5.751297,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56165,
+        0.80815,
+        1.18525,
+        1.42835
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 103,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3253300431018338
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.121966,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.5681,
+        0.8186,
+        1.20075,
+        1.4427
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 104,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3457349149183246
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -6.127568,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.56285,
+        0.807,
+        1.18375,
+        1.43135
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 2,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 105,
+      "footprint": {
+        "layers": 9,
+        "total_thickness_lambda0": 1.3586332167827295
+      },
+      "channels": 4,
+      "usable_channels": 0,
+      "worst_adjacent_crosstalk_db": -5.865732,
+      "channels_per_unit_normalized_frequency": 0.0,
+      "centers": [
+        0.55935,
+        0.80125,
+        1.1754,
+        1.42365
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 101,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.31159420289855
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.569961,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5574,
+        0.7145,
+        0.81185,
+        0.92135,
+        1.07865,
+        1.1881,
+        1.28545,
+        1.44255
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 102,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.31159420289855
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.569961,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5574,
+        0.7145,
+        0.81185,
+        0.92135,
+        1.07865,
+        1.1881,
+        1.28545,
+        1.44255
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 103,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.31159420289855
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.569961,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5574,
+        0.7145,
+        0.81185,
+        0.92135,
+        1.07865,
+        1.1881,
+        1.28545,
+        1.44255
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 104,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.31159420289855
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.569961,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5574,
+        0.7145,
+        0.81185,
+        0.92135,
+        1.07865,
+        1.1881,
+        1.28545,
+        1.44255
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 105,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.31159420289855
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.569961,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5574,
+        0.7145,
+        0.81185,
+        0.92135,
+        1.07865,
+        1.1881,
+        1.28545,
+        1.44255
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 101,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.309541384889144
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.218045,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55755,
+        0.71515,
+        0.8111,
+        0.92205,
+        1.07945,
+        1.1869,
+        1.2865,
+        1.4428
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 102,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.3242967251139595
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.475404,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55635,
+        0.71325,
+        0.8097,
+        0.92025,
+        1.07735,
+        1.1848,
+        1.2831,
+        1.44005
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 103,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.302200161630622
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.433807,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5583,
+        0.716,
+        0.8135,
+        0.9234,
+        1.081,
+        1.19045,
+        1.28805,
+        1.44455
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 104,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.324287957170368
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.420935,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5562,
+        0.7123,
+        0.80935,
+        0.91825,
+        1.07505,
+        1.18445,
+        1.28145,
+        1.43985
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 105,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.310554148753037
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.225039,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.5576,
+        0.71575,
+        0.8115,
+        0.9237,
+        1.0813,
+        1.1876,
+        1.28765,
+        1.44285
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 101,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.307488566879736
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -9.820982,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55775,
+        0.7158,
+        0.8104,
+        0.92285,
+        1.08015,
+        1.18555,
+        1.28745,
+        1.44285
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 102,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.336999247329367
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.330396,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55535,
+        0.712,
+        0.80755,
+        0.9192,
+        1.076,
+        1.1814,
+        1.2806,
+        1.4374
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 103,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.292806120362692
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.200391,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55925,
+        0.7175,
+        0.8152,
+        0.9255,
+        1.08335,
+        1.19275,
+        1.29065,
+        1.4465
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 104,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.336981711442187
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -10.267758,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55505,
+        0.71005,
+        0.80695,
+        0.9152,
+        1.07145,
+        1.1808,
+        1.2775,
+        1.43715
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 3,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 105,
+      "footprint": {
+        "layers": 27,
+        "total_thickness_lambda0": 4.309514094607524
+      },
+      "channels": 8,
+      "usable_channels": 2,
+      "worst_adjacent_crosstalk_db": -9.657345,
+      "channels_per_unit_normalized_frequency": 2.0,
+      "centers": [
+        0.55785,
+        0.71705,
+        0.8111,
+        0.92625,
+        1.0838,
+        1.18715,
+        1.2896,
+        1.4429
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 101,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.514492753623196
+      },
+      "channels": 20,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -12.92548,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.55315,
+        0.6325,
+        0.68315,
+        0.7144,
+        0.75155,
+        0.80775,
+        0.84705,
+        0.89965,
+        0.922,
+        0.9677,
+        1.0323,
+        1.07795,
+        1.1003,
+        1.1529,
+        1.19225,
+        1.2484,
+        1.28555,
+        1.3168,
+        1.36745,
+        1.44685
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 102,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.514492753623196
+      },
+      "channels": 20,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -12.92548,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.55315,
+        0.6325,
+        0.68315,
+        0.7144,
+        0.75155,
+        0.80775,
+        0.84705,
+        0.89965,
+        0.922,
+        0.9677,
+        1.0323,
+        1.07795,
+        1.1003,
+        1.1529,
+        1.19225,
+        1.2484,
+        1.28555,
+        1.3168,
+        1.36745,
+        1.44685
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 103,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.514492753623196
+      },
+      "channels": 20,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -12.92548,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.55315,
+        0.6325,
+        0.68315,
+        0.7144,
+        0.75155,
+        0.80775,
+        0.84705,
+        0.89965,
+        0.922,
+        0.9677,
+        1.0323,
+        1.07795,
+        1.1003,
+        1.1529,
+        1.19225,
+        1.2484,
+        1.28555,
+        1.3168,
+        1.36745,
+        1.44685
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 104,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.514492753623196
+      },
+      "channels": 20,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -12.92548,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.55315,
+        0.6325,
+        0.68315,
+        0.7144,
+        0.75155,
+        0.80775,
+        0.84705,
+        0.89965,
+        0.922,
+        0.9677,
+        1.0323,
+        1.07795,
+        1.1003,
+        1.1529,
+        1.19225,
+        1.2484,
+        1.28555,
+        1.3168,
+        1.36745,
+        1.44685
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.0,
+      "seed": 105,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.514492753623196
+      },
+      "channels": 20,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -12.92548,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.55315,
+        0.6325,
+        0.68315,
+        0.7144,
+        0.75155,
+        0.80775,
+        0.84705,
+        0.89965,
+        0.922,
+        0.9677,
+        1.0323,
+        1.07795,
+        1.1003,
+        1.1529,
+        1.19225,
+        1.2484,
+        1.28555,
+        1.3168,
+        1.36745,
+        1.44685
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 101,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.516902527997328
+      },
+      "channels": 20,
+      "usable_channels": 11,
+      "worst_adjacent_crosstalk_db": -3.158786,
+      "channels_per_unit_normalized_frequency": 11.0,
+      "centers": [
+        0.55315,
+        0.6317,
+        0.6821,
+        0.7147,
+        0.7505,
+        0.8081,
+        0.8463,
+        0.89805,
+        0.92235,
+        0.96565,
+        1.07825,
+        1.0984,
+        1.15165,
+        1.19285,
+        1.24675,
+        1.2861,
+        1.3148,
+        1.3657,
+        1.41775,
+        1.47345
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 102,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.510799967732272
+      },
+      "channels": 20,
+      "usable_channels": 8,
+      "worst_adjacent_crosstalk_db": -1.63667,
+      "channels_per_unit_normalized_frequency": 8.0,
+      "centers": [
+        0.55305,
+        0.6334,
+        0.6843,
+        0.7145,
+        0.75255,
+        0.8075,
+        0.8481,
+        0.9014,
+        0.9208,
+        0.92355,
+        1.0765,
+        1.07945,
+        1.1024,
+        1.15395,
+        1.19205,
+        1.2501,
+        1.28585,
+        1.319,
+        1.36915,
+        1.44665
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 103,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.516325336972633
+      },
+      "channels": 17,
+      "usable_channels": 9,
+      "worst_adjacent_crosstalk_db": -11.737901,
+      "channels_per_unit_normalized_frequency": 9.0,
+      "centers": [
+        0.5532,
+        0.6322,
+        0.68275,
+        0.71435,
+        0.7511,
+        0.80765,
+        0.84655,
+        0.899,
+        0.96685,
+        1.09955,
+        1.15205,
+        1.19215,
+        1.24765,
+        1.2855,
+        1.31595,
+        1.3667,
+        1.44705
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 104,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.549759417476025
+      },
+      "channels": 18,
+      "usable_channels": 10,
+      "worst_adjacent_crosstalk_db": -11.396454,
+      "channels_per_unit_normalized_frequency": 10.0,
+      "centers": [
+        0.55225,
+        0.6314,
+        0.6821,
+        0.71215,
+        0.75025,
+        0.8053,
+        0.8455,
+        0.89845,
+        0.9189,
+        1.0743,
+        1.0988,
+        1.1506,
+        1.18865,
+        1.2463,
+        1.2815,
+        1.3147,
+        1.36505,
+        1.4448
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.01,
+      "seed": 105,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.510363365862123
+      },
+      "channels": 19,
+      "usable_channels": 10,
+      "worst_adjacent_crosstalk_db": -4.715627,
+      "channels_per_unit_normalized_frequency": 10.0,
+      "centers": [
+        0.55325,
+        0.633,
+        0.6838,
+        0.71455,
+        0.75235,
+        0.80805,
+        0.84805,
+        0.90035,
+        0.96865,
+        1.03335,
+        1.1012,
+        1.15415,
+        1.1858,
+        1.2114,
+        1.24975,
+        1.28575,
+        1.318,
+        1.36845,
+        1.4469
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 101,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.519312302371471
+      },
+      "channels": 22,
+      "usable_channels": 13,
+      "worst_adjacent_crosstalk_db": -2.422068,
+      "channels_per_unit_normalized_frequency": 13.0,
+      "centers": [
+        0.5532,
+        0.63095,
+        0.68105,
+        0.715,
+        0.74945,
+        0.7909,
+        0.81325,
+        0.84565,
+        0.8965,
+        0.92275,
+        0.96365,
+        1.02795,
+        1.0784,
+        1.09645,
+        1.15025,
+        1.1937,
+        1.2451,
+        1.2867,
+        1.31285,
+        1.3638,
+        1.41495,
+        1.47535
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 102,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.507107181841368
+      },
+      "channels": 21,
+      "usable_channels": 12,
+      "worst_adjacent_crosstalk_db": -1.221416,
+      "channels_per_unit_normalized_frequency": 12.0,
+      "centers": [
+        0.52635,
+        0.58215,
+        0.63435,
+        0.68545,
+        0.71465,
+        0.75355,
+        0.8072,
+        0.8493,
+        0.9031,
+        0.91995,
+        0.9719,
+        1.0367,
+        1.1045,
+        1.15455,
+        1.192,
+        1.2517,
+        1.28185,
+        1.29015,
+        1.3212,
+        1.3705,
+        1.4465
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 103,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.51815792032207
+      },
+      "channels": 19,
+      "usable_channels": 8,
+      "worst_adjacent_crosstalk_db": -1.465994,
+      "channels_per_unit_normalized_frequency": 8.0,
+      "centers": [
+        0.5532,
+        0.63195,
+        0.6823,
+        0.71435,
+        0.75075,
+        0.80745,
+        0.84605,
+        0.89835,
+        0.96605,
+        1.03055,
+        1.0989,
+        1.1512,
+        1.19205,
+        1.24685,
+        1.28065,
+        1.2901,
+        1.3151,
+        1.3658,
+        1.44755
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 104,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.585026081328875
+      },
+      "channels": 19,
+      "usable_channels": 13,
+      "worst_adjacent_crosstalk_db": -9.884908,
+      "channels_per_unit_normalized_frequency": 13.0,
+      "centers": [
+        0.5514,
+        0.63035,
+        0.68095,
+        0.7099,
+        0.749,
+        0.8029,
+        0.8439,
+        0.89715,
+        0.91585,
+        1.03015,
+        1.0707,
+        1.0974,
+        1.14825,
+        1.18515,
+        1.2442,
+        1.27745,
+        1.31265,
+        1.3626,
+        1.4428
+      ]
+    },
+    {
+      "plan": "cantor",
+      "generation": 4,
+      "thickness_sigma_fraction": 0.02,
+      "seed": 105,
+      "footprint": {
+        "layers": 81,
+        "total_thickness_lambda0": 13.506233978101063
+      },
+      "channels": 23,
+      "usable_channels": 11,
+      "worst_adjacent_crosstalk_db": -1.099673,
+      "channels_per_unit_normalized_frequency": 11.0,
+      "centers": [
+        0.53865,
+        0.59445,
+        0.63355,
+        0.6844,
+        0.71475,
+        0.7532,
+        0.80845,
+        0.8491,
+        0.901,
+        0.96965,
+        1.03435,
+        1.1021,
+        1.1554,
+        1.1727,
+        1.1956,
+        1.2138,
+        1.251,
+        1.2818,
+        1.29015,
+        1.3192,
+        1.3693,
+        1.40125,
+        1.45935
+      ]
+    }
+  ],
+  "uniform_grid": {
+    "status": "run",
+    "runs": [
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 101,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.31159420289855
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.659719,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7712,
+          1.1016,
+          1.19705,
+          1.2908,
+          1.3838,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 102,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.31159420289855
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.659719,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7712,
+          1.1016,
+          1.19705,
+          1.2908,
+          1.3838,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 103,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.31159420289855
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.659719,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7712,
+          1.1016,
+          1.19705,
+          1.2908,
+          1.3838,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 104,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.31159420289855
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.659719,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7712,
+          1.1016,
+          1.19705,
+          1.2908,
+          1.3838,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 105,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.31159420289855
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.659719,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7712,
+          1.1016,
+          1.19705,
+          1.2908,
+          1.3838,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 101,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.3108729978120435
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.624629,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.77135,
+          1.1014,
+          1.19695,
+          1.2907,
+          1.3838,
+          1.4755
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 102,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.323243854750201
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.691076,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.76975,
+          1.09895,
+          1.19405,
+          1.28755,
+          1.38025,
+          1.4729
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 103,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.300635392523402
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.619811,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7725,
+          1.1039,
+          1.19965,
+          1.29365,
+          1.3869,
+          1.47695
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 104,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.327797111805375
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.695383,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7693,
+          1.09795,
+          1.193,
+          1.2864,
+          1.3791,
+          1.47175
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 105,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.310516246545698
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.73184,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7713,
+          1.10275,
+          1.1981,
+          1.29185,
+          1.3849,
+          1.47535
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 101,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.310151792725539
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.584209,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7715,
+          1.10115,
+          1.19685,
+          1.29065,
+          1.3837,
+          1.4757
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 102,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.334893506601854
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.718704,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.7683,
+          1.0963,
+          1.1911,
+          1.2843,
+          1.37675,
+          1.4696
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 103,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.289676582148255
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.57372,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.77385,
+          1.10615,
+          1.20225,
+          1.29655,
+          1.39005,
+          1.4786
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 104,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.344000020712201
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.730657,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.76735,
+          1.09435,
+          1.189,
+          1.28205,
+          1.37445,
+          1.4668
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 3,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 105,
+        "mirror_pairs": 0,
+        "cavity_sublayers": 23,
+        "spacer_thickness_lambda0_each": 0.2355072463768111,
+        "cavity_half_waves": 10,
+        "mirror_rule": "most pairs that fit (no pair count met the spec)",
+        "measured_spacing_near_omega0": 0.13295,
+        "footprint": {
+          "layers": 27,
+          "total_thickness_lambda0": 4.309438290192848
+        },
+        "channels": 6,
+        "usable_channels": 0,
+        "worst_adjacent_crosstalk_db": -3.801721,
+        "channels_per_unit_normalized_frequency": 0.0,
+        "centers": [
+          0.77145,
+          1.10395,
+          1.1992,
+          1.29295,
+          1.38605,
+          1.47545
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623195
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.823405,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.76915,
+          0.81335,
+          0.8606,
+          0.90625,
+          0.9528,
+          1.0004,
+          1.04665,
+          1.0934,
+          1.1405,
+          1.18525,
+          1.23165,
+          1.2764,
+          1.38385,
+          1.48845
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623195
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.823405,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.76915,
+          0.81335,
+          0.8606,
+          0.90625,
+          0.9528,
+          1.0004,
+          1.04665,
+          1.0934,
+          1.1405,
+          1.18525,
+          1.23165,
+          1.2764,
+          1.38385,
+          1.48845
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623195
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.823405,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.76915,
+          0.81335,
+          0.8606,
+          0.90625,
+          0.9528,
+          1.0004,
+          1.04665,
+          1.0934,
+          1.1405,
+          1.18525,
+          1.23165,
+          1.2764,
+          1.38385,
+          1.48845
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623195
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.823405,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.76915,
+          0.81335,
+          0.8606,
+          0.90625,
+          0.9528,
+          1.0004,
+          1.04665,
+          1.0934,
+          1.1405,
+          1.18525,
+          1.23165,
+          1.2764,
+          1.38385,
+          1.48845
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623195
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.823405,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.76915,
+          0.81335,
+          0.8606,
+          0.90625,
+          0.9528,
+          1.0004,
+          1.04665,
+          1.0934,
+          1.1405,
+          1.18525,
+          1.23165,
+          1.2764,
+          1.38385,
+          1.48845
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.515227193272345
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.500227,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.6182,
+          0.7689,
+          0.8129,
+          0.8601,
+          0.9057,
+          0.95215,
+          0.9997,
+          1.04595,
+          1.09265,
+          1.1398,
+          1.1847,
+          1.2307,
+          1.27605,
+          1.38495,
+          1.48775
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.554540158542004
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.474019,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61775,
+          0.7693,
+          0.81405,
+          0.86115,
+          0.9067,
+          0.9536,
+          1.00095,
+          1.0472,
+          1.0944,
+          1.1411,
+          1.1858,
+          1.23265,
+          1.27655,
+          1.3829,
+          1.4867
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.537468364280278
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.757144,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.6178,
+          0.76905,
+          0.81345,
+          0.8606,
+          0.90615,
+          0.95285,
+          1.0003,
+          1.04655,
+          1.0935,
+          1.1404,
+          1.18515,
+          1.23165,
+          1.2763,
+          1.38285,
+          1.48775
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.568931684186914
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.65819,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61685,
+          0.7671,
+          0.8114,
+          0.8585,
+          0.90395,
+          0.95055,
+          0.9979,
+          1.04405,
+          1.09085,
+          1.13765,
+          1.1822,
+          1.2287,
+          1.2729,
+          1.37955,
+          1.4856
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.480625218782532
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.641459,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61795,
+          0.7694,
+          0.8135,
+          0.86075,
+          0.9066,
+          0.95305,
+          1.0007,
+          1.0471,
+          1.0936,
+          1.14085,
+          1.1856,
+          1.2318,
+          1.277,
+          1.3845,
+          1.48885
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.51596163292149
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -2.870203,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.6185,
+          0.76865,
+          0.81265,
+          0.85955,
+          0.9051,
+          0.95155,
+          0.99895,
+          1.0453,
+          1.09195,
+          1.139,
+          1.18415,
+          1.22965,
+          1.27565,
+          1.3878,
+          1.48495
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.594587563460806
+        },
+        "channels": 14,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -4.89847,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.6176,
+          0.7695,
+          0.8149,
+          0.8616,
+          0.90715,
+          0.95445,
+          1.0015,
+          1.0478,
+          1.09535,
+          1.1416,
+          1.1866,
+          1.23375,
+          1.2767,
+          1.4003
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.560443974937357
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.330286,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61765,
+          0.7689,
+          0.8136,
+          0.86055,
+          0.9061,
+          0.9529,
+          1.0002,
+          1.0465,
+          1.0935,
+          1.1403,
+          1.1852,
+          1.2316,
+          1.27625,
+          1.3823,
+          1.4865
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.62337061475063
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.391449,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.6157,
+          0.7651,
+          0.80955,
+          0.8564,
+          0.9017,
+          0.9483,
+          0.99545,
+          1.04145,
+          1.0883,
+          1.13475,
+          1.1792,
+          1.22575,
+          1.2694,
+          1.37545,
+          1.4825
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.05,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 2.4456521739130475,
+        "cavity_half_waves": 20,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.046487,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.446757683941863
+        },
+        "channels": 15,
+        "usable_channels": 6,
+        "worst_adjacent_crosstalk_db": -3.066828,
+        "channels_per_unit_normalized_frequency": 6.0,
+        "centers": [
+          0.61775,
+          0.76965,
+          0.81375,
+          0.86085,
+          0.907,
+          0.9534,
+          1.00095,
+          1.0475,
+          1.0939,
+          1.14105,
+          1.186,
+          1.2317,
+          1.2777,
+          1.38545,
+          1.4875
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623198
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.293763,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59785,
+          0.7412,
+          0.8255,
+          0.91255,
+          1.00065,
+          1.08855,
+          1.17435,
+          1.2559,
+          1.36315,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623198
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.293763,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59785,
+          0.7412,
+          0.8255,
+          0.91255,
+          1.00065,
+          1.08855,
+          1.17435,
+          1.2559,
+          1.36315,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623198
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.293763,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59785,
+          0.7412,
+          0.8255,
+          0.91255,
+          1.00065,
+          1.08855,
+          1.17435,
+          1.2559,
+          1.36315,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623198
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.293763,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59785,
+          0.7412,
+          0.8255,
+          0.91255,
+          1.00065,
+          1.08855,
+          1.17435,
+          1.2559,
+          1.36315,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.0,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.514492753623198
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.293763,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59785,
+          0.7412,
+          0.8255,
+          0.91255,
+          1.00065,
+          1.08855,
+          1.17435,
+          1.2559,
+          1.36315,
+          1.4752
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.51168857631173
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -4.903188,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.5986,
+          0.7412,
+          0.82555,
+          0.91215,
+          1.00015,
+          1.0882,
+          1.17425,
+          1.25645,
+          1.3957
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.59101199640139
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -1.284396,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.597,
+          0.73885,
+          0.82685,
+          0.9132,
+          1.001,
+          1.08875,
+          1.1743,
+          1.2566,
+          1.28735,
+          1.40565
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.551601370964585
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.958396,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.5975,
+          0.7403,
+          0.82605,
+          0.91275,
+          1.0007,
+          1.08855,
+          1.17435,
+          1.2562,
+          1.3911
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.585368969101765
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.025737,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59645,
+          0.7381,
+          0.82365,
+          0.91035,
+          0.998,
+          1.0856,
+          1.171,
+          1.2522,
+          1.35755,
+          1.4701
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.01,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.456397653580026
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -2.973163,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.5982,
+          0.7425,
+          0.82545,
+          0.91215,
+          1.0005,
+          1.0886,
+          1.1745,
+          1.25585,
+          1.36735,
+          1.47645
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 101,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.508884399000266
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -4.487397,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.5997,
+          0.74095,
+          0.82585,
+          0.9116,
+          0.99945,
+          1.0876,
+          1.17405,
+          1.2575,
+          1.40265
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 102,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.667531239179581
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -4.584023,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59635,
+          0.7361,
+          0.82785,
+          0.91345,
+          1.0012,
+          1.0889,
+          1.1746,
+          1.2667,
+          1.40555
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 103,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.588709988305975
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.476129,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.5974,
+          0.7396,
+          0.82655,
+          0.91275,
+          1.00065,
+          1.08855,
+          1.17445,
+          1.2596,
+          1.3974
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 104,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.656245184580339
+        },
+        "channels": 10,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -1.043429,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59515,
+          0.735,
+          0.82205,
+          0.90805,
+          0.99535,
+          1.0826,
+          1.16765,
+          1.24885,
+          1.28315,
+          1.4004
+        ]
+      },
+      {
+        "plan": "uniform",
+        "generation": 4,
+        "spacing": 0.1,
+        "thickness_sigma_fraction": 0.02,
+        "seed": 105,
+        "mirror_pairs": 2,
+        "cavity_sublayers": 69,
+        "spacer_thickness_lambda0_each": 4.257246376811598,
+        "cavity_half_waves": 10,
+        "mirror_rule": "fewest pairs with >= 2 usable channels unperturbed",
+        "measured_spacing_near_omega0": 0.087212,
+        "footprint": {
+          "layers": 81,
+          "total_thickness_lambda0": 13.398302553536851
+        },
+        "channels": 9,
+        "usable_channels": 3,
+        "worst_adjacent_crosstalk_db": -3.259105,
+        "channels_per_unit_normalized_frequency": 3.0,
+        "centers": [
+          0.59855,
+          0.74265,
+          0.8253,
+          0.91185,
+          1.00005,
+          1.0881,
+          1.17385,
+          1.2564,
+          1.393
+        ]
+      }
+    ],
+    "infeasible": [
+      {
+        "generation": 2,
+        "spacing": 0.02,
+        "status": "infeasible at equal footprint"
+      },
+      {
+        "generation": 2,
+        "spacing": 0.05,
+        "status": "infeasible at equal footprint"
+      },
+      {
+        "generation": 2,
+        "spacing": 0.1,
+        "status": "infeasible at equal footprint"
+      },
+      {
+        "generation": 3,
+        "spacing": 0.02,
+        "status": "infeasible at equal footprint"
+      },
+      {
+        "generation": 3,
+        "spacing": 0.05,
+        "status": "infeasible at equal footprint"
+      },
+      {
+        "generation": 4,
+        "spacing": 0.02,
+        "status": "infeasible at equal footprint"
+      }
+    ]
+  },
+  "comparison_cells": [
+    {
+      "generation": 3,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.0,
+      "cantor_density": 2.0,
+      "uniform_density": 0.0,
+      "cantor_worst_xtalk_db": -10.569961,
+      "uniform_worst_xtalk_db": -3.659719,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 3,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.01,
+      "cantor_density": 2.0,
+      "uniform_density": 0.0,
+      "cantor_worst_xtalk_db": -10.354646,
+      "uniform_worst_xtalk_db": -3.6725477999999994,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 3,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.02,
+      "cantor_density": 2.0,
+      "uniform_density": 0.0,
+      "cantor_worst_xtalk_db": -10.055374400000002,
+      "uniform_worst_xtalk_db": -3.6818022,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.05,
+      "thickness_sigma_fraction": 0.0,
+      "cantor_density": 12.0,
+      "uniform_density": 6.0,
+      "cantor_worst_xtalk_db": -12.925479999999999,
+      "uniform_worst_xtalk_db": -3.823405,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.05,
+      "thickness_sigma_fraction": 0.01,
+      "cantor_density": 9.6,
+      "uniform_density": 6.0,
+      "cantor_worst_xtalk_db": -6.5290875999999995,
+      "uniform_worst_xtalk_db": -3.6062078,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.05,
+      "thickness_sigma_fraction": 0.02,
+      "cantor_density": 11.4,
+      "uniform_density": 6.0,
+      "cantor_worst_xtalk_db": -3.2188117999999997,
+      "uniform_worst_xtalk_db": -3.5114472,
+      "outcome": "mixed"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.0,
+      "cantor_density": 12.0,
+      "uniform_density": 3.0,
+      "cantor_worst_xtalk_db": -12.925479999999999,
+      "uniform_worst_xtalk_db": -3.2937629999999998,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.01,
+      "cantor_density": 9.6,
+      "uniform_density": 3.0,
+      "cantor_worst_xtalk_db": -6.5290875999999995,
+      "uniform_worst_xtalk_db": -3.2289760000000003,
+      "outcome": "cantor better on both"
+    },
+    {
+      "generation": 4,
+      "spacing": 0.1,
+      "thickness_sigma_fraction": 0.02,
+      "cantor_density": 11.4,
+      "uniform_density": 3.0,
+      "cantor_worst_xtalk_db": -3.2188117999999997,
+      "uniform_worst_xtalk_db": -3.3700165999999996,
+      "outcome": "mixed"
+    }
+  ],
+  "verdict": "not kept",
+  "verdict_detail": {
+    "rule": "h3-cells-v1",
+    "verdict": "not kept",
+    "cells": 9,
+    "comparable_cells": 9,
+    "outcome_counts": {
+      "cantor better on both": 7,
+      "cantor worse on both": 0,
+      "mixed": 2,
+      "not comparable": 0
+    }
+  },
+  "evidence": "exact transfer-matrix calculation (lossless, normal incidence)"
+}

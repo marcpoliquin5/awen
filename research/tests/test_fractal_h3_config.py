@@ -179,3 +179,15 @@ def test_config_without_rule_is_not_evaluated(tmp_path):
     stacks.main(["--config", str(p), "--out", str(out)])
     rep = json.loads((out / "h3_channel_plans.json").read_text())
     assert rep["verdict"].startswith("not evaluated") and "verdict_detail" not in rep
+
+
+def test_stored_registered_run_matches_checksum_and_rule():
+    import hashlib
+    res = FRACTAL / "results" / "h3"
+    want = dict(line.split()[::-1] for line in (res / "SHA256SUMS").read_text().splitlines())
+    data = (res / "h3_channel_plans.json").read_bytes()
+    assert hashlib.sha256(data).hexdigest() == want["h3_channel_plans.json"]
+    rep = json.loads(data)
+    # the stored verdict follows from the stored cells under the registered rule
+    assert stacks.verdict(rep["comparison_cells"]) == rep["verdict_detail"]
+    assert rep["verdict"] == rep["verdict_detail"]["verdict"]
