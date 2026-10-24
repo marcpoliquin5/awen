@@ -73,6 +73,14 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
   interval of (butterfly - baseline) at the primary point is > 0.
 - **Falsified if**, on any of the 3 tasks, butterfly does not beat **both** Clements and low-rank.
 
+- **Definitions fixed 2026-10-24, before any H1 full run** (the config leaves them open; `configs/h1.yaml`
+  is unchanged): phase error = i.i.d. N(0, `phase_sigma_rad`) on every phase shifter (theta, phi and output
+  phases); splitter imbalance = each of an MZI's two couplers has power split 0.5 + eta with eta ~
+  N(0, `splitter_imbalance`), clipped to |eta| <= 0.49 (`physical_mzi` in `h1_meshes.py`, equal to the
+  pilot's `T(theta, phi)` at eta = 0). Each initialization seed s draws its own Haar targets from
+  `default_rng(s)` (the DFT target is fixed) and starts the fit from seed s; fabrication draw f for seed s
+  uses torch seed `f * 1000 + s`. Phases are fit without noise, then scored on the fabricated mesh.
+
 ## H2: dimension-factorized (Kronecker / tensor-train) layers
 
 - **Hypothesis**: Kronecker-3 and tensor-train FFN layers deliver more useful MACs per optical/electrical
