@@ -1,7 +1,7 @@
 # AWEN status
 
-Updated 2026-10-24 00:55 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `e90414a` (#145, gate run 40034904339 passed), after `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+Updated 2026-10-24 06:30 ET (time of this commit; the previous header said 00:55 ET, but that commit was made at about 00:32 ET). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `dac9b90` (#146, gate run 40063420420 passed), after `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
 `840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
@@ -80,7 +80,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md` | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md`, `2026-10-24-02.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -119,22 +119,25 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   into per-hypothesis drafts #137 (H1), #136 (H3) and #140 (box-counting), H2 still in #128. The H2 `kron3`
   layer is on main in `awen_models.efficiency` (2026-10-23, no results). The H3 `--config` entry point (Cantor side:
   config checks, seeded thickness perturbation, channel metrics) is draft #144, stacked on #136. Since 2026-10-24
-  #144 also has the equal-footprint uniform-grid comparator (Fabry-Perot comb, `2c291a9`) and per-cell comparison;
-  the rule that combines cells into keep/kill is not registered, so H3 cannot be kept or killed yet.
-  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); full runs not started.
+  #144 also has the equal-footprint uniform-grid comparator (Fabry-Perot comb, `2c291a9`) and per-cell comparison.
+  On 2026-10-24 the cell-to-verdict rule `h3-cells-v1` was registered (`99ced09`) and then the registered run was done
+  (`5902799`, stored with SHA-256 in `results/h3/` on #144): **H3 not kept** (9 comparable cells: 7 Cantor better on
+  both, 2 mixed at sigma 0.02, 0 worse on both; L0, measured by us). The comparator is a weak single-cavity comb, not an
+  optimized WDM filter bank, so this is not evidence against practical uniform-grid filters.
+  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); only the H3 full run is done (on #144).
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. H3 next slice (on #144): register the rule that combines comparison cells into one keep/kill verdict (in
-   `configs/h3.yaml` and PREREGISTRATION.md, before any full run), then do the registered run; then the H1
-   `--config` entry point on #137. Draft PRs only.
+1. H1 `--config` entry point on draft #137 (registered `configs/h1.yaml`: 3 tasks, loss budget, 5 init x 5
+   fabrication seeds from 101/201, paired t over 5 seeds); tiny-config tests, draft only, no full run.
 2. H2 entry point: `h2_structured_weights.py --config configs/h2.yaml` on main, using the `kron3` and
-   `tensor-train` variants now in `awen_models.efficiency`, plus a conversions-per-useful-MAC counter for the
+   `tensor-train` variants in `awen_models.efficiency`, plus a conversions-per-useful-MAC counter for the
    `conversion_mapping` in `h2.yaml`; tests with a tiny config, draft PR only, no full runs yet.
-3. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1) and on the
-   PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ).
+3. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1), on the
+   PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ),
+   and on landing the H3 stack (#136, then #144) on main.
 
 Wiring slices 2a (#134) and 2b (#135) are merged; replacing further literals waits on sourced values.
