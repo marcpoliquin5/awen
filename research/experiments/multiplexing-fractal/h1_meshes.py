@@ -215,15 +215,216 @@ def study(n: int = 8, targets: int = 16, steps: int = 800, restarts: int = 3, se
             "evidence": "lossless unitary simulation (float64); loss figures are bookkeeping, not measured"}
 
 
+# --------------------------------------------------------------------------- registered run (--config)
+PILOT_SEEDS = {0, 1, 2}
+H1_REQUIRED = ("id", "modes", "meshes", "tasks", "primary_point", "free_parameters", "optimizer",
+               "fabrication_noise_seeds", "seeds", "analysis")
+# Families and tasks this entry point can run so far. The low-rank SVD mesh and the MNIST task are
+# registered but not built yet; a run lists them under "not_built" instead of skipping them silently.
+BUILT_FAMILIES = ("butterfly", "clements")
+BUILT_TASKS = ("haar_unitary", "dft_matrix")
+
+
+def load_config(path) -> dict:
+    """Read and check a registered H1 config (``configs/h1.yaml``)."""
+    import yaml
+
+    cfg = yaml.safe_load(Path(path).read_text())
+    missing = [k for k in H1_REQUIRED if k not in cfg]
+    if missing:
+        raise ValueError(f"H1 config missing keys: {missing}")
+    if cfg["id"] != "H1":
+        raise ValueError(f"not an H1 config (id={cfg['id']!r})")
+    for key in ("seeds", "fabrication_noise_seeds"):
+        if PILOT_SEEDS & set(cfg[key]):
+            raise ValueError(f"{key} reuse pilot seeds {sorted(PILOT_SEEDS & set(cfg[key]))}")
+    if set(cfg["seeds"]) & set(cfg["fabrication_noise_seeds"]):
+        raise ValueError("initialization and fabrication-noise seeds overlap")
+    for n in cfg["modes"]:
+        if n < 2 or n & (n - 1):
+            raise ValueError(f"modes must be powers of 2, got {n}")
+    pp, fp = cfg["primary_point"], cfg["free_parameters"]
+    if pp["modes"] not in cfg["modes"]:
+        raise ValueError("primary_point.modes not in modes")
+    for key, grid in (("il_mzi_db", "il_mzi_db"), ("il_crossing_db", "il_crossing_db"),
+                      ("budget_db", "loss_budgets_db"), ("phase_sigma_rad", "phase_sigma_rad"),
+                      ("splitter_imbalance", "splitter_imbalance")):
+        if pp[key] not in fp[grid]:
+            raise ValueError(f"primary_point.{key}={pp[key]} not in free_parameters.{grid}")
+    return cfg
+
+
+def family_columns(family: str, n: int, depth: int) -> list[Column]:
+    """``depth`` is in butterfly layers (log2 N stages each) for butterfly, in columns for Clements."""
+    if family == "butterfly":
+        return butterfly_columns(n, depth)
+    if family == "clements":
+        return clements_columns(n, depth)
+    raise ValueError(f"mesh family {family!r} not built")
+
+
+def family_depths(cfg: dict, family: str) -> list[int]:
+    spec = cfg["meshes"][family]
+    return list(spec["depths_in_layers_of_log2N_stages"] if family == "butterfly" else spec["depths"])
+
+
+def deepest_within_budget(budgets: dict[int, MeshBudget], il_mzi_db: float, il_crossing_db: float,
+                          budget_db: float) -> int | None:
+    """Deepest configured depth whose worst-path loss is at most ``budget_db`` (None if none fits)."""
+    ok = [d for d, b in budgets.items() if b.path_loss_db(il_mzi_db, il_crossing_db) <= budget_db + 1e-12]
+    return max(ok) if ok else None
+
+
+def coupler(alpha: torch.Tensor) -> torch.Tensor:
+    """Lossless directional coupler ``[[cos a, i sin a], [i sin a, cos a]]``; 50:50 at ``a = pi/4``."""
+    c, s = torch.cos(alpha).to(torch.complex128), torch.sin(alpha).to(torch.complex128)
+    return torch.stack([torch.stack([c, 1j * s], -1), torch.stack([1j * s, c], -1)], -2)
+
+
+def physical_mzi(theta: torch.Tensor, phi: torch.Tensor, eta_in: torch.Tensor, eta_out: torch.Tensor) -> torch.Tensor:
+    """Two-coupler MZI ``[..., 2, 2]`` whose couplers have power split ``0.5 + eta``.
+
+    ``U = g * C(a2) diag(e^{i d}, 1) C(a1) diag(e^{i phi}, -1)`` with ``d = pi - 2 theta``,
+    ``g = -i e^{-i d / 2}`` and ``sin^2 a = 0.5 + eta``. At ``eta = 0`` this equals the
+    ``T(theta, phi)`` convention used by ``mesh_unitary`` exactly (checked in the tests).
+    """
+    a1 = torch.asin(torch.sqrt(0.5 + eta_in))
+    a2 = torch.asin(torch.sqrt(0.5 + eta_out))
+    d = (math.pi - 2 * theta).to(torch.complex128)
+    zero = torch.zeros_like(d)
+    inner = torch.diag_embed(torch.stack([torch.exp(1j * d), torch.exp(zero)], -1))
+    pin = torch.diag_embed(torch.stack([torch.exp(1j * phi.to(torch.complex128)), -torch.exp(zero)], -1))
+    g = (-1j * torch.exp(-0.5j * d))[..., None, None]
+    return g * coupler(a2) @ inner @ coupler(a1) @ pin
+
+
+def fabricated_unitary(n: int, cols: list[Column], theta, phi, out, phase_sigma: float, imbalance: float,
+                       seed: int) -> torch.Tensor:
+    """Mesh unitary with one fabrication draw: i.i.d. N(0, phase_sigma) errors on every phase shifter
+    (theta, phi, output phases) and coupler split errors eta ~ N(0, imbalance), clipped to |eta| <= 0.49."""
+    g = torch.Generator().manual_seed(seed)
+    batch, m = theta.shape
+    t = theta + torch.randn(theta.shape, generator=g, dtype=torch.float64) * phase_sigma
+    p = phi + torch.randn(phi.shape, generator=g, dtype=torch.float64) * phase_sigma
+    o = out + torch.randn(out.shape, generator=g, dtype=torch.float64) * phase_sigma
+    eta = (torch.randn((batch, m, 2), generator=g, dtype=torch.float64) * imbalance).clamp(-0.49, 0.49)
+    units = physical_mzi(t, p, eta[..., 0], eta[..., 1])  # [B, m, 2, 2]
+    rows = [torch.eye(n, dtype=torch.complex128).expand(batch, n, n)[:, i, :] for i in range(n)]
+    k = 0
+    for col in cols:
+        for a, b in col:
+            u = units[:, k]
+            ra, rb = rows[a], rows[b]
+            rows[a] = u[:, 0, 0, None] * ra + u[:, 0, 1, None] * rb
+            rows[b] = u[:, 1, 0, None] * ra + u[:, 1, 1, None] * rb
+            k += 1
+    return torch.exp(1j * o.to(torch.complex128))[:, :, None] * torch.stack(rows, dim=1)
+
+
+def dft_unitary(n: int) -> np.ndarray:
+    k = np.arange(n)
+    return np.exp(-2j * math.pi * np.outer(k, k) / n) / math.sqrt(n)
+
+
+def task_targets(task: dict, n: int, seed: int) -> np.ndarray:
+    if task["name"] == "haar_unitary":
+        rng = np.random.default_rng(seed)
+        return np.stack([haar_unitary(n, rng) for _ in range(task["targets"])])
+    if task["name"] == "dft_matrix":
+        return dft_unitary(n)[None]
+    raise ValueError(f"task {task['name']!r} not built")
+
+
+def t_quantile(p: float, df: int) -> float:
+    """Student-t quantile by bisection on a numerically integrated CDF (no scipy on the build box)."""
+    c = math.gamma((df + 1) / 2) / (math.sqrt(df * math.pi) * math.gamma(df / 2))
+
+    def cdf(x: float) -> float:
+        xs = np.linspace(0.0, x, 20001)
+        ys = c * (1 + xs ** 2 / df) ** (-(df + 1) / 2)
+        return 0.5 + float(np.sum((ys[1:] + ys[:-1]) * np.diff(xs)) / 2)
+
+    lo, hi = 0.0, 100.0
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if cdf(mid) < p else (lo, mid)
+    return (lo + hi) / 2
+
+
+def paired_t(diffs) -> dict:
+    """95% two-sided paired-t interval of per-seed differences, Cohen's d_z."""
+    d = np.asarray(diffs, dtype=float)
+    n = len(d)
+    mean, sd = float(d.mean()), float(d.std(ddof=1)) if n > 1 else float("nan")
+    half = t_quantile(0.975, n - 1) * sd / math.sqrt(n) if n > 1 else float("nan")
+    return {"n": n, "mean": mean, "ci95": [mean - half, mean + half],
+            "d_z": mean / sd if sd and sd > 0 else None, "beats": bool(n > 1 and mean - half > 0)}
+
+
+def registered_run(cfg: dict) -> dict:
+    """Score every built family/depth/task at the primary noise point; select per loss budget; compare."""
+    pp, opt = cfg["primary_point"], cfg["optimizer"]
+    scores: dict = {}  # scores[task][modes][family][depth] = per-init-seed mean over fabrication seeds
+    budgets: dict = {}
+    for n in cfg["modes"]:
+        budgets[n] = {f: {d: budget(f, n, family_columns(f, n, d)) for d in family_depths(cfg, f)}
+                      for f in BUILT_FAMILIES}
+    for task in cfg["tasks"]:
+        if task["name"] not in BUILT_TASKS:
+            continue
+        for n in cfg["modes"]:
+            for f in BUILT_FAMILIES:
+                for d in family_depths(cfg, f):
+                    cols, per_seed = family_columns(f, n, d), []
+                    for s in cfg["seeds"]:
+                        tg = task_targets(task, n, s)
+                        r = fit(n, cols, tg, opt["steps"], opt["restarts"], s, opt["lr"])
+                        target = torch.as_tensor(tg, dtype=torch.complex128)
+                        fab = [float(fidelity(target, fabricated_unitary(
+                            n, cols, r["theta"], r["phi"], r["out"], pp["phase_sigma_rad"],
+                            pp["splitter_imbalance"], fs * 1000 + s)).mean()) for fs in cfg["fabrication_noise_seeds"]]
+                        per_seed.append(float(np.mean(fab)))
+                    scores.setdefault(task["name"], {}).setdefault(n, {}).setdefault(f, {})[d] = per_seed
+    sel = {f: deepest_within_budget(budgets[pp["modes"]][f], pp["il_mzi_db"], pp["il_crossing_db"], pp["budget_db"])
+           for f in BUILT_FAMILIES}
+    comparisons = {}
+    for name, by_n in scores.items():
+        fam = by_n[pp["modes"]]
+        if sel["butterfly"] is None or sel["clements"] is None:
+            comparisons[name] = {"status": "no configuration within budget", "selected": sel}
+            continue
+        diffs = np.subtract(fam["butterfly"][sel["butterfly"]], fam["clements"][sel["clements"]])
+        comparisons[name] = {"selected": sel, "butterfly_minus_clements": paired_t(diffs)}
+    return {
+        "study": "awen.fractal-h1-registered.v1", "id": "H1", "primary_point": pp,
+        "budgets": {n: {f: {d: {"mzis": b.mzis, "max_mzis_per_path": b.max_mzis_per_path,
+                                "max_crossings_per_path": b.max_crossings_per_path,
+                                "loss_db_primary": b.path_loss_db(pp["il_mzi_db"], pp["il_crossing_db"])}
+                            for d, b in fb.items()} for f, fb in fam.items()} for n, fam in budgets.items()},
+        "scores_per_init_seed": scores, "comparisons_at_primary_point": comparisons,
+        "not_built": {"families": [f for f in cfg["meshes"] if f not in BUILT_FAMILIES],
+                      "tasks": [t["name"] for t in cfg["tasks"] if t["name"] not in BUILT_TASKS]},
+        "verdict": "not decided: the low-rank baseline and the MNIST task are not built, so the registered criterion cannot be applied",
+        "evidence": "L1 simulation (float64); loss is bookkeeping with free parameters, not a device prediction",
+    }
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Butterfly vs Clements MZI mesh study")
     ap.add_argument("--modes", type=int, nargs="+", default=[8])
     ap.add_argument("--targets", type=int, default=16)
     ap.add_argument("--steps", type=int, default=800)
     ap.add_argument("--restarts", type=int, default=3)
-    ap.add_argument("--out", default=str(Path(__file__).parent / "results" / "pilot"))
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--config", default=None, help="registered H1 config (configs/h1.yaml)")
     a = ap.parse_args(argv)
-    out = Path(a.out)
+    if a.config:
+        out = Path(a.out or Path(__file__).parent / "results" / "h1")
+        out.mkdir(parents=True, exist_ok=True)
+        rep = registered_run(load_config(a.config))
+        (out / "h1_meshes_registered.json").write_text(json.dumps(rep, indent=2) + "\n")
+        return
+    out = Path(a.out or Path(__file__).parent / "results" / "pilot")
     out.mkdir(parents=True, exist_ok=True)
     for n in a.modes:
         rep = study(n, a.targets, a.steps, a.restarts)
