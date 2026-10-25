@@ -21,6 +21,10 @@ Conversion count (definitions fixed in PREREGISTRATION.md, section H2, before an
   (diagonal weight + detector sum), which never moves energy between wavelengths. Channel counts
   are reported as requirements, never assumed device capabilities. A variant whose registered
   mapping is illegal gets conversions verdict ``not evaluable`` (no kill or keep on that rule).
+* **Amendment A1** (2026-10-25, before any full run): ``kron3`` is built from the config's
+  ``kron3_shape`` (legal: polarization factor 2 -> 2) instead of the harness's original
+  ``(4,4,8) -> (8,16,16)`` shape, with the opt-in ``rank_chunk`` for memory. The harness default
+  build is unchanged; the swap is scoped to this script (:func:`registered_build`).
 
 Example::
 
@@ -31,6 +35,7 @@ Example::
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import math
 import statistics
@@ -67,7 +72,47 @@ def load_config(path) -> dict:
         raise ValueError("conversions_per_useful_mac missing from metrics")
     if not 0 < cfg["parameter_match_tolerance"] <= eff.PARAMETER_TOLERANCE:
         raise ValueError("parameter_match_tolerance must be in (0, harness tolerance]")
+    check_kron3_shape(cfg)
     return cfg
+
+
+def check_kron3_shape(cfg: dict) -> dict:
+    """Validate amendment A1 (``kron3_shape``): three factors, d_model kept, polarization factor legal."""
+    ks = cfg.get("kron3_shape")
+    if ks is None:
+        raise ValueError("kron3_shape (amendment A1) missing: the original kron3 shape is illegal")
+    ins, hid = tuple(ks["in"]), tuple(ks["hidden"])
+    if len(ins) != 3 or len(hid) != 3 or int(ks["rank"]) < 1:
+        raise ValueError("kron3_shape needs three in factors, three hidden factors and rank >= 1")
+    if math.prod(ins) != eff.BASE["n_embd"]:
+        raise ValueError(f"kron3_shape in factors multiply to {math.prod(ins)}, not d_model {eff.BASE['n_embd']}")
+    if max(ins[1], hid[1]) > POLARIZATION_MAX:
+        raise ValueError(f"kron3_shape polarization factor {ins[1]}->{hid[1]} exceeds 2x2")
+    chunk = ks.get("rank_chunk")
+    if chunk is not None and int(chunk) < 1:
+        raise ValueError("kron3_shape rank_chunk must be None or >= 1")
+    return ks
+
+
+@contextlib.contextmanager
+def registered_build(cfg: dict):
+    """Within this block, ``eff.build("kron3", ...)`` (also as called by ``check_budget`` and
+    ``train_variant``) returns the amendment-A1 shape with its ``rank_chunk``. Restored on exit."""
+    ks = check_kron3_shape(cfg)
+    original = eff.build
+    ins, hid, rank = tuple(ks["in"]), tuple(ks["hidden"]), int(ks["rank"])
+    chunk = None if ks.get("rank_chunk") is None else int(ks["rank_chunk"])
+
+    def build(name: str, vocab: int):
+        if name != "kron3":
+            return original(name, vocab)
+        return eff._replace_ffn(eff._mini(vocab), lambda: eff.Kron3FeedForward(ins, hid, rank, rank_chunk=chunk))
+
+    eff.build = build
+    try:
+        yield build
+    finally:
+        eff.build = original
 
 
 # --------------------------------------------------------------------------- conversion counter
@@ -183,6 +228,11 @@ def verdict(rows: list[dict], conv: dict, params: dict) -> dict:
 # --------------------------------------------------------------------------- run
 def run_config(cfg: dict, text: str | None = None, batch_size: int = 32) -> dict:
     """``batch_size`` 32 is the harness default and the registered value; only tests lower it."""
+    with registered_build(cfg):
+        return _run_config(cfg, text, batch_size)
+
+
+def _run_config(cfg: dict, text: str | None, batch_size: int) -> dict:
     corpus = text if text is not None else eff.download_tiny_shakespeare()
     vocab = len(set(corpus))
     torch.set_num_threads(int(cfg["threads"]))
@@ -203,7 +253,7 @@ def run_config(cfg: dict, text: str | None = None, batch_size: int = 32) -> dict
             print(json.dumps(row), flush=True)
     return {"id": "H2", "config": cfg, "dataset": "tiny_shakespeare" if text is None else
             {"name": "custom", "characters": len(corpus)},
-            "batch_size": batch_size, "runs": rows, "conversions": conv, "verdict": verdict(rows, conv, params),
+            "batch_size": batch_size, "kron3_shape": cfg["kron3_shape"], "runs": rows, "conversions": conv, "verdict": verdict(rows, conv, params),
             "hardware": hardware_record(torch.device("cpu")),
             "evidence": "val loss and latency measured on the CPU above (L0); conversions counted analytically"}
 
@@ -217,7 +267,8 @@ def main(argv=None) -> int:
     cfg = load_config(a.config)
     if a.conversions_only:
         vocab = 64  # any vocabulary: FFN matrices and their counts do not depend on it
-        rep = {v: conversion_report(eff.build(v, vocab)) for v in cfg["variants"]}
+        with registered_build(cfg) as build:
+            rep = {v: conversion_report(build(v, vocab)) for v in cfg["variants"]}
         print(json.dumps(rep, indent=2))
         return 0
     rep = run_config(cfg)

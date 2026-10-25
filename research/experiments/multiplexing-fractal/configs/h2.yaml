@@ -21,3 +21,9 @@ falsification:
   conversions: "Killed if conversions_per_useful_mac(candidate) >= conversions_per_useful_mac(baseline)"
   latency: "Killed (v2 section 7) if it wins on parameters but forward latency is > 1.2x baseline"
 command: "python research/experiments/multiplexing-fractal/h2_structured_weights.py --config research/experiments/multiplexing-fractal/configs/h2.yaml"
+# Amendment A1 (2026-10-25, before any H2 full run; PREREGISTRATION.md H2 amendment A1, DECISIONS.md D-019).
+# The originally registered kron3 shape (4,4,8) -> (8,16,16), rank 289, puts 4 -> 16 and 16 -> 4 factors on
+# polarization, which is illegal (2x2 only). A1 replaces it with a legal shape at matched parameters. Factor
+# order is (spatial, polarization, wavelength). rank_chunk only bounds memory (forward and gradient are
+# equivalent, tested on main), it does not change the model.
+kron3_shape: {in: [8, 2, 8], hidden: [32, 2, 32], rank: 126, rank_chunk: 18, amendment: A1}

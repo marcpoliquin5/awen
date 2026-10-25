@@ -105,3 +105,13 @@ H2 counts `R * (d_in + d_out)` conversions per layer (one DAC per input and one 
 `R` rank terms) against `d_in * d_out` useful MACs. The fan-out lower bound `d_in + d_out` is reported
 only. A polarization factor above 2 x 2 makes the mapping illegal and the conversions verdict "not
 evaluable". Rule text: `research/experiments/multiplexing-fractal/PREREGISTRATION.md`, H2 section.
+
+## D-019 · H2 amendment A1: legal `kron3` shape
+Decided by: agent, 2026-10-25, before any H2 full run.
+The registered `kron3` shape put 4 -> 16 and 16 -> 4 factors on polarization, which only supports 2 x 2
+mixing, so its conversions verdict could never be evaluated. A1 uses `(8, 2, 8) -> (32, 2, 32)`, rank 126
+(stored parameters +0.24% vs baseline) with `rank_chunk` 18 for memory; everything else in H2 is unchanged.
+Alternatives rejected: keeping the illegal shape (conversions rule "not evaluable" by construction); changing
+the harness default build (would change `awen_models.efficiency` behaviour for other callers); dropping `kron3`
+from H2 (loses the hypothesis' main candidate). Rule text: PREREGISTRATION.md, H2 amendment A1.
+

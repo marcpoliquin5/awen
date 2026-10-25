@@ -111,6 +111,26 @@ Implemented in `h2_structured_weights.py` (`layer_conversions`); fixed here befo
   batch size 32 ran out of memory for `kron3` (process killed at about 13.7 GB resident), so the
   full run also needs a memory-safe contraction.
 
+### H2 amendment A1: legal `kron3` shape (added 2026-10-25, before any H2 full run)
+
+Recorded before any registered H2 run; no H2 full-run output exists at this point. See DECISIONS.md D-019.
+
+- **Change**: `kron3` uses in factors `(8, 2, 8)` and hidden factors `(32, 2, 32)` (order: spatial,
+  polarization, wavelength), rank 126, instead of `(4, 4, 8) -> (8, 16, 16)`, rank 289. The polarization factor
+  is 2 -> 2 in both FFN matrices, so the mapping is legal under the 2 x 2 rule above. `d_model` 128 and hidden
+  width 2048 are unchanged. Stored as `kron3_shape` in `configs/h2.yaml`.
+- **Why this shape**: the polarization factor must be 2 on both sides; the remaining factors of 128 and 2048 are
+  split evenly between spatial and wavelength (8 x 8 and 32 x 32), and the rank is the one that matches the
+  baseline's stored parameters most closely (126: 820,032 vs 818,048 baseline, +0.24%, inside the registered 3%;
+  125 would be -0.26%). Counted by `check_budget` at vocabulary 65, the same check the run applies.
+- **Memory**: the run sets `rank_chunk` 18 (126 = 7 x 18) on every `Kron3Linear`. It only bounds activation
+  memory; forward and gradient are equivalent to the unchunked path (tests on main, #155). Batch size stays 32.
+- **Unchanged**: seeds, steps, threads, the other variants, the counting rule and all three kill rules. Under the
+  counting rule a rank-126 layer needs 126 times the dense conversions per MVP, so the conversions rule is
+  expected to kill `kron3` whatever its accuracy; this is stated here before the run, not discovered after it.
+- **Harness**: `awen_models.efficiency.build("kron3")` keeps the original shape (no harness or interface
+  change); `h2_structured_weights.py` swaps in the A1 shape only inside its own run (`registered_build`).
+
 ## H3: self-similar (Cantor) channel plans
 
 - **Hypothesis**: a Cantor-stack filter bank gives a multi-scale WDM channel plan with lower adjacent-channel

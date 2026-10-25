@@ -64,10 +64,38 @@ def test_polarization_factor_above_two_is_illegal():
     assert not rep["legal"] and "polarization" in rep["illegal_reasons"][0]
 
 
-def test_registered_variants_conversion_report():
+def test_original_kron3_shape_is_illegal_and_amendment_a1_is_legal():
     rep = {v: h2.conversion_report(eff.build(v, 65)) for v in h2.REGISTERED_VARIANTS}
     assert rep["baseline"]["conversions_per_useful_mac"] == pytest.approx(2 * (128 + 512) / (2 * 128 * 512))
     assert rep["baseline"]["legal"] and rep["tensor-train"]["legal"] and not rep["kron3"]["legal"]
+    cfg = h2.load_config(H2_YAML)
+    with h2.registered_build(cfg) as build:
+        rep = {v: h2.conversion_report(build(v, 65)) for v in h2.REGISTERED_VARIANTS}
+    assert all(r["legal"] for r in rep.values())
+    assert rep["kron3"]["layers"][0]["channel_requirements"]["polarization_states"] == 2
+    assert rep["kron3"]["conversions"] == 4 * 2 * 126 * (128 + 2048)
+
+
+def test_amendment_a1_matches_parameters_and_restores_harness_build():
+    cfg = h2.load_config(H2_YAML)
+    original = eff.build
+    with h2.registered_build(cfg):
+        counts = eff.check_budget(65)  # harness path calls eff.build, so it sees the A1 shape
+        layer = eff.build("kron3", 65).blocks[0].ffn.fc
+        assert (layer.ins, layer.outs, layer.rank, layer.rank_chunk) == ((8, 2, 8), (32, 2, 32), 126, 18)
+    assert eff.build is original and eff.build("kron3", 65).blocks[0].ffn.fc.ins == (4, 4, 8)
+    ref = counts["baseline"]
+    assert abs(counts["kron3"] - ref) / ref <= cfg["parameter_match_tolerance"]
+
+
+def test_config_rejects_missing_or_illegal_kron3_shape(tmp_path):
+    with pytest.raises(ValueError, match="kron3_shape"):
+        h2.load_config(_cfg(tmp_path, kron3_shape=None))
+    bad = {"in": [4, 4, 8], "hidden": [8, 16, 16], "rank": 289, "rank_chunk": 17}
+    with pytest.raises(ValueError, match="exceeds 2x2"):
+        h2.load_config(_cfg(tmp_path, kron3_shape=bad))
+    with pytest.raises(ValueError, match="d_model"):
+        h2.load_config(_cfg(tmp_path, kron3_shape={**bad, "in": [8, 2, 4], "hidden": [32, 2, 32]}))
 
 
 def test_verdict_rules():
@@ -88,7 +116,8 @@ def test_tiny_run_end_to_end(tmp_path):
     cfg = h2.load_config(H2_YAML)
     cfg.update(steps=2, seeds=[101, 102], threads=1, latency={"batch_size": 1, "concurrent_runs": 1, "repeats": 2})
     text = "".join(ALPHABET[(i * 7 + i // 13) % 65] for i in range(6000))
-    rep = h2.run_config(cfg, text=text, batch_size=1)  # registered 32 needs > 13 GiB for kron3
+    rep = h2.run_config(cfg, text=text, batch_size=1)
+    assert rep["kron3_shape"]["amendment"] == "A1" and rep["conversions"]["kron3"]["legal"]
     assert len(rep["runs"]) == 6 and set(rep["verdict"]) == {"kron3", "tensor-train"}
     assert all(r["val_loss"] > 0 and r["forward_latency_ms_b1"] > 0 for r in rep["runs"])
     json.dumps(rep)
