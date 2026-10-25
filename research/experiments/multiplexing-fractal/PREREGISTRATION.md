@@ -96,6 +96,14 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
   recorded as not applicable. Verdict: "not decided" if any registered family or task is missing or a family
   has no configuration within budget; otherwise the registered rule above.
 
+### H1 deviation log
+
+- 2026-10-25, before any full-run result existed: the registered low-rank ranks `[2, 4, 8]` include rank 8 at
+  N = 8, which is full rank, not low rank, and the first full-run launch stopped on it with
+  `ValueError: rank must be in [1, 7], got 8` (no scores were produced). The run now excludes ranks >= N at that
+  N and lists them under `excluded_depths` in the output. The primary point (N = 16) keeps all three ranks, so
+  the verdict rule is unchanged. `configs/h1.yaml` is not edited.
+
 ## H2: dimension-factorized (Kronecker / tensor-train) layers
 
 - **Hypothesis**: Kronecker-3 and tensor-train FFN layers deliver more useful MACs per optical/electrical

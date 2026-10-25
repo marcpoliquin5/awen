@@ -218,3 +218,23 @@ def test_tiny_run_at_16_modes_gives_verdict(tmp_path):
     assert rep["skipped"] == {}
     assert set(rep["comparisons_at_primary_point"]) == {"haar_unitary", "mnist_pca16_linear", "dft_matrix"}
     assert rep["verdict"].startswith(("kept", "killed"))
+
+
+def test_low_rank_ranks_at_or_above_n_are_excluded_and_reported(tmp_path):
+    cfg = meshes.load_config(H1_YAML)
+    # registered ranks [2, 4, 8]: rank 8 is full rank at N=8, so it is excluded there but kept at N=16
+    keep8, ex8 = meshes.applicable_depths(cfg, "low_rank_svd", 8)
+    assert keep8 == [2, 4] and list(ex8) == [8] and "not low rank" in ex8[8]
+    assert meshes.applicable_depths(cfg, "low_rank_svd", 16) == ([2, 4, 8], {})
+    assert meshes.applicable_depths(cfg, "clements", 8) == ([2, 4, 8, 16], {})
+    out = tmp_path / "out"
+    tiny = yaml.safe_load(_tiny(tmp_path).read_text())
+    tiny["meshes"]["low_rank_svd"]["ranks"] = [2, 4]
+    tiny["tasks"] = [{"name": "dft_matrix", "score": "fidelity"}]
+    p = tmp_path / "h1_tiny_ex.yaml"
+    p.write_text(yaml.safe_dump(tiny))
+    meshes.main(["--config", str(p), "--out", str(out)])
+    rep = json.loads((out / "h1_meshes_registered.json").read_text())
+    assert list(rep["excluded_depths"]["4"]["low_rank_svd"]) == ["4"]
+    assert set(rep["scores_per_init_seed"]["dft_matrix"]["4"]["low_rank_svd"]) == {"2"}
+    assert set(rep["budgets"]["4"]["low_rank_svd"]) == {"2"}

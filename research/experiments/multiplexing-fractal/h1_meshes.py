@@ -275,6 +275,19 @@ def family_depths(cfg: dict, family: str) -> list[int]:
     return list(spec["ranks"] if family == "low_rank_svd" else spec["depths"])
 
 
+def applicable_depths(cfg: dict, family: str, n: int) -> tuple[list[int], dict[int, str]]:
+    """Registered depths that exist at ``n`` modes, plus the excluded ones with the reason.
+    A low-rank SVD mesh needs rank r < N: rank N is a full-rank (unrestricted) mesh, not a low-rank one,
+    so registered ranks >= N are excluded at that N and reported, never silently dropped."""
+    keep, excluded = [], {}
+    for d in family_depths(cfg, family):
+        if family == "low_rank_svd" and not 1 <= d < n:
+            excluded[d] = f"excluded: low-rank SVD rank must be in [1, {n - 1}] at N={n}; rank {d} is not low rank"
+        else:
+            keep.append(d)
+    return keep, excluded
+
+
 # --------------------------------------------------------------------------- low-rank SVD mesh
 def low_rank_stage_columns(n: int, r: int) -> list[Column]:
     """Reck-style triangle that sets the first ``r`` rows of an N-mode unitary: for row k < r, MZIs on
@@ -517,7 +530,13 @@ def registered_run(cfg: dict, mnist_raw: dict | None = None) -> dict:
     pp = cfg["primary_point"]
     scores: dict = {}  # scores[task][modes][family][depth] = per-init-seed mean over fabrication seeds
     skipped: dict = {}
-    budgets = {n: {f: {d: family_budget(f, n, d) for d in family_depths(cfg, f)} for f in BUILT_FAMILIES}
+    excluded_depths: dict = {}
+    for n in cfg["modes"]:
+        for f in BUILT_FAMILIES:
+            ex = applicable_depths(cfg, f, n)[1]
+            if ex:
+                excluded_depths.setdefault(n, {})[f] = ex
+    budgets = {n: {f: {d: family_budget(f, n, d) for d in applicable_depths(cfg, f, n)[0]} for f in BUILT_FAMILIES}
                for n in cfg["modes"]}
     mnist = None
     for task in cfg["tasks"]:
@@ -530,7 +549,7 @@ def registered_run(cfg: dict, mnist_raw: dict | None = None) -> dict:
                 skipped.setdefault(task["name"], {})[n] = f"not applicable: {task['features']} features need {task['features']} modes"
                 continue
             for f in BUILT_FAMILIES:
-                for d in family_depths(cfg, f):
+                for d in applicable_depths(cfg, f, n)[0]:
                     per_seed = [score_seed(task, f, n, d, s, cfg, mnist) for s in cfg["seeds"]]
                     scores.setdefault(task["name"], {}).setdefault(n, {}).setdefault(f, {})[d] = per_seed
     sel = {f: deepest_within_budget(budgets[pp["modes"]][f], pp["il_mzi_db"], pp["il_crossing_db"], pp["budget_db"])
@@ -563,7 +582,7 @@ def registered_run(cfg: dict, mnist_raw: dict | None = None) -> dict:
                                 "max_crossings_per_path": b.max_crossings_per_path,
                                 "loss_db_primary": b.path_loss_db(pp["il_mzi_db"], pp["il_crossing_db"])}
                             for d, b in fb.items()} for f, fb in fam.items()} for n, fam in budgets.items()},
-        "scores_per_init_seed": scores, "skipped": skipped, "comparisons_at_primary_point": comparisons,
+        "scores_per_init_seed": scores, "skipped": skipped, "excluded_depths": excluded_depths, "comparisons_at_primary_point": comparisons,
         "not_built": not_built, "verdict": verdict,
         "evidence": "L1 simulation (float64); loss is bookkeeping with free parameters, not a device prediction",
     }
