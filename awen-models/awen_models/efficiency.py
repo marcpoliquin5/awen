@@ -46,6 +46,7 @@ from typing import Any, Callable, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
 from .config import MiniConfig
 from .data import TINY_SHAKESPEARE, download_tiny_shakespeare, sample_batch, split_tokens
@@ -116,13 +117,24 @@ class Kron3Linear(nn.Module):
     token in a fixed order (C, then B, then A), so :meth:`macs_per_token` is the exact
     multiply count of the executed path, not an estimate. ``dense`` builds the full
     ``[d_out, d_in]`` matrix for tests.
+
+    ``rank_chunk`` (default ``None``: one pass over all ranks, the original path) splits
+    the rank sum into chunks of at most ``rank_chunk`` terms and, while autograd is
+    recording, recomputes each chunk in backward (activation checkpointing) instead of
+    storing its ``[n, r, ...]`` intermediates. The forward multiplies are the same, so
+    :meth:`macs_per_token` is unchanged; backward does one extra forward per chunk.
+    Peak activation memory then scales with ``rank_chunk`` rather than ``rank``.
     """
 
-    def __init__(self, ins: tuple[int, int, int], outs: tuple[int, int, int], rank: int, bias: bool = True):
+    def __init__(self, ins: tuple[int, int, int], outs: tuple[int, int, int], rank: int, bias: bool = True,
+                 rank_chunk: Optional[int] = None):
         super().__init__()
         if len(ins) != 3 or len(outs) != 3 or rank < 1:
             raise ValueError("Kron3Linear needs three input factors, three output factors and rank >= 1")
+        if rank_chunk is not None and rank_chunk < 1:
+            raise ValueError("rank_chunk must be None or >= 1")
         self.ins, self.outs, self.rank = tuple(ins), tuple(outs), rank
+        self.rank_chunk = rank_chunk
         self.in_features, self.out_features = math.prod(ins), math.prod(outs)
         scale = rank ** (1 / 3)
         self.A = nn.Parameter(torch.randn(rank, outs[0], ins[0]) / math.sqrt(ins[0] * scale))
@@ -134,12 +146,27 @@ class Kron3Linear(nn.Module):
         """Equivalent dense ``[d_out, d_in]`` matrix."""
         return sum(torch.kron(torch.kron(self.A[r], self.B[r]), self.C[r]) for r in range(self.rank))
 
+    @staticmethod
+    def _contract(xi: torch.Tensor, A: torch.Tensor, B: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
+        t = torch.einsum("nijk,rck->nrijc", xi, C)                 # n*r*i1*i2*i3*o3 MACs
+        t = torch.einsum("nrijc,rbj->nricb", t, B)                 # n*r*i1*i2*o3*o2 MACs
+        return torch.einsum("nricb,rai->nabc", t, A)               # n*r*i1*o3*o2*o1 MACs
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         lead = x.shape[:-1]
         xi = x.reshape(-1, *self.ins)                               # [n, i1, i2, i3]
-        t = torch.einsum("nijk,rck->nrijc", xi, self.C)            # n*r*i1*i2*i3*o3 MACs
-        t = torch.einsum("nrijc,rbj->nricb", t, self.B)            # n*r*i1*i2*o3*o2 MACs
-        y = torch.einsum("nricb,rai->nabc", t, self.A)             # n*r*i1*o3*o2*o1 MACs
+        if self.rank_chunk is None or self.rank_chunk >= self.rank:
+            y = self._contract(xi, self.A, self.B, self.C)
+        else:
+            y = None
+            for s in range(0, self.rank, self.rank_chunk):
+                sl = slice(s, s + self.rank_chunk)
+                args = (xi, self.A[sl], self.B[sl], self.C[sl])
+                if torch.is_grad_enabled():
+                    part = checkpoint(self._contract, *args, use_reentrant=False)
+                else:
+                    part = self._contract(*args)
+                y = part if y is None else y + part
         y = y.reshape(*lead, self.out_features)
         return y + self.bias if self.bias is not None else y
 
@@ -152,13 +179,24 @@ class Kron3Linear(nn.Module):
 class Kron3FeedForward(nn.Module):
     """GELU MLP whose two matrices are :class:`Kron3Linear` layers."""
 
-    def __init__(self, in_factors: tuple[int, int, int], hid_factors: tuple[int, int, int], rank: int):
+    def __init__(self, in_factors: tuple[int, int, int], hid_factors: tuple[int, int, int], rank: int,
+                 rank_chunk: Optional[int] = None):
         super().__init__()
-        self.fc = Kron3Linear(in_factors, hid_factors, rank)
-        self.proj = Kron3Linear(hid_factors, in_factors, rank)
+        self.fc = Kron3Linear(in_factors, hid_factors, rank, rank_chunk=rank_chunk)
+        self.proj = Kron3Linear(hid_factors, in_factors, rank, rank_chunk=rank_chunk)
 
     def forward(self, x):
         return self.proj(F.gelu(self.fc(x)))
+
+
+def set_kron3_rank_chunk(model: nn.Module, rank_chunk: Optional[int]) -> int:
+    """Set ``rank_chunk`` on every :class:`Kron3Linear` in ``model``; returns how many were set."""
+    if rank_chunk is not None and rank_chunk < 1:
+        raise ValueError("rank_chunk must be None or >= 1")
+    layers = [m for m in model.modules() if isinstance(m, Kron3Linear)]
+    for m in layers:
+        m.rank_chunk = rank_chunk
+    return len(layers)
 
 
 class MoEFeedForward(nn.Module):

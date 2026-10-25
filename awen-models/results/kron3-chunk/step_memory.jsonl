@@ -1,0 +1,3 @@
+{"batch": 4, "block": 128, "rank_chunk": null, "loss": 4.175597, "max_rss_mb": 6658.2, "cap_gb": 9.0, "threads": 4, "python": "3.13.5"}
+{"batch": 4, "block": 128, "rank_chunk": 17, "loss": 4.175597, "max_rss_mb": 1541.2, "cap_gb": 9.0, "threads": 4, "python": "3.13.5"}
+{"batch": 32, "block": 128, "rank_chunk": 17, "loss": 4.194265, "max_rss_mb": 1365.9, "cap_gb": 9.0, "threads": 4, "python": "3.13.5"}
