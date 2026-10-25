@@ -1,7 +1,7 @@
 # AWEN status
 
-Updated 2026-10-24 18:38 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `c294212` (#149, gate run 40112995081 passed), after `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+Updated 2026-10-25 00:27 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `73e9780` (#151, gate run 40140095232 passed), after `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
 `840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
@@ -130,7 +130,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   on #148) adds the low-rank SVD mesh baseline (ranks 2, 4, 8, own component and worst-path count) and the
   MNIST-PCA16 task (one photonic layer plus detection, N = 16 only), compares butterfly with both baselines and
   applies the registered kill rule; their definitions were fixed in PREREGISTRATION.md on 2026-10-24 before any
-  H1 full run. The entry point is now complete, but no H1 full run has been done (no H1 result).
+  H1 full run. On 2026-10-25 the first full-run launch stopped before any score (registered rank 8 at N = 8 is full
+  rank); `b3f94ff` on #150 excludes ranks >= N at that N and reports them (primary point N = 16 keeps all ranks;
+  deviation logged in PREREGISTRATION.md). The full run was relaunched at `b3f94ff` at 00:23 ET in the background
+  on the build box; it had not finished at this commit, so there is still no H1 result.
   H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); only the H3 full run is done (on #144).
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
@@ -138,10 +141,10 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 ## Next 3 tasks
 
-1. H1 registered full run on draft #150: `python research/experiments/multiplexing-fractal/h1_meshes.py --config
-   research/experiments/multiplexing-fractal/configs/h1.yaml` on the build box CPU (one MNIST cell measured at
-   74.2 s, so roughly 1-3 h; run in the background), stored with SHA-256 in `results/h1/` plus a `RESULT.md`
-   stating the verdict; draft only.
+1. Collect the H1 registered full run started 2026-10-25 00:23 ET at `b3f94ff` on draft #150 (`python
+   research/experiments/multiplexing-fractal/h1_meshes.py --config research/experiments/multiplexing-fractal/configs/h1.yaml`,
+   build box CPU, roughly 1-3 h): store it with SHA-256 in `results/h1/` plus a `RESULT.md` stating the verdict;
+   draft only. If it failed, fix and relaunch.
 2. H2 entry point: `h2_structured_weights.py --config configs/h2.yaml` on main, using the `kron3` and
    `tensor-train` variants in `awen_models.efficiency`, plus a conversions-per-useful-MAC counter for the
    `conversion_mapping` in `h2.yaml`; tests with a tiny config, draft PR only, no full runs yet.
