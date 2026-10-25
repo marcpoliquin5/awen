@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -219,10 +220,11 @@ def study(n: int = 8, targets: int = 16, steps: int = 800, restarts: int = 3, se
 PILOT_SEEDS = {0, 1, 2}
 H1_REQUIRED = ("id", "modes", "meshes", "tasks", "primary_point", "free_parameters", "optimizer",
                "fabrication_noise_seeds", "seeds", "analysis")
-# Families and tasks this entry point can run so far. The low-rank SVD mesh and the MNIST task are
-# registered but not built yet; a run lists them under "not_built" instead of skipping them silently.
-BUILT_FAMILIES = ("butterfly", "clements")
-BUILT_TASKS = ("haar_unitary", "dft_matrix")
+# Families and tasks this entry point can run. Anything registered but missing here is listed under
+# "not_built" in the report instead of being skipped silently.
+BUILT_FAMILIES = ("butterfly", "clements", "low_rank_svd")
+BUILT_TASKS = ("haar_unitary", "dft_matrix", "mnist_pca16_linear")
+BASELINES = ("clements", "low_rank_svd")
 
 
 def load_config(path) -> dict:
@@ -255,17 +257,151 @@ def load_config(path) -> dict:
 
 
 def family_columns(family: str, n: int, depth: int) -> list[Column]:
-    """``depth`` is in butterfly layers (log2 N stages each) for butterfly, in columns for Clements."""
+    """``depth`` is in butterfly layers (log2 N stages each) for butterfly, in columns for Clements.
+    For ``low_rank_svd`` it is the rank r and the columns are the input stage then the output stage."""
     if family == "butterfly":
         return butterfly_columns(n, depth)
     if family == "clements":
         return clements_columns(n, depth)
+    if family == "low_rank_svd":
+        return low_rank_stage_columns(n, depth) + low_rank_stage_columns(n, depth)[::-1]
     raise ValueError(f"mesh family {family!r} not built")
 
 
 def family_depths(cfg: dict, family: str) -> list[int]:
     spec = cfg["meshes"][family]
-    return list(spec["depths_in_layers_of_log2N_stages"] if family == "butterfly" else spec["depths"])
+    if family == "butterfly":
+        return list(spec["depths_in_layers_of_log2N_stages"])
+    return list(spec["ranks"] if family == "low_rank_svd" else spec["depths"])
+
+
+def applicable_depths(cfg: dict, family: str, n: int) -> tuple[list[int], dict[int, str]]:
+    """Registered depths that exist at ``n`` modes, plus the excluded ones with the reason.
+    A low-rank SVD mesh needs rank r < N: rank N is a full-rank (unrestricted) mesh, not a low-rank one,
+    so registered ranks >= N are excluded at that N and reported, never silently dropped."""
+    keep, excluded = [], {}
+    for d in family_depths(cfg, family):
+        if family == "low_rank_svd" and not 1 <= d < n:
+            excluded[d] = f"excluded: low-rank SVD rank must be in [1, {n - 1}] at N={n}; rank {d} is not low rank"
+        else:
+            keep.append(d)
+    return keep, excluded
+
+
+# --------------------------------------------------------------------------- low-rank SVD mesh
+def low_rank_stage_columns(n: int, r: int) -> list[Column]:
+    """Reck-style triangle that sets the first ``r`` rows of an N-mode unitary: for row k < r, MZIs on
+    (N-2, N-1), ..., (k, k+1), one per column. ``r N - r (r + 1) / 2`` MZIs, adjacent pairs, no crossings.
+    Reversed, the same list sets the first ``r`` columns (output stage)."""
+    if not 1 <= r < n:
+        raise ValueError(f"rank must be in [1, {n - 1}], got {r}")
+    return [[(j, j + 1)] for k in range(r) for j in range(n - 2, k - 1, -1)]
+
+
+def low_rank_budget(n: int, r: int) -> MeshBudget:
+    """MZI count and worst per-mode path of input stage + r attenuator MZIs (modes < r) + output stage.
+    Same per-mode proxy as ``budget``: the attenuators couple mode i to a dump port, adding one MZI."""
+    stage = low_rank_stage_columns(n, r)
+    per_mode = [0] * n
+    for col in stage + stage[::-1]:
+        for a, b in col:
+            per_mode[a] += 1
+            per_mode[b] += 1
+    for i in range(r):
+        per_mode[i] += 1
+    return MeshBudget("low_rank_svd", n, r, 2 * mzi_count(stage) + r, max(per_mode), 0)
+
+
+def family_budget(family: str, n: int, depth: int) -> MeshBudget:
+    if family == "low_rank_svd":
+        return low_rank_budget(n, depth)
+    return budget(family, n, family_columns(family, n, depth))
+
+
+def init_params(family: str, n: int, depth: int, batch: int, g: torch.Generator) -> list[torch.Tensor]:
+    """Uniform random phases. Meshes: [theta, phi, out] (same draw order as ``fit``). Low rank: input
+    stage [theta, phi, out], attenuators [theta, phi], output stage [theta, phi, out]."""
+    def draw(*shape, scale):
+        return (torch.rand(batch, *shape, generator=g, dtype=torch.float64) * scale).requires_grad_()
+
+    if family != "low_rank_svd":
+        m = mzi_count(family_columns(family, n, depth))
+        return [draw(m, scale=math.pi), draw(m, scale=2 * math.pi), draw(n, scale=2 * math.pi)]
+    k = mzi_count(low_rank_stage_columns(n, depth))
+    stage = lambda: [draw(k, scale=math.pi), draw(k, scale=2 * math.pi), draw(n, scale=2 * math.pi)]  # noqa: E731
+    return stage() + [draw(depth, scale=math.pi), draw(depth, scale=2 * math.pi)] + stage()
+
+
+def implemented(family: str, n: int, depth: int, params, phase_sigma: float = 0.0, imbalance: float = 0.0,
+                seed: int | None = None) -> torch.Tensor:
+    """Matrix ``[B, N, N]`` the mesh applies; ideal if ``seed`` is None, else one fabrication draw.
+    Low rank: ``M = U2[:, :r] diag(a) U1[:r, :]`` with attenuator amplitude ``a`` = element [0, 0] of the
+    two-coupler MZI. Fabrication draws for U1, the attenuators and U2 use seeds seed, seed + 7e6, seed + 14e6."""
+    def unitary(cols, th, ph, out, s):
+        if s is None:
+            return mesh_unitary(n, cols, th, ph, out)
+        return fabricated_unitary(n, cols, th, ph, out, phase_sigma, imbalance, s)
+
+    if family != "low_rank_svd":
+        return unitary(family_columns(family, n, depth), *params, seed)
+    r, stage = depth, low_rank_stage_columns(n, depth)
+    u1 = unitary(stage, *params[0:3], seed)
+    u2 = unitary(stage[::-1], *params[5:8], None if seed is None else seed + 7_000_000)
+    th, ph = params[3], params[4]
+    if seed is None:
+        a = torch.exp(1j * ph.to(torch.complex128)) * torch.cos(th).to(torch.complex128)
+    else:
+        g = torch.Generator().manual_seed(seed + 14_000_000)
+        th = th + torch.randn(th.shape, generator=g, dtype=torch.float64) * phase_sigma
+        ph = ph + torch.randn(ph.shape, generator=g, dtype=torch.float64) * phase_sigma
+        eta = (torch.randn((*th.shape, 2), generator=g, dtype=torch.float64) * imbalance).clamp(-0.49, 0.49)
+        a = physical_mzi(th, ph, eta[..., 0], eta[..., 1])[..., 0, 0]
+    return u2[:, :, :r] @ (a[:, :, None] * u1[:, :r, :])
+
+
+def fit_family(family: str, n: int, depth: int, objective, batch: int, extra: int, opt: dict, seed: int):
+    """Adam on all phases (+ ``extra`` real readout parameters per batch row, initialised to 0) minimising
+    ``objective(M, extra_params) -> [batch]``; returns parameters and the final objective."""
+    g = torch.Generator().manual_seed(seed)
+    params = init_params(family, n, depth, batch, g)
+    ext = torch.zeros(batch, extra, dtype=torch.float64, requires_grad=True)
+    adam = torch.optim.Adam(params + [ext], lr=opt["lr"])
+    for _ in range(opt["steps"]):
+        loss = objective(implemented(family, n, depth, params), ext).sum()
+        adam.zero_grad()
+        loss.backward()
+        adam.step()
+    with torch.no_grad():
+        final = objective(implemented(family, n, depth, params), ext)
+    return [p.detach() for p in params], ext.detach(), final
+
+
+# --------------------------------------------------------------------------- MNIST-PCA16 task
+def mnist_pca(features: int, data: dict | None = None) -> dict:
+    """PCA of MNIST to ``features`` dims, fit on the training split only (train mean removed, top
+    eigenvectors of the train covariance, sign fixed so each component's largest-|.| entry is positive),
+    then every sample scaled to unit L2 norm (amplitude encoding into ``features`` modes)."""
+    if data is None:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "awen-models"))
+        from awen_models.photon_training import load_mnist
+
+        data = load_mnist()
+    tx = data["train_x"].to(torch.float64)
+    mean = tx.mean(0)
+    cov = (tx - mean).T @ (tx - mean) / (len(tx) - 1)
+    _, vecs = torch.linalg.eigh(cov)
+    comp = vecs[:, -features:].flip(1)
+    comp = comp * torch.sign(comp.gather(0, comp.abs().argmax(0, keepdim=True)))
+    proj = lambda x: torch.nn.functional.normalize((x.to(torch.float64) - mean) @ comp, dim=1)  # noqa: E731
+    return {"train_x": proj(data["train_x"]), "train_y": data["train_y"],
+            "test_x": proj(data["test_x"]), "test_y": data["test_y"]}
+
+
+def mnist_logits(m: torch.Tensor, x: torch.Tensor, log_gain: torch.Tensor) -> torch.Tensor:
+    """One photonic layer plus detection: intensities ``|M x|^2`` of output modes 0-9, times an electronic
+    gain ``10 * exp(log_gain)`` (the only non-photonic parameter). ``m: [B, N, N]``, ``x: [S, N]``."""
+    y = torch.einsum("bij,sj->bsi", m, x.to(torch.complex128))
+    return (y.abs() ** 2)[:, :, :10] * (10 * torch.exp(log_gain))[:, :, None]
 
 
 def deepest_within_budget(budgets: dict[int, MeshBudget], il_mzi_db: float, il_crossing_db: float,
@@ -361,56 +497,99 @@ def paired_t(diffs) -> dict:
             "d_z": mean / sd if sd and sd > 0 else None, "beats": bool(n > 1 and mean - half > 0)}
 
 
-def registered_run(cfg: dict) -> dict:
-    """Score every built family/depth/task at the primary noise point; select per loss budget; compare."""
+def score_seed(task: dict, family: str, n: int, depth: int, seed: int, cfg: dict, mnist: dict | None) -> float:
+    """Fit without noise from init seed ``seed``, then mean score over the fabrication draws.
+    Unitary tasks: best restart per target by fidelity. MNIST: best restart by final train loss."""
     pp, opt = cfg["primary_point"], cfg["optimizer"]
+    restarts = opt["restarts"]
+    fab_seeds = [f * 1000 + seed for f in cfg["fabrication_noise_seeds"]]
+    if task["name"] == "mnist_pca16_linear":
+        tx, ty = mnist["train_x"], mnist["train_y"]
+        ce = lambda m, ext: torch.stack([torch.nn.functional.cross_entropy(z, ty)  # noqa: E731
+                                         for z in mnist_logits(m, tx, ext)])
+        params, ext, final = fit_family(family, n, depth, ce, restarts, 1, opt, seed)
+        b = int(final.argmin())
+        best = [p[b:b + 1] for p in params]
+        accs = [float((mnist_logits(implemented(family, n, depth, best, pp["phase_sigma_rad"],
+                                                pp["splitter_imbalance"], fs), mnist["test_x"], ext[b:b + 1])[0]
+                       .argmax(1) == mnist["test_y"]).double().mean()) for fs in fab_seeds]
+        return float(np.mean(accs))
+    tg = torch.as_tensor(task_targets(task, n, seed), dtype=torch.complex128)
+    k = len(tg)
+    target = tg.repeat(restarts, 1, 1)
+    params, _, final = fit_family(family, n, depth, lambda m, ext: 1 - fidelity(target, m), restarts * k, 0, opt, seed)
+    idx = final.reshape(restarts, k).argmin(0) * k + torch.arange(k)
+    best = [p[idx] for p in params]
+    return float(np.mean([float(fidelity(tg, implemented(family, n, depth, best, pp["phase_sigma_rad"],
+                                                         pp["splitter_imbalance"], fs)).mean()) for fs in fab_seeds]))
+
+
+def registered_run(cfg: dict, mnist_raw: dict | None = None) -> dict:
+    """Score every built family/depth/task at the primary noise point; select per loss budget; compare
+    butterfly with each baseline; apply the registered kill rule. ``mnist_raw`` overrides MNIST (tests)."""
+    pp = cfg["primary_point"]
     scores: dict = {}  # scores[task][modes][family][depth] = per-init-seed mean over fabrication seeds
-    budgets: dict = {}
+    skipped: dict = {}
+    excluded_depths: dict = {}
     for n in cfg["modes"]:
-        budgets[n] = {f: {d: budget(f, n, family_columns(f, n, d)) for d in family_depths(cfg, f)}
-                      for f in BUILT_FAMILIES}
+        for f in BUILT_FAMILIES:
+            ex = applicable_depths(cfg, f, n)[1]
+            if ex:
+                excluded_depths.setdefault(n, {})[f] = ex
+    budgets = {n: {f: {d: family_budget(f, n, d) for d in applicable_depths(cfg, f, n)[0]} for f in BUILT_FAMILIES}
+               for n in cfg["modes"]}
+    mnist = None
     for task in cfg["tasks"]:
         if task["name"] not in BUILT_TASKS:
             continue
+        if task["name"] == "mnist_pca16_linear":
+            mnist = mnist_pca(task["features"], mnist_raw)
         for n in cfg["modes"]:
+            if task["name"] == "mnist_pca16_linear" and n != task["features"]:
+                skipped.setdefault(task["name"], {})[n] = f"not applicable: {task['features']} features need {task['features']} modes"
+                continue
             for f in BUILT_FAMILIES:
-                for d in family_depths(cfg, f):
-                    cols, per_seed = family_columns(f, n, d), []
-                    for s in cfg["seeds"]:
-                        tg = task_targets(task, n, s)
-                        r = fit(n, cols, tg, opt["steps"], opt["restarts"], s, opt["lr"])
-                        target = torch.as_tensor(tg, dtype=torch.complex128)
-                        fab = [float(fidelity(target, fabricated_unitary(
-                            n, cols, r["theta"], r["phi"], r["out"], pp["phase_sigma_rad"],
-                            pp["splitter_imbalance"], fs * 1000 + s)).mean()) for fs in cfg["fabrication_noise_seeds"]]
-                        per_seed.append(float(np.mean(fab)))
+                for d in applicable_depths(cfg, f, n)[0]:
+                    per_seed = [score_seed(task, f, n, d, s, cfg, mnist) for s in cfg["seeds"]]
                     scores.setdefault(task["name"], {}).setdefault(n, {}).setdefault(f, {})[d] = per_seed
     sel = {f: deepest_within_budget(budgets[pp["modes"]][f], pp["il_mzi_db"], pp["il_crossing_db"], pp["budget_db"])
            for f in BUILT_FAMILIES}
-    comparisons = {}
+    comparisons, beats_all = {}, []
     for name, by_n in scores.items():
-        fam = by_n[pp["modes"]]
-        if sel["butterfly"] is None or sel["clements"] is None:
-            comparisons[name] = {"status": "no configuration within budget", "selected": sel}
+        fam = by_n.get(pp["modes"])
+        if fam is None or any(sel[f] is None for f in BUILT_FAMILIES):
+            comparisons[name] = {"status": "no configuration within budget or task not run at primary modes",
+                                 "selected": sel}
+            beats_all.append(None)
             continue
-        diffs = np.subtract(fam["butterfly"][sel["butterfly"]], fam["clements"][sel["clements"]])
-        comparisons[name] = {"selected": sel, "butterfly_minus_clements": paired_t(diffs)}
+        comparisons[name] = {"selected": sel}
+        for base in BASELINES:
+            comparisons[name][f"butterfly_minus_{base}"] = paired_t(
+                np.subtract(fam["butterfly"][sel["butterfly"]], fam[base][sel[base]]))
+        beats_all.append(all(comparisons[name][f"butterfly_minus_{b}"]["beats"] for b in BASELINES))
+    not_built = {"families": [f for f in cfg["meshes"] if f not in BUILT_FAMILIES],
+                 "tasks": [t["name"] for t in cfg["tasks"] if t["name"] not in BUILT_TASKS]}
+    if not_built["families"] or not_built["tasks"] or None in beats_all or len(beats_all) < len(cfg["tasks"]):
+        verdict = "not decided: a registered family or task is missing or has no configuration within budget"
+    elif all(beats_all):
+        verdict = "kept: butterfly beats Clements and low-rank on every task at the primary point"
+    else:
+        lost = [t for t, b in zip(scores, beats_all) if not b]
+        verdict = f"killed: butterfly does not beat both baselines on {lost}"
     return {
-        "study": "awen.fractal-h1-registered.v1", "id": "H1", "primary_point": pp,
+        "study": "awen.fractal-h1-registered.v2", "id": "H1", "primary_point": pp,
         "budgets": {n: {f: {d: {"mzis": b.mzis, "max_mzis_per_path": b.max_mzis_per_path,
                                 "max_crossings_per_path": b.max_crossings_per_path,
                                 "loss_db_primary": b.path_loss_db(pp["il_mzi_db"], pp["il_crossing_db"])}
                             for d, b in fb.items()} for f, fb in fam.items()} for n, fam in budgets.items()},
-        "scores_per_init_seed": scores, "comparisons_at_primary_point": comparisons,
-        "not_built": {"families": [f for f in cfg["meshes"] if f not in BUILT_FAMILIES],
-                      "tasks": [t["name"] for t in cfg["tasks"] if t["name"] not in BUILT_TASKS]},
-        "verdict": "not decided: the low-rank baseline and the MNIST task are not built, so the registered criterion cannot be applied",
+        "scores_per_init_seed": scores, "skipped": skipped, "excluded_depths": excluded_depths, "comparisons_at_primary_point": comparisons,
+        "not_built": not_built, "verdict": verdict,
         "evidence": "L1 simulation (float64); loss is bookkeeping with free parameters, not a device prediction",
     }
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Butterfly vs Clements MZI mesh study")
+    ap = argparse.ArgumentParser(description="Butterfly vs Clements (and, with --config, low-rank SVD) MZI mesh study")
     ap.add_argument("--modes", type=int, nargs="+", default=[8])
     ap.add_argument("--targets", type=int, default=16)
     ap.add_argument("--steps", type=int, default=800)
