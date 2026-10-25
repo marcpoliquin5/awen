@@ -1,7 +1,7 @@
 # AWEN status
 
-Updated 2026-10-25 12:44 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), after `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+Updated 2026-10-25 18:46 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `7267774` (#156, gate run 40213918425 passed), after `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
 `840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
@@ -80,7 +80,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md`, `2026-10-24-02.md`, `2026-10-24-03.md`, `2026-10-24-04.md`, `2026-10-25-01.md`, `2026-10-25-02.md`, `2026-10-25-03.md` | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md`, `2026-10-24-02.md`, `2026-10-24-03.md`, `2026-10-24-04.md`, `2026-10-25-01.md`, `2026-10-25-02.md`, `2026-10-25-03.md`, `2026-10-25-04.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -132,10 +132,12 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   applies the registered kill rule; their definitions were fixed in PREREGISTRATION.md on 2026-10-24 before any
   H1 full run. On 2026-10-25 the first full-run launch stopped before any score (registered rank 8 at N = 8 is full
   rank); `b3f94ff` on #150 excludes ranks >= N at that N and reports them (primary point N = 16 keeps all ranks;
-  deviation logged in PREREGISTRATION.md). The full run was relaunched at `b3f94ff` at 00:23 ET in the background
-  on the build box. At 12:35 ET on 2026-10-25 it was still running (no EXIT line in its log; about 12 h against a
-  1-3 h estimate), so there is still no H1 result. A read-only stack dump showed it in task 2 of 3 (MNIST-PCA16), last
-  family (low-rank rank 8), init seed 102 of 5; the DFT task is still to come.
+  deviation logged in PREREGISTRATION.md). The relaunched full run at `b3f94ff` finished at 12:49 ET on 2026-10-25 (exit 0, 44,799 s wall, about
+  12.4 h against a 1-3 h estimate). Results are committed to draft #150 as `13a4cc0` (`results/h1/` with SHA-256,
+  `RESULT.md`): **H1 killed** under the registered rule (L1, measured by us). At N = 16 and a 6 dB budget, butterfly
+  beats the rank-4 low-rank mesh on all three tasks, loses to Clements on Haar unitaries, is not distinguishable
+  from Clements on MNIST-PCA16 (95% CI crosses 0) and beats Clements on the DFT matrix. Loss values are free
+  parameters, not device data, and only the registered grid point was run.
   The H2 `--config` entry point is draft #153 (`d360467`, based on main): config checks, the registered variants, an
   analytic conversions-per-useful-MAC counter with mapping legality, the paired-t verdict and latency. The counting rule
   (`R * (d_in + d_out)` conversions per layer against `d_in * d_out` useful MACs) was fixed in PREREGISTRATION.md
@@ -144,21 +146,25 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   ran out of memory for `kron3` on the 16 GB build box (measured by us; OOM kill at about 13.7 GB). The memory
   finding is addressed on main by #155 (`cf60185`): opt-in `rank_chunk` on `Kron3Linear` (checkpointed rank chunks,
   default unchanged, forward and gradient equivalence tested). One batch-32 training step peaked at 1365.9 MB RSS
-  with `rank_chunk` 17 (measured by us, `awen-models/results/kron3-chunk/`). The polarization finding is still open.
-  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); only the H3 full run is done (on #144).
+  with `rank_chunk` 17 (measured by us, `awen-models/results/kron3-chunk/`). On 2026-10-25 (session -04) amendment A1 was registered on #153 (`c5eb38f`, D-019) before any H2 run (D-019 is on #153, not on main yet):
+  `kron3` becomes `(8, 2, 8) -> (32, 2, 32)`, rank 126, `rank_chunk` 18 (polarization 2 x 2, legal; stored parameters
+  820,032 vs 818,048 baseline, +0.24%). The harness default build is unchanged. A 20-step probe at batch 32 peaked at
+  1250.0 MB RSS but took 642.0 s of training (about 32 s per step; measured by us, one run), so the registered `kron3`
+  arm would need roughly 40 h on this box (estimate: 4500 steps x 32 s). The H2 full run is not run yet.
+  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); the H3 (on #144) and H1 (on #150) full runs are done; H2 and H4 are not run.
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. Collect the H1 registered full run started 2026-10-25 00:23 ET at `b3f94ff` on draft #150 (`python
-   research/experiments/multiplexing-fractal/h1_meshes.py --config research/experiments/multiplexing-fractal/configs/h1.yaml`,
-   build box CPU): store it with SHA-256 in `results/h1/` plus a `RESULT.md` stating the verdict;
-   draft only. If it failed, fix and relaunch.
-2. H2 on draft #153: register a `kron3` shape or mapping amendment so that no polarization factor exceeds 2 x 2
-   (in PREREGISTRATION.md, before any run), wire `rank_chunk` (merged #155) into `h2_structured_weights.py`, then
-   run `h2_structured_weights.py --config configs/h2.yaml`.
+1. H2 step time: add an opt-in path to `Kron3Linear` that builds the dense-equivalent weight once per forward
+   (`sum_r A_r ⊗ B_r ⊗ C_r`, one matrix product after it) with forward and gradient equivalence tests and a measured
+   step time against `rank_chunk` 18. If it makes the run feasible, record its use for training in
+   PREREGISTRATION.md (H2, before any run; the batch-1 latency path must be stated too), then launch
+   `h2_structured_weights.py --config configs/h2.yaml` on draft #153 in the background.
+2. H4 `--config` entry point (Burgers, chirp denoising, MNIST; FNO and Haar-wavelet layers vs dense at matched
+   FLOPs), draft only, following the H1-H3 pattern.
 3. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1), on the
    PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ),
    and on landing the H3 stack (#136, then #144), the H1 stack (#137, #148, #150) and H2 (#153) on main.
