@@ -91,6 +91,26 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
   paired-seed interval, **or** its conversions per useful MAC do not improve on dense. Also killed under v2
   section 7 if it wins on parameters but loses more than 20% on latency.
 
+### H2 counting rule (added 2026-10-25, before any H2 full run)
+
+Implemented in `h2_structured_weights.py` (`layer_conversions`); fixed here before any registered run.
+
+- Weights stay programmed; weight-loading conversions are not counted.
+- Useful MACs of a layer = `d_in * d_out`, the dense-equivalent matrix-vector product (MVP) it computes.
+- **Primary count (used by the verdict)**: conversions = `R * (d_in + d_out)` for a layer with `R` rank
+  terms (dense: `R = 1`). This reads "one DAC per modulated input and one ADC per detected output, per MVP"
+  literally, with one MVP per rank term.
+- Lower bound `d_in + d_out` (optical fan-out and photocurrent summation across rank terms) is reported
+  only. It is never used by the verdict.
+- Legality: the polarization factor must be at most 2 x 2. Spatial-mode, wavelength and bank counts are
+  reported as requirements, never assumed available. A variant with an illegal mapping gets the
+  conversions verdict "not evaluable", never "pass".
+- Status before the full run: the registered `kron3` shape puts 4 -> 16 and 16 -> 4 factors on
+  polarization, so its mapping is **illegal** as registered. A shape or mapping amendment is needed
+  before H2 can run in full, and it must be recorded here first. On the 16 GB build box the registered
+  batch size 32 ran out of memory for `kron3` (process killed at about 13.7 GB resident), so the
+  full run also needs a memory-safe contraction.
+
 ## H3: self-similar (Cantor) channel plans
 
 - **Hypothesis**: a Cantor-stack filter bank gives a multi-scale WDM channel plan with lower adjacent-channel

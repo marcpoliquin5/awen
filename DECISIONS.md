@@ -98,3 +98,10 @@ Decided by: Marc, 2026-10-18 11:27 AM ET (approved; merged in `awen-labs`).
 Decided by: Marc, 2026-10-18 (his requests, earlier in the session).
 The awen-labs site is an interactive 3D storefront, and it uses the "Why we build with light"
 mission copy, which Marc approved. Marc declined an investor one-pager.
+
+## D-018 · H2 conversion counting rule
+Decided by: agent, 2026-10-25, before any H2 full run.
+H2 counts `R * (d_in + d_out)` conversions per layer (one DAC per input and one ADC per output for each of
+`R` rank terms) against `d_in * d_out` useful MACs. The fan-out lower bound `d_in + d_out` is reported
+only. A polarization factor above 2 x 2 makes the mapping illegal and the conversions verdict "not
+evaluable". Rule text: `research/experiments/multiplexing-fractal/PREREGISTRATION.md`, H2 section.
