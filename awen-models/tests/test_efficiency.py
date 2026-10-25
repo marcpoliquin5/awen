@@ -43,6 +43,37 @@ def test_kron3_parameter_count_macs_and_shape_checks():
         ef.Kron3Linear((4, 4), (4, 4, 4), 2)
 
 
+def test_kron3_rank_chunk_matches_unchunked_forward_and_gradients():
+    torch.manual_seed(0)
+    ref = ef.Kron3Linear((2, 2, 4), (2, 4, 4), 7)
+    x = torch.randn(3, 5, 16, requires_grad=True)
+    y_ref = ref(x)
+    g_ref = torch.autograd.grad(y_ref.pow(2).sum(), [x, ref.A, ref.B, ref.C, ref.bias])
+    for chunk in (1, 3, 7, 50):  # uneven split, exact split and chunk >= rank
+        ref.rank_chunk = chunk
+        y = ref(x)
+        assert torch.allclose(y, y_ref, atol=1e-5)
+        g = torch.autograd.grad(y.pow(2).sum(), [x, ref.A, ref.B, ref.C, ref.bias])
+        for a, b in zip(g, g_ref):
+            assert torch.allclose(a, b, atol=1e-4)
+        with torch.no_grad():
+            assert torch.allclose(ref(x), y_ref, atol=1e-5)
+    assert ref.macs_per_token() == 7 * (16 * 4 + 2 * 2 * 4 * 4 + 2 * 4 * 4 * 2)  # unchanged by chunking
+
+
+def test_kron3_rank_chunk_default_setter_and_checks():
+    m = ef.build("kron3", 65)
+    layers = [x for x in m.modules() if isinstance(x, ef.Kron3Linear)]
+    assert layers and all(x.rank_chunk is None for x in layers)  # default path unchanged
+    assert ef.set_kron3_rank_chunk(m, 17) == len(layers)
+    assert all(x.rank_chunk == 17 for x in layers)
+    assert ef.set_kron3_rank_chunk(ef.build("baseline", 65), 4) == 0
+    with pytest.raises(ValueError):
+        ef.set_kron3_rank_chunk(m, 0)
+    with pytest.raises(ValueError):
+        ef.Kron3Linear((2, 2, 2), (2, 2, 2), 3, rank_chunk=0)
+
+
 def test_moe_routes_each_token_to_one_expert_and_balance_loss():
     torch.manual_seed(0)
     moe = ef.MoEFeedForward(16, 8, 4)
