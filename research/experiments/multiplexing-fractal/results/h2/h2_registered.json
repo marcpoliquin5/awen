@@ -1,0 +1,458 @@
+{
+  "id": "H2",
+  "config": {
+    "id": "H2",
+    "schema": "awen.fractal-prereg-config.v1",
+    "hypothesis": "Kronecker-3 and tensor-train FFN layers give more useful MACs per conversion than dense at matched parameters, without losing accuracy",
+    "status": "registered",
+    "pilot": {
+      "pr": 128,
+      "commit": "0974f38",
+      "files": [
+        "h2_pilot_runs.jsonl"
+      ],
+      "role": "exploratory"
+    },
+    "task": {
+      "name": "char_lm_tiny_shakespeare",
+      "harness": "awen_models.efficiency",
+      "split": "harness default"
+    },
+    "variants": [
+      "baseline",
+      "kron3",
+      "tensor-train"
+    ],
+    "parameter_match_tolerance": 0.03,
+    "steps": 1500,
+    "seeds": [
+      101,
+      102,
+      103
+    ],
+    "threads": 4,
+    "latency": {
+      "batch_size": 1,
+      "concurrent_runs": 1,
+      "repeats": 50
+    },
+    "metrics": [
+      "val_loss_nats_per_char",
+      "conversions_per_useful_mac",
+      "forward_latency_ms_b1"
+    ],
+    "conversion_mapping": {
+      "dense": "one DAC per modulated input element and one ADC per detected output, per matrix-vector product",
+      "kron3": "A on spatial modes (full mixing), B on polarization (2x2), C on wavelength (diagonal weight + detector sum)",
+      "tensor-train": "core 1 on spatial modes (full mixing), core 2 on wavelength (diagonal weight + detector sum)"
+    },
+    "falsification": {
+      "accuracy": "Killed if val_loss(candidate) - val_loss(baseline) has a 95% paired-t interval over seeds entirely > 0",
+      "conversions": "Killed if conversions_per_useful_mac(candidate) >= conversions_per_useful_mac(baseline)",
+      "latency": "Killed (v2 section 7) if it wins on parameters but forward latency is > 1.2x baseline"
+    },
+    "command": "python research/experiments/multiplexing-fractal/h2_structured_weights.py --config research/experiments/multiplexing-fractal/configs/h2.yaml",
+    "kron3_shape": {
+      "in": [
+        8,
+        2,
+        8
+      ],
+      "hidden": [
+        32,
+        2,
+        32
+      ],
+      "rank": 126,
+      "rank_chunk": 18,
+      "amendment": "A1"
+    },
+    "kron3_execution": {
+      "train": "dense_weight",
+      "latency_verdict": "contraction",
+      "latency_also_report": [
+        "dense_weight"
+      ],
+      "amendment": "A2"
+    }
+  },
+  "dataset": "tiny_shakespeare",
+  "batch_size": 32,
+  "kron3_shape": {
+    "in": [
+      8,
+      2,
+      8
+    ],
+    "hidden": [
+      32,
+      2,
+      32
+    ],
+    "rank": 126,
+    "rank_chunk": 18,
+    "amendment": "A1"
+  },
+  "kron3_execution": {
+    "train": "dense_weight",
+    "latency_verdict": "contraction",
+    "latency_also_report": [
+      "dense_weight"
+    ],
+    "amendment": "A2"
+  },
+  "runs": [
+    {
+      "variant": "baseline",
+      "seed": 101,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 102.6,
+      "val_loss": 1.70867,
+      "forward_latency_ms_b1": 1.4073994898353703,
+      "latency_path": "native"
+    },
+    {
+      "variant": "baseline",
+      "seed": 102,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 98.9,
+      "val_loss": 1.73857,
+      "forward_latency_ms_b1": 1.1921635014005005,
+      "latency_path": "native"
+    },
+    {
+      "variant": "baseline",
+      "seed": 103,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 93.8,
+      "val_loss": 1.71122,
+      "forward_latency_ms_b1": 1.2441630024113692,
+      "latency_path": "native"
+    },
+    {
+      "variant": "kron3",
+      "seed": 101,
+      "stored_parameters": 820032,
+      "train_wall_time_s": 316.1,
+      "val_loss": 1.70467,
+      "train_path": "dense_weight",
+      "forward_latency_ms_b1": 73.46320299984654,
+      "latency_path": "contraction",
+      "forward_latency_ms_b1_dense_weight": 4.086971501237713
+    },
+    {
+      "variant": "kron3",
+      "seed": 102,
+      "stored_parameters": 820032,
+      "train_wall_time_s": 474.5,
+      "val_loss": 1.72042,
+      "train_path": "dense_weight",
+      "forward_latency_ms_b1": 79.07245399837848,
+      "latency_path": "contraction",
+      "forward_latency_ms_b1_dense_weight": 4.328257498855237
+    },
+    {
+      "variant": "kron3",
+      "seed": 103,
+      "stored_parameters": 820032,
+      "train_wall_time_s": 528.2,
+      "val_loss": 1.70898,
+      "train_path": "dense_weight",
+      "forward_latency_ms_b1": 79.09062349790474,
+      "latency_path": "contraction",
+      "forward_latency_ms_b1_dense_weight": 4.352716998255346
+    },
+    {
+      "variant": "tensor-train",
+      "seed": 101,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 160.5,
+      "val_loss": 1.72131,
+      "forward_latency_ms_b1": 2.356306998990476,
+      "latency_path": "native"
+    },
+    {
+      "variant": "tensor-train",
+      "seed": 102,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 164.1,
+      "val_loss": 1.70197,
+      "forward_latency_ms_b1": 2.3093259951565415,
+      "latency_path": "native"
+    },
+    {
+      "variant": "tensor-train",
+      "seed": 103,
+      "stored_parameters": 818048,
+      "train_wall_time_s": 164.7,
+      "val_loss": 1.70309,
+      "forward_latency_ms_b1": 2.5636479986133054,
+      "latency_path": "native"
+    }
+  ],
+  "conversions": {
+    "baseline": {
+      "scope": "FFN matrices, all blocks, per token",
+      "useful_macs": 524288,
+      "conversions": 5120,
+      "conversions_per_useful_mac": 0.009765625,
+      "conversions_per_useful_mac_lower_bound": 0.009765625,
+      "legal": true,
+      "illegal_reasons": [],
+      "layers": [
+        {
+          "kind": "dense",
+          "d_in": 128,
+          "d_out": 512,
+          "rank_terms": 1,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 128,
+              "out": 512
+            }
+          ],
+          "useful_macs": 65536,
+          "conversions": 640,
+          "conversions_lower_bound": 640,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 512
+          }
+        },
+        {
+          "kind": "dense",
+          "d_in": 512,
+          "d_out": 128,
+          "rank_terms": 1,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 512,
+              "out": 128
+            }
+          ],
+          "useful_macs": 65536,
+          "conversions": 640,
+          "conversions_lower_bound": 640,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 512
+          }
+        }
+      ]
+    },
+    "kron3": {
+      "scope": "FFN matrices, all blocks, per token",
+      "useful_macs": 2097152,
+      "conversions": 2193408,
+      "conversions_per_useful_mac": 1.0458984375,
+      "conversions_per_useful_mac_lower_bound": 0.00830078125,
+      "legal": true,
+      "illegal_reasons": [],
+      "layers": [
+        {
+          "kind": "kron3",
+          "d_in": 128,
+          "d_out": 2048,
+          "rank_terms": 126,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 8,
+              "out": 32
+            },
+            {
+              "axis": "polarization",
+              "in": 2,
+              "out": 2
+            },
+            {
+              "axis": "wavelength",
+              "in": 8,
+              "out": 32
+            }
+          ],
+          "useful_macs": 262144,
+          "conversions": 274176,
+          "conversions_lower_bound": 2176,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 32,
+            "polarization_states": 2,
+            "wavelengths": 8,
+            "weight_banks": 32
+          }
+        },
+        {
+          "kind": "kron3",
+          "d_in": 2048,
+          "d_out": 128,
+          "rank_terms": 126,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 32,
+              "out": 8
+            },
+            {
+              "axis": "polarization",
+              "in": 2,
+              "out": 2
+            },
+            {
+              "axis": "wavelength",
+              "in": 32,
+              "out": 8
+            }
+          ],
+          "useful_macs": 262144,
+          "conversions": 274176,
+          "conversions_lower_bound": 2176,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 32,
+            "polarization_states": 2,
+            "wavelengths": 32,
+            "weight_banks": 8
+          }
+        }
+      ]
+    },
+    "tensor-train": {
+      "scope": "FFN matrices, all blocks, per token",
+      "useful_macs": 1048576,
+      "conversions": 783360,
+      "conversions_per_useful_mac": 0.7470703125,
+      "conversions_per_useful_mac_lower_bound": 0.0087890625,
+      "legal": true,
+      "illegal_reasons": [],
+      "layers": [
+        {
+          "kind": "tensor-train",
+          "d_in": 128,
+          "d_out": 1024,
+          "rank_terms": 85,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 8,
+              "out": 32
+            },
+            {
+              "axis": "wavelength",
+              "in": 16,
+              "out": 32
+            }
+          ],
+          "useful_macs": 131072,
+          "conversions": 97920,
+          "conversions_lower_bound": 1152,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 32,
+            "wavelengths": 16,
+            "weight_banks": 32
+          }
+        },
+        {
+          "kind": "tensor-train",
+          "d_in": 1024,
+          "d_out": 128,
+          "rank_terms": 85,
+          "factors": [
+            {
+              "axis": "spatial",
+              "in": 32,
+              "out": 8
+            },
+            {
+              "axis": "wavelength",
+              "in": 32,
+              "out": 16
+            }
+          ],
+          "useful_macs": 131072,
+          "conversions": 97920,
+          "conversions_lower_bound": 1152,
+          "legal": true,
+          "illegal_reasons": [],
+          "channel_requirements": {
+            "spatial_modes": 32,
+            "wavelengths": 32,
+            "weight_banks": 16
+          }
+        }
+      ]
+    }
+  },
+  "verdict": {
+    "kron3": {
+      "rules": {
+        "accuracy": {
+          "paired_t_val_loss_minus_baseline": {
+            "n": 3,
+            "mean": -0.00812999999999997,
+            "ci95": [
+              -0.02979685078066979,
+              0.013536850780669848
+            ]
+          },
+          "result": "passed"
+        },
+        "conversions": {
+          "result": "killed"
+        },
+        "latency": {
+          "ratio_to_baseline": 60.26087210143299,
+          "wins_on_parameters": false,
+          "path": "contraction",
+          "result": "passed",
+          "ratio_to_baseline_dense_weight_report_only": 3.3217627946036363
+        }
+      },
+      "verdict": "killed"
+    },
+    "tensor-train": {
+      "rules": {
+        "accuracy": {
+          "paired_t_val_loss_minus_baseline": {
+            "n": 3,
+            "mean": -0.010696666666666651,
+            "ci95": [
+              -0.0721048942790893,
+              0.050711560945756
+            ]
+          },
+          "result": "passed"
+        },
+        "conversions": {
+          "result": "killed"
+        },
+        "latency": {
+          "ratio_to_baseline": 1.8808002976040943,
+          "wins_on_parameters": false,
+          "path": "native",
+          "result": "passed"
+        }
+      },
+      "verdict": "killed"
+    }
+  },
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 4,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  },
+  "evidence": "val loss and latency measured on the CPU above (L0); conversions counted analytically"
+}
