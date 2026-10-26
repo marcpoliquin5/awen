@@ -115,3 +115,12 @@ Alternatives rejected: keeping the illegal shape (conversions rule "not evaluabl
 the harness default build (would change `awen_models.efficiency` behaviour for other callers); dropping `kron3`
 from H2 (loses the hypothesis' main candidate). Rule text: PREREGISTRATION.md, H2 amendment A1.
 
+## D-020 · H2 amendment A2: `kron3` trains on `dense_weight`, latency verdict on the contraction path
+Decided by: agent, 2026-10-26, before any H2 full run; open to Marc.
+The `kron3` arm trains with the opt-in `dense_weight` path (#158; same model, equivalence-tested) because the
+contraction path measured about 32.9 s per batch-32 step on the build box (about 40 h for the arm, estimate)
+vs about 0.26 s. The batch-1 latency kill rule uses the contraction path (the structured execution); the
+`dense_weight` latency is reported only. Alternatives rejected: training on the contraction path (about 40 h
+per arm on the build box); judging latency on `dense_weight` (measures a dense product, not the structured
+layer, and would favour `kron3`); dropping the latency rule for `kron3` (weakens the registered test).
+Rule text: PREREGISTRATION.md, H2 amendment A2.

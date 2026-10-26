@@ -27,3 +27,9 @@ command: "python research/experiments/multiplexing-fractal/h2_structured_weights
 # order is (spatial, polarization, wavelength). rank_chunk only bounds memory (forward and gradient are
 # equivalent, tested on main), it does not change the model.
 kron3_shape: {in: [8, 2, 8], hidden: [32, 2, 32], rank: 126, rank_chunk: 18, amendment: A1}
+# Amendment A2 (2026-10-26, before any H2 full run; PREREGISTRATION.md H2 amendment A2, DECISIONS.md D-020).
+# Train kron3 on the opt-in dense_weight path (same model, forward and gradient equivalent, tested on main, #158)
+# because the contraction path takes about 32 s per batch-32 step on the build box (about 40 h for the arm).
+# The batch-1 latency kill rule uses the contraction path (the structured execution, rank_chunk as above);
+# the dense_weight latency is measured on the same trained model and reported only.
+kron3_execution: {train: dense_weight, latency_verdict: contraction, latency_also_report: [dense_weight], amendment: A2}

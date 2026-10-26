@@ -25,6 +25,11 @@ Conversion count (definitions fixed in PREREGISTRATION.md, section H2, before an
   ``kron3_shape`` (legal: polarization factor 2 -> 2) instead of the harness's original
   ``(4,4,8) -> (8,16,16)`` shape, with the opt-in ``rank_chunk`` for memory. The harness default
   build is unchanged; the swap is scoped to this script (:func:`registered_build`).
+* **Amendment A2** (2026-10-26, before any full run): ``kron3`` trains on the opt-in ``dense_weight``
+  path (same model; forward and gradient equivalent, tested on main) per ``kron3_execution.train``.
+  The batch-1 latency kill rule uses ``kron3_execution.latency_verdict`` (``contraction``: the
+  structured per-token path with the A1 ``rank_chunk``); the ``dense_weight`` latency of the same
+  trained model is measured and reported only (``forward_latency_ms_b1_dense_weight``).
 
 Example::
 
@@ -73,7 +78,24 @@ def load_config(path) -> dict:
     if not 0 < cfg["parameter_match_tolerance"] <= eff.PARAMETER_TOLERANCE:
         raise ValueError("parameter_match_tolerance must be in (0, harness tolerance]")
     check_kron3_shape(cfg)
+    check_kron3_execution(cfg)
     return cfg
+
+
+KRON3_PATHS = ("contraction", "dense_weight")
+
+
+def check_kron3_execution(cfg: dict) -> dict:
+    """Validate amendment A2 (``kron3_execution``): training path, verdict latency path, reported paths."""
+    ex = cfg.get("kron3_execution")
+    if ex is None:
+        raise ValueError("kron3_execution (amendment A2) missing: the kron3 training and latency paths must be registered")
+    paths = [ex.get("train"), ex.get("latency_verdict"), *ex.get("latency_also_report", [])]
+    if any(p not in KRON3_PATHS for p in paths):
+        raise ValueError(f"kron3_execution paths must be in {KRON3_PATHS}, got {paths}")
+    if ex["latency_verdict"] in ex.get("latency_also_report", []):
+        raise ValueError("kron3_execution: the verdict latency path cannot also be a report-only path")
+    return ex
 
 
 def check_kron3_shape(cfg: dict) -> dict:
@@ -102,11 +124,13 @@ def registered_build(cfg: dict):
     original = eff.build
     ins, hid, rank = tuple(ks["in"]), tuple(ks["hidden"]), int(ks["rank"])
     chunk = None if ks.get("rank_chunk") is None else int(ks["rank_chunk"])
+    dense = cfg.get("kron3_execution", {}).get("train") == "dense_weight"  # amendment A2
 
     def build(name: str, vocab: int):
         if name != "kron3":
             return original(name, vocab)
-        return eff._replace_ffn(eff._mini(vocab), lambda: eff.Kron3FeedForward(ins, hid, rank, rank_chunk=chunk))
+        return eff._replace_ffn(eff._mini(vocab), lambda: eff.Kron3FeedForward(ins, hid, rank, rank_chunk=chunk,
+                                                                               dense_weight=dense))
 
     eff.build = build
     try:
@@ -196,6 +220,19 @@ def paired_t(diffs) -> dict:
     return {"n": n, "mean": mean, "ci95": [mean - half, mean + half]}
 
 
+def kron3_latencies(model, cfg: dict, repeats: int) -> dict:
+    """Amendment A2: batch-1 latency of one trained ``kron3`` model on the verdict path and on each
+    report-only path. Switching ``dense_weight`` changes only the execution path, not the model."""
+    ex = check_kron3_execution(cfg)
+    out = {}
+    for path in [ex["latency_verdict"], *ex.get("latency_also_report", [])]:
+        eff.set_kron3_dense_weight(model, path == "dense_weight")
+        out[path] = measure_latency_ms(model, repeats=repeats)
+    eff.set_kron3_dense_weight(model, ex["train"] == "dense_weight")
+    return {"forward_latency_ms_b1": out[ex["latency_verdict"]], "latency_path": ex["latency_verdict"],
+            **{f"forward_latency_ms_b1_{p}": out[p] for p in ex.get("latency_also_report", [])}}
+
+
 def verdict(rows: list[dict], conv: dict, params: dict) -> dict:
     """Registered H2 kill rules (configs/h2.yaml ``falsification``), per candidate vs baseline."""
     base = {r["seed"]: r for r in rows if r["variant"] == "baseline"}
@@ -214,10 +251,15 @@ def verdict(rows: list[dict], conv: dict, params: dict) -> dict:
                  / statistics.mean(base[s]["forward_latency_ms_b1"] for s in seeds))
         wins_params = params[cand] < params["baseline"]
         lat_killed = wins_params and ratio > 1.2
+        latency = {"ratio_to_baseline": ratio, "wins_on_parameters": wins_params,
+                   "path": mine[seeds[0]].get("latency_path", "native"),
+                   "result": "killed" if lat_killed else "passed"}
+        if "forward_latency_ms_b1_dense_weight" in mine[seeds[0]]:  # amendment A2: reported, not used
+            latency["ratio_to_baseline_dense_weight_report_only"] = (
+                statistics.mean(mine[s]["forward_latency_ms_b1_dense_weight"] for s in seeds)
+                / statistics.mean(base[s]["forward_latency_ms_b1"] for s in seeds))
         rules = {"accuracy": {"paired_t_val_loss_minus_baseline": acc, "result": "killed" if acc_killed else "passed"},
-                 "conversions": {"result": conv_rule},
-                 "latency": {"ratio_to_baseline": ratio, "wins_on_parameters": wins_params,
-                             "result": "killed" if lat_killed else "passed"}}
+                 "conversions": {"result": conv_rule}, "latency": latency}
         results = [x["result"] for x in rules.values()]
         overall = ("killed" if "killed" in results else "not evaluable" if any(r.startswith("not") for r in results)
                    else "kept")
@@ -247,13 +289,18 @@ def _run_config(cfg: dict, text: str | None, batch_size: int) -> dict:
     for name in cfg["variants"]:
         for seed in cfg["seeds"]:
             model, info = eff.train_variant(name, corpus, int(cfg["steps"]), int(seed), batch_size=batch_size)
-            row = {"variant": name, "seed": seed, "stored_parameters": params[name], **info,
-                   "forward_latency_ms_b1": measure_latency_ms(model, repeats=int(cfg["latency"]["repeats"]))}
+            repeats = int(cfg["latency"]["repeats"])
+            lat = (kron3_latencies(model, cfg, repeats) if name == "kron3" else
+                   {"forward_latency_ms_b1": measure_latency_ms(model, repeats=repeats), "latency_path": "native"})
+            if name == "kron3":
+                info["train_path"] = cfg["kron3_execution"]["train"]
+            row = {"variant": name, "seed": seed, "stored_parameters": params[name], **info, **lat}
             rows.append(row)
             print(json.dumps(row), flush=True)
     return {"id": "H2", "config": cfg, "dataset": "tiny_shakespeare" if text is None else
             {"name": "custom", "characters": len(corpus)},
-            "batch_size": batch_size, "kron3_shape": cfg["kron3_shape"], "runs": rows, "conversions": conv, "verdict": verdict(rows, conv, params),
+            "batch_size": batch_size, "kron3_shape": cfg["kron3_shape"],
+            "kron3_execution": cfg["kron3_execution"], "runs": rows, "conversions": conv, "verdict": verdict(rows, conv, params),
             "hardware": hardware_record(torch.device("cpu")),
             "evidence": "val loss and latency measured on the CPU above (L0); conversions counted analytically"}
 

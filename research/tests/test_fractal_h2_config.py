@@ -83,6 +83,7 @@ def test_amendment_a1_matches_parameters_and_restores_harness_build():
         counts = eff.check_budget(65)  # harness path calls eff.build, so it sees the A1 shape
         layer = eff.build("kron3", 65).blocks[0].ffn.fc
         assert (layer.ins, layer.outs, layer.rank, layer.rank_chunk) == ((8, 2, 8), (32, 2, 32), 126, 18)
+        assert layer.dense_weight  # amendment A2: trains on the dense_weight path
     assert eff.build is original and eff.build("kron3", 65).blocks[0].ffn.fc.ins == (4, 4, 8)
     ref = counts["baseline"]
     assert abs(counts["kron3"] - ref) / ref <= cfg["parameter_match_tolerance"]
@@ -119,5 +120,30 @@ def test_tiny_run_end_to_end(tmp_path):
     rep = h2.run_config(cfg, text=text, batch_size=1)
     assert rep["kron3_shape"]["amendment"] == "A1" and rep["conversions"]["kron3"]["legal"]
     assert len(rep["runs"]) == 6 and set(rep["verdict"]) == {"kron3", "tensor-train"}
+    k = [r for r in rep["runs"] if r["variant"] == "kron3"]
+    assert all(r["train_path"] == "dense_weight" and r["latency_path"] == "contraction" for r in k)
+    assert all(r["forward_latency_ms_b1_dense_weight"] > 0 for r in k)
+    lat = rep["verdict"]["kron3"]["rules"]["latency"]
+    assert lat["path"] == "contraction" and lat["ratio_to_baseline_dense_weight_report_only"] > 0
     assert all(r["val_loss"] > 0 and r["forward_latency_ms_b1"] > 0 for r in rep["runs"])
     json.dumps(rep)
+
+
+def test_config_rejects_missing_or_bad_kron3_execution(tmp_path):
+    with pytest.raises(ValueError, match="amendment A2"):
+        h2.load_config(_cfg(tmp_path, kron3_execution=None))
+    with pytest.raises(ValueError, match="paths must be"):
+        h2.load_config(_cfg(tmp_path, kron3_execution={"train": "fast", "latency_verdict": "contraction"}))
+    with pytest.raises(ValueError, match="report-only"):
+        h2.load_config(_cfg(tmp_path, kron3_execution={"train": "dense_weight", "latency_verdict": "contraction",
+                                                       "latency_also_report": ["contraction"]}))
+
+
+def test_kron3_latencies_measure_both_paths_and_restore_training_path():
+    cfg = h2.load_config(H2_YAML)
+    with h2.registered_build(cfg) as build:
+        model = build("kron3", 65)
+    lat = h2.kron3_latencies(model, cfg, repeats=1)
+    assert lat["latency_path"] == "contraction"
+    assert lat["forward_latency_ms_b1"] > 0 and lat["forward_latency_ms_b1_dense_weight"] > 0
+    assert all(m.dense_weight for m in model.modules() if isinstance(m, eff.Kron3Linear))

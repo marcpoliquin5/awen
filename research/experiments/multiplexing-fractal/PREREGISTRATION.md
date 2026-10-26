@@ -131,6 +131,29 @@ Recorded before any registered H2 run; no H2 full-run output exists at this poin
 - **Harness**: `awen_models.efficiency.build("kron3")` keeps the original shape (no harness or interface
   change); `h2_structured_weights.py` swaps in the A1 shape only inside its own run (`registered_build`).
 
+### H2 amendment A2: `kron3` training path and latency path (added 2026-10-26, before any H2 full run)
+
+Recorded before any registered H2 run; no H2 full-run output exists at this point. See DECISIONS.md D-020.
+
+- **Change 1 (training path)**: the `kron3` arm trains with `dense_weight` on every `Kron3Linear` (opt-in path
+  merged on main in #158): the dense-equivalent weight `sum_r A_r ⊗ B_r ⊗ C_r` is built once per forward and
+  applied with one matrix product. Parameters, function and gradients are the same model as the contraction
+  path up to float rounding (equivalence tests on main). Reason: on the build box the contraction path took a
+  median 32.8607 s per batch-32 training step at the A1 shape vs 0.2565 s with `dense_weight` (measured by us,
+  one run, `awen-models/results/kron3-dense/` on main), so the arm would take about 40 h instead of about
+  20 min (estimate: 4500 steps x step time). Evaluation (validation loss) uses the same path.
+- **Change 2 (latency path)**: the batch-1 latency kill rule (v2 section 7, > 1.2x baseline) uses the
+  **contraction** path with the A1 `rank_chunk` (the structured per-token execution that the conversion
+  mapping describes). The `dense_weight` latency of the same trained model is measured and reported as
+  `forward_latency_ms_b1_dense_weight` and `ratio_to_baseline_dense_weight_report_only`; it is never used by
+  the verdict. Stored as `kron3_execution` in `configs/h2.yaml`.
+- **Why contraction for the verdict**: on the `dense_weight` path `kron3` executes a dense `d_in x d_out`
+  product plus a per-forward build, so its latency says nothing about the structured layer H2 tests. Using the
+  contraction path is the stricter choice for `kron3` (it is expected to be slower than dense on CPU). Open to
+  Marc to override before results are interpreted (D-020).
+- **Unchanged**: A1 shape and rank, seeds, steps, threads, batch size 32, the other variants, the counting rule
+  and all three kill rules. Baseline and tensor-train latencies use their own (only) path.
+
 ## H3: self-similar (Cantor) channel plans
 
 - **Hypothesis**: a Cantor-stack filter bank gives a multi-scale WDM channel plan with lower adjacent-channel
