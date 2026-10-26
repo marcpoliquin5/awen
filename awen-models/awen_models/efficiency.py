@@ -124,10 +124,19 @@ class Kron3Linear(nn.Module):
     storing its ``[n, r, ...]`` intermediates. The forward multiplies are the same, so
     :meth:`macs_per_token` is unchanged; backward does one extra forward per chunk.
     Peak activation memory then scales with ``rank_chunk`` rather than ``rank``.
+
+    ``dense_weight`` (default ``False``: the per-token contraction above) instead builds
+    the dense-equivalent ``[d_out, d_in]`` weight once per forward from the factors
+    (:meth:`dense_weight_matrix`, ``sum_r A_r ⊗ B_r ⊗ C_r``) and applies it with one
+    matrix product; autograd flows through the build to ``A``, ``B`` and ``C``. The
+    model (parameters, function, gradients) is the same up to float rounding;
+    ``rank_chunk`` is ignored on this path. :meth:`macs_per_token` then reports
+    ``d_in * d_out`` (the executed path); the per-forward build cost, which does not
+    depend on the number of tokens, is :meth:`dense_build_macs`.
     """
 
     def __init__(self, ins: tuple[int, int, int], outs: tuple[int, int, int], rank: int, bias: bool = True,
-                 rank_chunk: Optional[int] = None):
+                 rank_chunk: Optional[int] = None, dense_weight: bool = False):
         super().__init__()
         if len(ins) != 3 or len(outs) != 3 or rank < 1:
             raise ValueError("Kron3Linear needs three input factors, three output factors and rank >= 1")
@@ -135,6 +144,7 @@ class Kron3Linear(nn.Module):
             raise ValueError("rank_chunk must be None or >= 1")
         self.ins, self.outs, self.rank = tuple(ins), tuple(outs), rank
         self.rank_chunk = rank_chunk
+        self.dense_weight = bool(dense_weight)
         self.in_features, self.out_features = math.prod(ins), math.prod(outs)
         scale = rank ** (1 / 3)
         self.A = nn.Parameter(torch.randn(rank, outs[0], ins[0]) / math.sqrt(ins[0] * scale))
@@ -146,6 +156,19 @@ class Kron3Linear(nn.Module):
         """Equivalent dense ``[d_out, d_in]`` matrix."""
         return sum(torch.kron(torch.kron(self.A[r], self.B[r]), self.C[r]) for r in range(self.rank))
 
+    def dense_weight_matrix(self) -> torch.Tensor:
+        """Dense-equivalent ``[d_out, d_in]`` weight built with two contractions (A with B, then C).
+
+        Same matrix as :meth:`dense` (the Kronecker reference), differentiable in ``A``, ``B``, ``C``."""
+        ab = torch.einsum("rai,rbj->rabij", self.A, self.B)                  # r*o1*o2*i1*i2 MACs
+        w = torch.einsum("rabij,rck->abcijk", ab, self.C)                    # r*d_out*d_in MACs
+        return w.reshape(self.out_features, self.in_features)
+
+    def dense_build_macs(self) -> int:
+        """Multiplies to build :meth:`dense_weight_matrix` once (per forward on the ``dense_weight`` path)."""
+        (i1, i2, _), (o1, o2, _) = self.ins, self.outs
+        return self.rank * (o1 * o2 * i1 * i2 + self.out_features * self.in_features)
+
     @staticmethod
     def _contract(xi: torch.Tensor, A: torch.Tensor, B: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
         t = torch.einsum("nijk,rck->nrijc", xi, C)                 # n*r*i1*i2*i3*o3 MACs
@@ -153,6 +176,8 @@ class Kron3Linear(nn.Module):
         return torch.einsum("nricb,rai->nabc", t, A)               # n*r*i1*o3*o2*o1 MACs
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.dense_weight:
+            return F.linear(x, self.dense_weight_matrix(), self.bias)
         lead = x.shape[:-1]
         xi = x.reshape(-1, *self.ins)                               # [n, i1, i2, i3]
         if self.rank_chunk is None or self.rank_chunk >= self.rank:
@@ -171,7 +196,10 @@ class Kron3Linear(nn.Module):
         return y + self.bias if self.bias is not None else y
 
     def macs_per_token(self) -> int:
-        """Multiplies per token on the executed contraction path (C, then B, then A)."""
+        """Multiplies per token on the executed path: the contraction (C, then B, then A), or
+        ``d_in * d_out`` when ``dense_weight`` is set (build cost excluded, see :meth:`dense_build_macs`)."""
+        if self.dense_weight:
+            return self.in_features * self.out_features
         (i1, i2, i3), (o1, o2, o3) = self.ins, self.outs
         return self.rank * (i1 * i2 * i3 * o3 + i1 * i2 * o3 * o2 + i1 * o3 * o2 * o1)
 
@@ -180,10 +208,10 @@ class Kron3FeedForward(nn.Module):
     """GELU MLP whose two matrices are :class:`Kron3Linear` layers."""
 
     def __init__(self, in_factors: tuple[int, int, int], hid_factors: tuple[int, int, int], rank: int,
-                 rank_chunk: Optional[int] = None):
+                 rank_chunk: Optional[int] = None, dense_weight: bool = False):
         super().__init__()
-        self.fc = Kron3Linear(in_factors, hid_factors, rank, rank_chunk=rank_chunk)
-        self.proj = Kron3Linear(hid_factors, in_factors, rank, rank_chunk=rank_chunk)
+        self.fc = Kron3Linear(in_factors, hid_factors, rank, rank_chunk=rank_chunk, dense_weight=dense_weight)
+        self.proj = Kron3Linear(hid_factors, in_factors, rank, rank_chunk=rank_chunk, dense_weight=dense_weight)
 
     def forward(self, x):
         return self.proj(F.gelu(self.fc(x)))
@@ -196,6 +224,14 @@ def set_kron3_rank_chunk(model: nn.Module, rank_chunk: Optional[int]) -> int:
     layers = [m for m in model.modules() if isinstance(m, Kron3Linear)]
     for m in layers:
         m.rank_chunk = rank_chunk
+    return len(layers)
+
+
+def set_kron3_dense_weight(model: nn.Module, enabled: bool) -> int:
+    """Set ``dense_weight`` on every :class:`Kron3Linear` in ``model``; returns how many were set."""
+    layers = [m for m in model.modules() if isinstance(m, Kron3Linear)]
+    for m in layers:
+        m.dense_weight = bool(enabled)
     return len(layers)
 
 
