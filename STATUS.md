@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-10-26 07:10 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-10-26 12:45 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 This commit is based on main `acb3298` (#159, gate run 40271853808 passed), after `42f03e3` (#158, PR gate run 40269929547 passed on head `080fe5e`), `abd7abd` (#157, gate run 40242575808 passed), `7267774` (#156, gate run 40213918425 passed), `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
@@ -163,19 +163,23 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   tensor-train 1.70879 (CI [-0.07210, 0.05071]), so the accuracy rule passed for both; conversions per useful MAC
   (analytic, D-018): baseline 0.009766, `kron3` 1.045898, tensor-train 0.747070, so the conversions rule killed both;
   the latency rule did not apply (neither wins on parameters). CPU only; no photonic latency or energy claim.
-  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); the H3 (on #144), H1 (on #150) and H2 (on #153) full runs are done; H4 is not run.
+  H1-H4 are registered (`research/experiments/multiplexing-fractal/PREREGISTRATION.md`, #133); the H3 (on #144), H1 (on #150) and H2 (on #153) full runs are done.
+  H4 `--config` entry point opened 2026-10-26 as draft #161 (`e9cf511`): definitions fixed before any run
+  (PREREGISTRATION.md "H4 definitions", D-021), widths matched to dense FLOPs within +0.25% to +3.93% (analytic,
+  `--flops-only`). The H4 full run at `e9cf511` was launched 2026-10-26 12:38 ET in a detached worktree (about
+  1.5 h estimated from a 20-step probe); H4 verdict not run until its results are committed to #161.
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. H4 `--config` entry point (Burgers, chirp denoising, MNIST; FNO and Haar-wavelet layers vs dense at matched
-   FLOPs), draft only, following the H1-H3 pattern; definitions fixed before any full run.
+1. Collect the H4 full-run results at `e9cf511` into draft #161 (JSON, log, environment, SHA-256, RESULT.md) and
+   record the verdict here and in EXPERIMENTS.md.
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1), on the
    PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ),
-   and on the agent decisions D-018 to D-020 (H2 counting rule, amendments A1 and A2).
+   and on the agent decisions D-018 to D-021 (H2 counting rule, amendments A1 and A2, H4 definitions).
 3. Get Marc's answer on landing the research stacks on main as research code: H3 (#136, then #144), H1 (#137,
-   #148, #150) and H2 (#153: +580 lines of code and docs against main, plus 537 lines of results, 458 of them JSON).
+   #148, #150) and H2 (#153: +580 lines of code and docs against main, plus 537 lines of results, 458 of them JSON) and H4 (#161).
 
 Wiring slices 2a (#134) and 2b (#135) are merged; replacing further literals waits on sourced values.
