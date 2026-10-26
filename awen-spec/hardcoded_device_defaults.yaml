@@ -22,13 +22,18 @@
 # such as `latency * 0.01`, and fields whose names do not match the device-field pattern in the
 # script (for example `optical_propagation_ns: 0.1`, `t1_ns`, `photon_count`, `click_probability`, `coupling_q`),
 # lines with a trailing comment (for example `read_latency_ns: 1000, // ...` in state/memory.rs) and
-# tuple values (for example `nominal_voltage_range: (0.0, 10.0)` in hal_v0.rs). `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
+# tuple values (for example `nominal_voltage_range: (0.0, 10.0)` in hal_v0.rs).
+# C++ in awen-mlir (lib, include, tools; the lit tests under awen-mlir/test are fixtures, not scanned) has one form:
+# named defaults `constexpr <type> kDefault<Name> = <number>;` at file scope, listed under the constant name. Not seen
+# in C++: validation bounds in comparisons (for example `carrierWavelengthNm <= 0.0`, `confidenceLevel > 1.0`) and
+# constants not named kDefault* (for example `kDialectMajor = 1`). awen-native/src is Rust and is scanned with the
+# Rust forms; it has no literal in either form (its one numeric default is the PyO3 signature `signal = 1.0`, a
+# normalized input amplitude passed to predicted_sigmas, not a device value, and not a scanned form).
+# `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
-scope: [awen-compiler/src, awen-runtime/src]
+scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools]
 not_yet_inventoried:
-  - "awen-native/src"
-  - "awen-mlir"
   - "Python packages (awen-models, awen-physics, awen-systems, awen-qphotonic, awen-lab,\
   \ awen-studio, awen-ecosystem)"
 blocks:
@@ -96,6 +101,7 @@ blocks:
   - {id: rt_memory_hybrid_register_new, file: awen-runtime/src/state/memory.rs, context: 'impl HybridRegister::new'}
   - {id: rt_state_coherence_window_new, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceWindow::new'}
   - {id: rt_state_reference_coherence_manager_create_window, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceManager for ReferenceCoherenceManager::create_window'}
+  - {id: mlir_passes_file_scope, file: awen-mlir/lib/Transforms/Passes.cpp, context: '<file scope>'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -308,3 +314,5 @@ entries:
   - {block: rt_state_coherence_window_new, field: 'fidelity_threshold', value: 0.0, unit: 'fraction', assumption: null, status: definitional, notes: 'a bare coherence window has no fidelity threshold (state/mod.rs L47)'}
   - {block: rt_state_reference_coherence_manager_create_window, field: 'decoherence_timescale_ns', value: 500.0, unit: 'ns', assumption: null, status: unsourced, notes: 'reference coherence manager decoherence timescale (state/mod.rs L347); no entry in the assumption set'}
   - {block: rt_state_reference_coherence_manager_create_window, field: 'fidelity_threshold', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'reference coherence manager fidelity threshold (state/mod.rs L350); no source'}
+  - {block: mlir_passes_file_scope, field: 'kDefaultEffectiveBits', value: 8, unit: 'bits', assumption: system.pace_enob, status: differs_from_assumption, notes: 'minimum_effective_bits given to awen.tensor.gemm when the StableHLO op has no awen.minimum_effective_bits attribute (Passes.cpp L22, used L162); same value as the compiler pace_like_128 effective_bits; PACE system average channel ENOB is 7.61 bits (hua2025)'}
+  - {block: mlir_passes_file_scope, field: 'kDefaultTile', value: 128, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_m, tile_n and tile_k of every photonic tile in awen-lower-tensor-to-photonic (Passes.cpp L23, used L208-L212); a tile is bounded by the mesh size, which v2 section 10 says is a device capability read from the descriptor; channels in the assumption set has no mesh-size entry'}

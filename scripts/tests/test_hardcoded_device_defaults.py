@@ -37,14 +37,15 @@ def test_inventory_matches_code_and_assumptions():
 
 def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
-    assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src"]
-    assert not any(item.startswith("awen-runtime") for item in INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 211
+    assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src", "awen-native/src",
+                                  "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools"]
+    assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 213
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 138,
+        "unsourced": 139,
         "numeric_guard": 27,
         "definitional": 42,
-        "differs_from_assumption": 3,
+        "differs_from_assumption": 4,
         "matches_assumption": 1,
     }
     assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38 + 26
@@ -200,3 +201,56 @@ def test_widened_runtime_literal_change_is_caught(tmp_path):
     root = copy_tree(tmp_path)
     edit(root / "awen-runtime/src/hal_v0.rs", "dark_count_hz: 100.0,", "dark_count_hz: 50.0,")
     assert any("dark_count_hz" in p and "code has 50.0" in p for p in hd.check(root))
+
+
+def test_cpp_named_defaults_form():
+    text = (
+        "namespace {\n"
+        "constexpr int64_t kDialectMajor = 1;\n"
+        "constexpr int64_t kDefaultEffectiveBits = 8;\n"
+        "  static constexpr double kDefaultLaserPowerMw = 2.5e1;\n"
+        "constexpr int64_t kDefaultTile = 1'024;\n"
+        "// constexpr int64_t kDefaultCommented = 3;\n"
+        "  if (!std::isfinite(x) || x <= 0.0)\n"
+        "}\n"
+    )
+    assert hd.cpp_defaults(text) == {
+        ("<file scope>", "kDefaultEffectiveBits"): 8.0,
+        ("<file scope>", "kDefaultLaserPowerMw"): 25.0,
+        ("<file scope>", "kDefaultTile"): 1024.0,
+    }
+
+
+def test_mlir_defaults_are_inventoried():
+    blocks = {b["id"]: b for b in INVENTORY["blocks"]}
+    assert blocks["mlir_passes_file_scope"]["file"] == "awen-mlir/lib/Transforms/Passes.cpp"
+    entries = {(e["block"], e["field"]): e for e in INVENTORY["entries"]}
+    bits = entries[("mlir_passes_file_scope", "kDefaultEffectiveBits")]
+    assert (bits["value"], bits["assumption"], bits["status"]) == (8, "system.pace_enob", "differs_from_assumption")
+    tile = entries[("mlir_passes_file_scope", "kDefaultTile")]
+    assert (tile["value"], tile["status"]) == (128, "unsourced")
+
+
+def test_native_scanned_without_entries():
+    assert not any(k[0].startswith("awen-native/") for k in hd.scan(hd.ROOT, ["awen-native/src"]))
+    assert not any(b["file"].startswith("awen-native/") for b in INVENTORY["blocks"])
+
+
+def test_mlir_default_change_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-mlir/lib/Transforms/Passes.cpp", "kDefaultTile = 128;", "kDefaultTile = 64;")
+    assert any("kDefaultTile" in p and "code has 64.0" in p for p in hd.check(root))
+
+
+def test_new_mlir_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-mlir/lib/Transforms/Passes.cpp", "constexpr int64_t kDefaultTile = 128;\n",
+         "constexpr int64_t kDefaultTile = 128;\nconstexpr double kDefaultPhaseNoiseRad = 0.01;\n")
+    assert any("new hard-coded device default" in p and "kDefaultPhaseNoiseRad" in p for p in hd.check(root))
+
+
+def test_new_native_literal_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-native/src/lib.rs"
+    path.write_text(path.read_text() + "\nfn reference() -> Contract {\n    Contract {\n        laser_power_mw: 5.0,\n    }\n}\n")
+    assert any("awen-native/src/lib.rs" in p and "laser_power_mw" in p for p in hd.check(root))

@@ -5,12 +5,14 @@ Master Prompt v2 section 9: every simulator and cost estimate should read device
 and noise from awen-spec/hardware_assumptions.yaml, and no other file may hard-code them.
 Until the compiler reads that file, this script keeps an exact list of the literals that are
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
-non-test Rust file in the inventory's `scope` (awen-compiler/src and awen-runtime/src):
+non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
+awen-native/src and the awen-mlir sources outside its lit tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
   (``.map_or(0.05, ...)``, ``.unwrap_or(0.0)``, ``.max(0.001)``, ``.min(1.0)``, ``.clamp(a, b)``),
-  listed under the field ``expr:<method>``, and
+  listed under the field ``expr:<method>``, and every C++ named default
+  (``constexpr <type> kDefault<Name> = <number>;``), listed under its constant name, and
 * every listed entry must still exist in the code (no stale entries), and
 * each entry's status must agree with hardware_assumptions.yaml (``unsourced`` only when
   the assumption set has no value for it).
@@ -49,6 +51,10 @@ FLOAT = r"-?[0-9][0-9_]*(?:\.[0-9_]*(?:e-?[0-9]+)?|e-?[0-9]+)(?:_f64|_f32)?"
 FALLBACK = re.compile(rf"\.(map_or|unwrap_or|max|min|clamp)\(\s*({FLOAT})\s*[,)]")
 ITEM = re.compile(r"^(\s*)(?:pub(?:\([a-z]+\))?\s+)?(fn|impl)\b")
 FN_NAME = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
+# C++: `constexpr int64_t kDefaultEffectiveBits = 8;` (named defaults only; validation bounds such as
+# `x < 0.0` and other constants such as `kDialectMajor` are not device defaults and are not matched).
+CPP_DEFAULT = re.compile(rf"^\s*(?:static\s+)?constexpr\s+[A-Za-z_:0-9]+\s+(kDefault[A-Za-z0-9_]*)\s*=\s*({FLOAT}|-?[0-9][0-9']*)\s*;")
+CPP_SUFFIXES = (".cpp", ".h", ".hpp")
 STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional", "numeric_guard"}
 
 
@@ -95,6 +101,15 @@ def literals(text: str) -> dict[tuple[str, str], float]:
     return found
 
 
+def cpp_defaults(text: str) -> dict[tuple[str, str], float]:
+    """{("<file scope>", name): value} for C++ named defaults (``constexpr ... kDefault<Name> = n;``)."""
+    found: dict[tuple[str, str], float] = {}
+    for line in text.splitlines():
+        if (match := CPP_DEFAULT.match(line)):
+            add(found, "<file scope>", match.group(1), parse_number(match.group(2).replace("'", "")))
+    return found
+
+
 def add(found: dict[tuple[str, str], float], context: str, field: str, value: float) -> None:
     n = 1
     while (context, field if n == 1 else f"{field}#{n}") in found:
@@ -106,9 +121,15 @@ def scan(root: Path, scope: list[str]) -> dict[tuple[str, str, str], float]:
     """{(file, context, field): value} for every device literal in the scoped source trees."""
     found: dict[tuple[str, str, str], float] = {}
     for tree in scope:
-        for path in sorted((root / tree).rglob("*.rs")):
+        for path in sorted(p for p in (root / tree).rglob("*") if p.is_file()):
+            if path.suffix == ".rs":
+                items = literals(path.read_text())
+            elif path.suffix in CPP_SUFFIXES:
+                items = cpp_defaults(path.read_text())
+            else:
+                continue
             rel = path.relative_to(root).as_posix()
-            for (context, field), value in literals(path.read_text()).items():
+            for (context, field), value in items.items():
                 found[(rel, context, field)] = value
     return found
 

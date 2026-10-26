@@ -35,6 +35,12 @@
   matches latency, voltage, fidelity, dark count/current, saturation, hysteresis, coherence-time and `_loss_` fields
   (66 runtime entries: 41 unsourced, 19 definitional, 6 numeric guards; 12 new compiler latency entries), 211 entries
   in total. No default changed.
+- Spec: the hard-coded defaults inventory also covers `awen-native/src` (Rust, no literal in either form) and the
+  awen-mlir C++ sources (`include`, `lib`, `tools`; lit tests not scanned) with a new C++ form, file-scope named
+  defaults `constexpr <type> kDefault<Name> = <number>;`. Two entries added, both in
+  `awen-mlir/lib/Transforms/Passes.cpp`: `kDefaultEffectiveBits` 8 (differs from `system.pace_enob` 7.61) and
+  `kDefaultTile` 128 (unsourced; tile size bounded by the mesh size, a device capability), 213 entries in total.
+  No default changed.
 - Spec: the hard-coded defaults scanner also lists float fallbacks, floors and caps inside expressions
   (`.map_or(0.05, ...)`, `.unwrap_or(0.0)`, `.max(0.001)`, `.min(1.0)`, `.clamp(-1.0, 1.0)`) as `expr:<method>`
   entries, with a new `numeric_guard` status for arithmetic guards. The inventory grows from 95 to 133 entries
