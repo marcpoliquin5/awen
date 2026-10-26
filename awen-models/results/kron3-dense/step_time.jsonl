@@ -1,0 +1,2 @@
+{"mode": "chunk:18", "ins": [8, 2, 8], "hidden": [32, 2, 32], "rank": 126, "batch": 32, "block": 128, "warmup": 1, "steps": 5, "step_s_min": 32.0965, "step_s_median": 32.8607, "step_s_max": 33.7307, "last_loss": 4.184411, "max_rss_mb": 1239.7, "threads": 4, "python": "3.13.5"}
+{"mode": "dense", "ins": [8, 2, 8], "hidden": [32, 2, 32], "rank": 126, "batch": 32, "block": 128, "warmup": 1, "steps": 5, "step_s_min": 0.2467, "step_s_median": 0.2565, "step_s_max": 0.2758, "last_loss": 4.184411, "max_rss_mb": 729.1, "threads": 4, "python": "3.13.5"}
