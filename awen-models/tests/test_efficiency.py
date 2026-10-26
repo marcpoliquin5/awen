@@ -74,6 +74,50 @@ def test_kron3_rank_chunk_default_setter_and_checks():
         ef.Kron3Linear((2, 2, 2), (2, 2, 2), 3, rank_chunk=0)
 
 
+def test_kron3_dense_weight_matches_contraction_forward_and_gradients():
+    torch.manual_seed(0)
+    ref = ef.Kron3Linear((2, 2, 4), (2, 4, 4), 7)
+    assert torch.allclose(ref.dense_weight_matrix(), ref.dense(), atol=1e-6)
+    x = torch.randn(3, 5, 16, requires_grad=True)
+    y_ref = ref(x)
+    params = [x, ref.A, ref.B, ref.C, ref.bias]
+    g_ref = torch.autograd.grad(y_ref.pow(2).sum(), params)
+    for chunk in (None, 3):  # rank_chunk is ignored on the dense path
+        ref.rank_chunk, ref.dense_weight = chunk, True
+        y = ref(x)
+        assert y.shape == y_ref.shape and torch.allclose(y, y_ref, atol=1e-5)
+        g = torch.autograd.grad(y.pow(2).sum(), params)
+        for a, b in zip(g, g_ref):
+            assert torch.allclose(a, b, atol=1e-4)
+        with torch.no_grad():
+            assert torch.allclose(ref(x), y_ref, atol=1e-5)
+    nb = ef.Kron3Linear((2, 3, 2), (3, 2, 2), 2, bias=False, dense_weight=True)
+    xb = torch.randn(4, 12)
+    assert torch.allclose(nb(xb), xb @ nb.dense().T, atol=1e-5)
+    # executed-path MACs: d_in*d_out per token; build cost reported separately
+    assert ref.macs_per_token() == 16 * 32
+    assert ref.dense_build_macs() == 7 * (2 * 4 * 2 * 2 + 32 * 16)
+    ref.dense_weight = False
+    assert ref.macs_per_token() == 7 * (16 * 4 + 2 * 2 * 4 * 4 + 2 * 4 * 4 * 2)
+
+
+def test_kron3_dense_weight_default_setter_and_model_equivalence():
+    torch.manual_seed(0)
+    m = ef.build("kron3", 65)
+    layers = [x for x in m.modules() if isinstance(x, ef.Kron3Linear)]
+    assert layers and not any(x.dense_weight for x in layers)  # default path unchanged
+    idx = torch.randint(0, 65, (2, 16))
+    with torch.no_grad():
+        ref, _ = m(idx)
+        assert ef.set_kron3_dense_weight(m, True) == len(layers)
+        assert all(x.dense_weight for x in layers)
+        out, _ = m(idx)
+    assert torch.allclose(out, ref, atol=1e-4)
+    assert ef.set_kron3_dense_weight(ef.build("baseline", 65), True) == 0
+    ffn = ef.Kron3FeedForward((2, 2, 2), (2, 2, 4), 3, dense_weight=True)
+    assert ffn.fc.dense_weight and ffn.proj.dense_weight
+
+
 def test_moe_routes_each_token_to_one_expert_and_balance_loss():
     torch.manual_seed(0)
     moe = ef.MoEFeedForward(16, 8, 4)
