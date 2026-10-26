@@ -1,0 +1,11 @@
+{"variant": "baseline", "seed": 101, "stored_parameters": 818048, "train_wall_time_s": 102.6, "val_loss": 1.70867, "forward_latency_ms_b1": 1.4073994898353703, "latency_path": "native"}
+{"variant": "baseline", "seed": 102, "stored_parameters": 818048, "train_wall_time_s": 98.9, "val_loss": 1.73857, "forward_latency_ms_b1": 1.1921635014005005, "latency_path": "native"}
+{"variant": "baseline", "seed": 103, "stored_parameters": 818048, "train_wall_time_s": 93.8, "val_loss": 1.71122, "forward_latency_ms_b1": 1.2441630024113692, "latency_path": "native"}
+{"variant": "kron3", "seed": 101, "stored_parameters": 820032, "train_wall_time_s": 316.1, "val_loss": 1.70467, "train_path": "dense_weight", "forward_latency_ms_b1": 73.46320299984654, "latency_path": "contraction", "forward_latency_ms_b1_dense_weight": 4.086971501237713}
+{"variant": "kron3", "seed": 102, "stored_parameters": 820032, "train_wall_time_s": 474.5, "val_loss": 1.72042, "train_path": "dense_weight", "forward_latency_ms_b1": 79.07245399837848, "latency_path": "contraction", "forward_latency_ms_b1_dense_weight": 4.328257498855237}
+{"variant": "kron3", "seed": 103, "stored_parameters": 820032, "train_wall_time_s": 528.2, "val_loss": 1.70898, "train_path": "dense_weight", "forward_latency_ms_b1": 79.09062349790474, "latency_path": "contraction", "forward_latency_ms_b1_dense_weight": 4.352716998255346}
+{"variant": "tensor-train", "seed": 101, "stored_parameters": 818048, "train_wall_time_s": 160.5, "val_loss": 1.72131, "forward_latency_ms_b1": 2.356306998990476, "latency_path": "native"}
+{"variant": "tensor-train", "seed": 102, "stored_parameters": 818048, "train_wall_time_s": 164.1, "val_loss": 1.70197, "forward_latency_ms_b1": 2.3093259951565415, "latency_path": "native"}
+{"variant": "tensor-train", "seed": 103, "stored_parameters": 818048, "train_wall_time_s": 164.7, "val_loss": 1.70309, "forward_latency_ms_b1": 2.5636479986133054, "latency_path": "native"}
+{"kron3": "killed", "tensor-train": "killed"}
+EXIT 0 2026-10-26 07:02:11 EDT

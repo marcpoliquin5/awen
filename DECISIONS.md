@@ -98,3 +98,29 @@ Decided by: Marc, 2026-10-18 11:27 AM ET (approved; merged in `awen-labs`).
 Decided by: Marc, 2026-10-18 (his requests, earlier in the session).
 The awen-labs site is an interactive 3D storefront, and it uses the "Why we build with light"
 mission copy, which Marc approved. Marc declined an investor one-pager.
+
+## D-018 · H2 conversion counting rule
+Decided by: agent, 2026-10-25, before any H2 full run.
+H2 counts `R * (d_in + d_out)` conversions per layer (one DAC per input and one ADC per output for each of
+`R` rank terms) against `d_in * d_out` useful MACs. The fan-out lower bound `d_in + d_out` is reported
+only. A polarization factor above 2 x 2 makes the mapping illegal and the conversions verdict "not
+evaluable". Rule text: `research/experiments/multiplexing-fractal/PREREGISTRATION.md`, H2 section.
+
+## D-019 · H2 amendment A1: legal `kron3` shape
+Decided by: agent, 2026-10-25, before any H2 full run.
+The registered `kron3` shape put 4 -> 16 and 16 -> 4 factors on polarization, which only supports 2 x 2
+mixing, so its conversions verdict could never be evaluated. A1 uses `(8, 2, 8) -> (32, 2, 32)`, rank 126
+(stored parameters +0.24% vs baseline) with `rank_chunk` 18 for memory; everything else in H2 is unchanged.
+Alternatives rejected: keeping the illegal shape (conversions rule "not evaluable" by construction); changing
+the harness default build (would change `awen_models.efficiency` behaviour for other callers); dropping `kron3`
+from H2 (loses the hypothesis' main candidate). Rule text: PREREGISTRATION.md, H2 amendment A1.
+
+## D-020 · H2 amendment A2: `kron3` trains on `dense_weight`, latency verdict on the contraction path
+Decided by: agent, 2026-10-26, before any H2 full run; open to Marc.
+The `kron3` arm trains with the opt-in `dense_weight` path (#158; same model, equivalence-tested) because the
+contraction path measured about 32.9 s per batch-32 step on the build box (about 40 h for the arm, estimate)
+vs about 0.26 s. The batch-1 latency kill rule uses the contraction path (the structured execution); the
+`dense_weight` latency is reported only. Alternatives rejected: training on the contraction path (about 40 h
+per arm on the build box); judging latency on `dense_weight` (measures a dense product, not the structured
+layer, and would favour `kron3`); dropping the latency rule for `kron3` (weakens the registered test).
+Rule text: PREREGISTRATION.md, H2 amendment A2.
