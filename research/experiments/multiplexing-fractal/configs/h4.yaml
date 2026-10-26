@@ -1,15 +1,24 @@
 # H4 full-run config (registered before any full run; see ../PREREGISTRATION.md).
+# 2026-10-26, before any H4 full run: definitions block added (data generators, architectures, FLOP
+# convention, compute match). `fno_1d_or_2d` is now `fno`: 1-D on the 1-D tasks, 2-D on MNIST.
 id: H4
 schema: awen.fractal-prereg-config.v1
 hypothesis: "Fourier (FNO) and Haar-wavelet layers beat dense baselines at matched compute on multi-scale tasks"
 status: registered
 pilot: null  # no H4 pilot ran
-models: [dense_mlp, fno_1d_or_2d, haar_wavelet]
-compute_match: {measure: flops_per_sample, tolerance: 0.05}
+models: [dense_mlp, fno, haar_wavelet]
+compute_match: {measure: flops_per_sample, tolerance: 0.05}  # widths of fno and haar_wavelet chosen to match dense
+data_seed: 2026  # data only; training seeds below change initialization and batch order only
+threads: 8
 tasks:
-  - {name: burgers_1d, generator: "pseudo-spectral solver, viscosity 0.01, grid 256, 1000 train / 200 test", score: relative_l2_error}
-  - {name: multiscale_denoise_1d, generator: "sum of 3 chirps + white noise SNR 10 dB, length 512, 5000 train / 1000 test", score: relative_l2_error}
-  - {name: mnist_28x28, score: test_accuracy}
+  - {name: burgers_1d, generator: "pseudo-spectral solver, viscosity 0.01, grid 256, 1000 train / 200 test", score: relative_l2_error,
+     shape: [256], grid: 256, solver_grid: 1024, viscosity: 0.01, t_final: 1.0, dt: 0.00025, ic_modes: 16, ic_amplitude: 1.0,
+     n_train: 1000, n_test: 200, dense_width: 1024, dense_hidden_layers: 2, layers: 4, fno_modes: 16, haar_levels: 4}
+  - {name: multiscale_denoise_1d, generator: "sum of 3 chirps + white noise SNR 10 dB, length 512, 5000 train / 1000 test", score: relative_l2_error,
+     shape: [512], length: 512, n_chirps: 3, freq_range: [0.005, 0.25], amp_range: [0.5, 1.0], snr_db: 10,
+     n_train: 5000, n_test: 1000, dense_width: 1024, dense_hidden_layers: 2, layers: 4, fno_modes: 64, haar_levels: 5}
+  - {name: mnist_28x28, score: test_accuracy, shape: [28, 28], classes: 10,
+     dense_width: 1024, dense_hidden_layers: 2, layers: 4, fno_modes: 8, haar_levels: 2}
 training: {optimizer: adam, lr: 0.001, epochs: 20, batch_size: 64}
 seeds: [101, 102, 103]
 falsification: "Killed if on any task neither FNO nor wavelet beats dense at matched compute (95% paired-t interval over seeds)"
