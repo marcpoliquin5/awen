@@ -40,8 +40,29 @@ denoise dense 4,194,304, FNO +3.52%, Haar +3.93%; MNIST dense 3,723,264, FNO +0.
   small (0.44 points, CI 0.13 to 0.76 points).
 - This Haar-wavelet model beats dense only on denoising. Its MNIST accuracy (0.41 mean) and Burgers error are far
   worse than dense. That gap is large enough that a defect in the Haar layer or its 2D use is possible; it was not
-  investigated before this report, and the verdict is recorded as registered either way.
+  investigated before this report, and the verdict is recorded as registered either way. Follow-up check
+  (2026-10-27, after the run, see below): no defect found in the Haar transform itself.
 - FLOPs per sample are an analytic count, not a measured latency or energy figure. Nothing here says anything
   about photonic hardware; mapping Fourier or wavelet layers to optics needs the full system accounting in
   `awen-spec/hardware_assumptions.yaml` before any speed or energy statement.
 - One model size per task, 3 seeds, CPU only; not tested at other sizes, budgets or tasks.
+
+## Follow-up: Haar transform defect check (2026-10-27, after the run; verdict unchanged)
+
+`research/tests/test_fractal_h4_haar_reference.py` checks `h4_multiscale.haar` and `haar_bands` against an
+independent NumPy reference built from explicit orthonormal level matrices (no shared code). At the registered
+shapes and levels (1-D 256 at 4 levels, 512 at 5; 2-D 28x28 at 2) and on small cases, the forward and inverse
+transforms match the reference to 1e-12, energy is preserved, the gradient equals the reference transpose (and
+`torch.autograd.gradcheck` passes in 2-D), every band label matches the level its basis function came from, and a
+Haar block with identity band mixing reconstructs its input exactly. Result (measured by us, commit of this
+change, build box Linux 6.12.94+, Python 3.13.5, torch 2.14.1+cpu, numpy 2.5.4):
+
+```
+cd research && python -m pytest -q tests/test_fractal_h4_haar_reference.py   # 11 passed
+```
+
+So the MNIST and Burgers gaps are not explained by a wrong transform, inverse, gradient or band layout. Not
+tested, and stated only as a hypothesis: the registered Haar layer has one `width x width` mixing matrix per band
+(3 matrices at 2 levels on MNIST), shared by every position in that band, so unlike the FNO layer's per-mode
+weights it has no position- or scale-position-dependent weights. Any change to the layer would be a new,
+separately registered variant; the registered verdict above stays as run.
