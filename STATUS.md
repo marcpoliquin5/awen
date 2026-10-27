@@ -1,7 +1,7 @@
 # AWEN status
 
-Updated 2026-10-27 06:40 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
-This commit is based on main `213ce2b` (#166, gate run 40452031650 passed), after `3a562c9` (#165, PR gate run 40450135645 passed on head `c270358`), after `09390a2` (#164, gate run 40415390257 passed), `917f656` (#163, PR gate run 40412651063 passed on head `e04a9e7`), after `52e5821` (#162, gate run 40363060478 passed), `00ef6b7` (#160), `acb3298` (#159, gate run 40271853808 passed), `42f03e3` (#158, PR gate run 40269929547 passed on head `080fe5e`), `abd7abd` (#157, gate run 40242575808 passed), `7267774` (#156, gate run 40213918425 passed), `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
+Updated 2026-10-27 12:37 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+This commit is based on main `09beddb` (#167, gate run 40490344117 passed), after `213ce2b` (#166, gate run 40452031650 passed), after `3a562c9` (#165, PR gate run 40450135645 passed on head `c270358`), after `09390a2` (#164, gate run 40415390257 passed), `917f656` (#163, PR gate run 40412651063 passed on head `e04a9e7`), after `52e5821` (#162, gate run 40363060478 passed), `00ef6b7` (#160), `acb3298` (#159, gate run 40271853808 passed), `42f03e3` (#158, PR gate run 40269929547 passed on head `080fe5e`), `abd7abd` (#157, gate run 40242575808 passed), `7267774` (#156, gate run 40213918425 passed), `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
 `840f5c5` (run 39141006838), `132d4d9` (run 39143781587), `c02eee9` (run 39147442569), `c1086fc` (run 39150273629),
@@ -80,7 +80,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | Multiplexing-aware lowering pass, H1-H4 keep/kill report | 10 | pilots on a branch; H1-H4 registered (#133) | full runs, lowering pass, report |
 | ≥3 seeds on matched experiments | 14 | 2 seeds (E-003, E-005, E-008; stored results, see EXPERIMENTS.md) | rerun with a third seed |
 | docs/install.md with pinned CUDA 12.8+ / cu128 lockfile | 4 | none | install doc + lockfile |
-| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md`, `2026-10-24-02.md`, `2026-10-24-03.md`, `2026-10-24-04.md`, `2026-10-25-01.md`, `2026-10-25-02.md`, `2026-10-25-03.md`, `2026-10-25-04.md` | every session |
+| Session reports in `docs/sessions/` | 3, 17 | `2026-10-18-01.md` to `-03.md` (`-03` filed late), `2026-10-23-01.md` (covers the Oct 22 and Oct 23 runs), `2026-10-23-02.md`, `2026-10-23-03.md`, `2026-10-24-01.md`, `2026-10-24-02.md`, `2026-10-24-03.md`, `2026-10-24-04.md`, `2026-10-25-01.md`, `2026-10-25-02.md`, `2026-10-25-03.md`, `2026-10-25-04.md`, `2026-10-26-01.md` to `-04.md`, `2026-10-27-01.md` to `-03.md` | every session |
 
 ## Phase 1 plan (one task per session)
 
@@ -173,16 +173,18 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
   (`results/h4/RESULT.md`): **kept**. FNO beats dense at matched FLOPs on all 3 tasks (improvement 95% CIs, measured by us:
   Burgers rel. L2 0.1214 [0.1032, 0.1396], denoise 0.1367 [0.1253, 0.1482], MNIST accuracy 0.0044 [0.0013, 0.0076]);
   Haar beats dense only on denoise (0.1129 [0.1089, 0.1169]) and is far worse on MNIST (accuracy 0.4126 vs 0.9827),
-  so a defect in the Haar layer's 2D use is possible and not yet investigated. CPU only; no photonic speed or energy claim.
+  so a defect in the Haar layer's 2D use was possible. On 2026-10-27 `9b30f08` on #161 checked `haar` and `haar_bands`
+  against an independent NumPy reference (11 tests, all pass, measured by us): forward, inverse, gradient, energy and
+  band labels are right at the registered shapes, so the gap is not a transform defect. Untested hypothesis: the layer's
+  one mixing matrix per band is shared by every position in that band. The verdict stays as run. CPU only; no photonic speed or energy claim.
 - PACE reference-descriptor defaults: draft #138 is a proposal for Marc only (do not merge).
 - Speed program (simulator GEMM, binding copies, KV cache, compile latency): branch
   `perf/hot-paths`; every speedup must be measured with `awen-bench`.
 
 ## Next 3 tasks
 
-1. Check the H4 Haar layer for a defect (MNIST accuracy 0.41 vs dense 0.98 at matched FLOPs) with a unit test against
-   an independent reference transform; a fix would be logged as a deviation and a re-run registered, the recorded
-   verdict stays as run.
+1. Extend the hard-coded defaults inventory to the `awen-physics` and `awen-systems` Python packages (gap list,
+   v2 section 9), same rules as #165.
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1), on the
    PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ),
    and on the agent decisions D-018 to D-021 (H2 counting rule, amendments A1 and A2, H4 definitions).
