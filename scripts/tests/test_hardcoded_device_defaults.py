@@ -38,11 +38,13 @@ def test_inventory_matches_code_and_assumptions():
 def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
     assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src", "awen-native/src",
-                                  "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools"]
+                                  "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools",
+                                  "awen-models/awen", "awen-models/awen_models"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 213
+    assert "awen-models," not in " ".join(INVENTORY["not_yet_inventoried"])
+    assert len(INVENTORY["entries"]) == 221
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 139,
+        "unsourced": 147,
         "numeric_guard": 27,
         "definitional": 42,
         "differs_from_assumption": 4,
@@ -254,3 +256,60 @@ def test_new_native_literal_is_caught(tmp_path):
     path = root / "awen-native/src/lib.rs"
     path.write_text(path.read_text() + "\nfn reference() -> Contract {\n    Contract {\n        laser_power_mw: 5.0,\n    }\n}\n")
     assert any("awen-native/src/lib.rs" in p and "laser_power_mw" in p for p in hd.check(root))
+
+
+# ---------------------------------------------------------------- Python (awen-models)
+
+
+def test_python_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    py = [e for e in INVENTORY["entries"] if files[e["block"]].endswith(".py")]
+    assert Counter(e["field"] for e in py) == {"tile_k": 7, "DEFAULT_WAVELENGTH_M": 1}
+    assert all(e["status"] == "unsourced" for e in py)
+
+
+def test_py_defaults_forms():
+    text = (
+        "import math\n"
+        "PLANCK = 6.62607015e-34\n"
+        "DEFAULT_WAVELENGTH_M = 1550e-9\n"
+        "LASER_POWER_MW = -3\n"
+        "class Settings:\n"
+        "    tile_k: int = 64\n"
+        "    lr: float = 0.002\n"
+        "    def run(self, phase_sigma_rad: float = 0.01, *, adc_bits: int = 8, seed: int = 0):\n"
+        "        def inner(tile_k=32):\n"
+        "            return tile_k\n"
+        "        return inner()\n"
+        "def generate(prompt, temperature=0.8, temperature_k=300.0, gain_factor=2.0, tile_m=None):\n"
+        "    return math.pi\n"
+    )
+    assert hd.py_defaults(text) == {
+        ("<file scope>", "DEFAULT_WAVELENGTH_M"): 1550e-9,
+        ("<file scope>", "LASER_POWER_MW"): -3.0,
+        ("class Settings", "tile_k"): 64.0,
+        ("Settings.run", "phase_sigma_rad"): 0.01,
+        ("Settings.run", "adc_bits"): 8.0,
+        ("generate", "temperature_k"): 300.0,
+    }
+
+
+def test_new_python_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-models/awen_models/photon_training.py", "DEFAULT_WAVELENGTH_M = 1550e-9\n",
+         "DEFAULT_WAVELENGTH_M = 1550e-9\nMODULATOR_ENERGY_PJ = 1.5\n")
+    assert any("new hard-coded device default" in p and "MODULATOR_ENERGY_PJ" in p for p in hd.check(root))
+
+
+def test_changed_python_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-models/awen/photonic.py", "tile_k: int = 64):", "tile_k: int = 128):")
+    assert any("PhotonicGemmExecutor.__init__" in p and "code has 128.0" in p for p in hd.check(root))
+
+
+def test_python_tests_directory_is_not_scanned(tmp_path):
+    root = copy_tree(tmp_path)
+    tests = root / "awen-models/awen_models/tests"
+    tests.mkdir()
+    (tests / "test_fixture.py").write_text("ADC_BITS = 6\n")
+    assert hd.check(root) == []
