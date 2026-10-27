@@ -1,0 +1,439 @@
+{
+  "id": "H4",
+  "config": {
+    "id": "H4",
+    "schema": "awen.fractal-prereg-config.v1",
+    "hypothesis": "Fourier (FNO) and Haar-wavelet layers beat dense baselines at matched compute on multi-scale tasks",
+    "status": "registered",
+    "pilot": null,
+    "models": [
+      "dense_mlp",
+      "fno",
+      "haar_wavelet"
+    ],
+    "compute_match": {
+      "measure": "flops_per_sample",
+      "tolerance": 0.05
+    },
+    "data_seed": 2026,
+    "threads": 8,
+    "tasks": [
+      {
+        "name": "burgers_1d",
+        "generator": "pseudo-spectral solver, viscosity 0.01, grid 256, 1000 train / 200 test",
+        "score": "relative_l2_error",
+        "shape": [
+          256
+        ],
+        "grid": 256,
+        "solver_grid": 1024,
+        "viscosity": 0.01,
+        "t_final": 1.0,
+        "dt": 0.00025,
+        "ic_modes": 16,
+        "ic_amplitude": 1.0,
+        "n_train": 1000,
+        "n_test": 200,
+        "dense_width": 1024,
+        "dense_hidden_layers": 2,
+        "layers": 4,
+        "fno_modes": 16,
+        "haar_levels": 4
+      },
+      {
+        "name": "multiscale_denoise_1d",
+        "generator": "sum of 3 chirps + white noise SNR 10 dB, length 512, 5000 train / 1000 test",
+        "score": "relative_l2_error",
+        "shape": [
+          512
+        ],
+        "length": 512,
+        "n_chirps": 3,
+        "freq_range": [
+          0.005,
+          0.25
+        ],
+        "amp_range": [
+          0.5,
+          1.0
+        ],
+        "snr_db": 10,
+        "n_train": 5000,
+        "n_test": 1000,
+        "dense_width": 1024,
+        "dense_hidden_layers": 2,
+        "layers": 4,
+        "fno_modes": 64,
+        "haar_levels": 5
+      },
+      {
+        "name": "mnist_28x28",
+        "score": "test_accuracy",
+        "shape": [
+          28,
+          28
+        ],
+        "classes": 10,
+        "dense_width": 1024,
+        "dense_hidden_layers": 2,
+        "layers": 4,
+        "fno_modes": 8,
+        "haar_levels": 2
+      }
+    ],
+    "training": {
+      "optimizer": "adam",
+      "lr": 0.001,
+      "epochs": 20,
+      "batch_size": 64
+    },
+    "seeds": [
+      101,
+      102,
+      103
+    ],
+    "falsification": "Killed if on any task neither FNO nor wavelet beats dense at matched compute (95% paired-t interval over seeds)",
+    "command": "python research/experiments/multiplexing-fractal/h4_multiscale.py --config research/experiments/multiplexing-fractal/configs/h4.yaml"
+  },
+  "compute_match": {
+    "burgers_1d": {
+      "dense_mlp": {
+        "width": 1024,
+        "flops": 3145728,
+        "rel_diff": 0.0
+      },
+      "fno": {
+        "width": 28,
+        "flops": 3182592,
+        "rel_diff": 0.01171875
+      },
+      "haar_wavelet": {
+        "width": 27,
+        "flops": 3220992,
+        "rel_diff": 0.02392578125
+      }
+    },
+    "multiscale_denoise_1d": {
+      "dense_mlp": {
+        "width": 1024,
+        "flops": 4194304,
+        "rel_diff": 0.0
+      },
+      "fno": {
+        "width": 20,
+        "flops": 4341760,
+        "rel_diff": 0.03515625
+      },
+      "haar_wavelet": {
+        "width": 22,
+        "flops": 4359168,
+        "rel_diff": 0.039306640625
+      }
+    },
+    "mnist_28x28": {
+      "dense_mlp": {
+        "width": 1024,
+        "flops": 3723264,
+        "rel_diff": 0.0
+      },
+      "fno": {
+        "width": 13,
+        "flops": 3732698,
+        "rel_diff": 0.0025337983017050814
+      },
+      "haar_wavelet": {
+        "width": 16,
+        "flops": 3738432,
+        "rel_diff": 0.004073844884488365
+      }
+    }
+  },
+  "runs": [
+    {
+      "task": "burgers_1d",
+      "model": "dense_mlp",
+      "seed": 101,
+      "score": 0.17661361396312714,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "dense_mlp",
+      "seed": 102,
+      "score": 0.17796699702739716,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "dense_mlp",
+      "seed": 103,
+      "score": 0.17907395958900452,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "fno",
+      "seed": 101,
+      "score": 0.06365537643432617,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "fno",
+      "seed": 102,
+      "score": 0.052156463265419006,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "fno",
+      "seed": 103,
+      "score": 0.0535724051296711,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "haar_wavelet",
+      "seed": 101,
+      "score": 0.44737598299980164,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "haar_wavelet",
+      "seed": 102,
+      "score": 0.4454098641872406,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "burgers_1d",
+      "model": "haar_wavelet",
+      "seed": 103,
+      "score": 0.45078518986701965,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "dense_mlp",
+      "seed": 101,
+      "score": 0.39132505655288696,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "dense_mlp",
+      "seed": 102,
+      "score": 0.3899228274822235,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "dense_mlp",
+      "seed": 103,
+      "score": 0.3880937993526459,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "fno",
+      "seed": 101,
+      "score": 0.2505267858505249,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "fno",
+      "seed": 102,
+      "score": 0.2522122263908386,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "fno",
+      "seed": 103,
+      "score": 0.2563558518886566,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "haar_wavelet",
+      "seed": 101,
+      "score": 0.27738457918167114,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "haar_wavelet",
+      "seed": 102,
+      "score": 0.27621808648109436,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "multiscale_denoise_1d",
+      "model": "haar_wavelet",
+      "seed": 103,
+      "score": 0.2770775854587555,
+      "metric": "relative_l2_error"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "dense_mlp",
+      "seed": 101,
+      "score": 0.9818,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "dense_mlp",
+      "seed": 102,
+      "score": 0.9829,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "dense_mlp",
+      "seed": 103,
+      "score": 0.9833,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "fno",
+      "seed": 101,
+      "score": 0.9856,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "fno",
+      "seed": 102,
+      "score": 0.9865,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "fno",
+      "seed": 103,
+      "score": 0.9892,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "haar_wavelet",
+      "seed": 101,
+      "score": 0.4268,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "haar_wavelet",
+      "seed": 102,
+      "score": 0.4161,
+      "metric": "test_accuracy"
+    },
+    {
+      "task": "mnist_28x28",
+      "model": "haar_wavelet",
+      "seed": 103,
+      "score": 0.395,
+      "metric": "test_accuracy"
+    }
+  ],
+  "verdict": {
+    "tasks": {
+      "burgers_1d": {
+        "candidates": {
+          "fno": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": 0.12142344191670418,
+              "ci95": [
+                0.10320798129525269,
+                0.13963890253815567
+              ]
+            },
+            "beats_dense": true
+          },
+          "haar_wavelet": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": -0.26997215549151105,
+              "ci95": [
+                -0.27553965014129345,
+                -0.26440466084172864
+              ]
+            },
+            "beats_dense": false
+          }
+        },
+        "killed": false
+      },
+      "multiscale_denoise_1d": {
+        "candidates": {
+          "fno": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": 0.13674893975257874,
+              "ci95": [
+                0.12530680656349738,
+                0.1481910729416601
+              ]
+            },
+            "beats_dense": true
+          },
+          "haar_wavelet": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": 0.11288714408874512,
+              "ci95": [
+                0.10885152665863142,
+                0.11692276151885882
+              ]
+            },
+            "beats_dense": true
+          }
+        },
+        "killed": false
+      },
+      "mnist_28x28": {
+        "candidates": {
+          "fno": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": 0.004433333333333363,
+              "ci95": [
+                0.0012682910131117837,
+                0.007598375653554942
+              ]
+            },
+            "beats_dense": true
+          },
+          "haar_wavelet": {
+            "improvement_vs_dense": {
+              "n": 3,
+              "mean": -0.5700333333333333,
+              "ci95": [
+                -0.611975064066736,
+                -0.5280916025999306
+              ]
+            },
+            "beats_dense": false
+          }
+        },
+        "killed": false
+      }
+    },
+    "verdict": "kept"
+  },
+  "hardware": {
+    "device": "cpu",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "cpu_count": 8,
+    "torch_threads": 8,
+    "torch": "2.14.1+cpu",
+    "python": "3.13.5",
+    "cpu_model": "Intel(R) Xeon(R) Processor"
+  },
+  "evidence": "scores measured on the CPU above (L0); FLOPs counted analytically"
+}

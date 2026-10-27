@@ -114,6 +114,29 @@ none is reused in the keep/kill report. What the pilots measured (source: stored
 - **Seeds**: 101, 102, 103 (n = 3 paired seeds).
 - **Falsified if**, on any task, neither the FNO nor the wavelet model beats the dense baseline at matched compute.
 
+### H4 definitions (added 2026-10-26, before any H4 full run)
+
+Implemented in `h4_multiscale.py`; values in `configs/h4.yaml`. No H4 run of any kind had started.
+
+- **Models**: `dense_mlp` (2 hidden layers, width 1024, GELU); `fno` (pointwise lift, 4 Fourier layers with
+  truncated complex spectral weights plus a pointwise skip mix and GELU, pointwise head; 1-D on Burgers and
+  denoising, 2-D on MNIST, where the head is a spatial mean and a linear map to 10 classes); `haar_wavelet`
+  (same skeleton, each layer an orthonormal multi-level Haar transform, one learned channel-mixing matrix per
+  band, inverse transform, skip mix, GELU). `fno_1d_or_2d` in the first registration is renamed `fno`.
+- **FLOPs per sample** (forward, analytic): 2 per real multiply-accumulate, 8 per complex multiply-accumulate,
+  2.5 n log2 n per real FFT or inverse of n points, 2 per sample per axis pass of each Haar level; biases,
+  activations and pooling not counted. FNO and wavelet widths are the integers nearest the dense count and
+  must be within ±5% (`--flops-only` prints them).
+- **Data** (fixed by `data_seed` 2026; training seeds change initialization and batch order only): Burgers
+  u(0) -> u(1), viscosity 0.01, random initial condition from Fourier modes 1-16 with 1/k² amplitudes scaled
+  to max |u| = 1, solved on 1024 points (integrating-factor RK4, dt 2.5e-4, 2/3 dealiasing) and subsampled to
+  the registered grid of 256, because 256 points do not resolve the fronts at this viscosity; denoising:
+  3 linear chirps, start and end frequencies uniform in [0.005, 0.25] cycles per sample, amplitudes uniform in
+  [0.5, 1], white Gaussian noise at 10 dB SNR per signal; MNIST: standard 60,000 / 10,000 split.
+- **Score**: mean per-sample relative L2 error on the test split; MNIST test accuracy.
+- **Rule**: a candidate beats dense on a task when the 95% paired-t interval over the 3 seeds of its
+  improvement lies above 0. Killed if on any task neither candidate beats dense; otherwise kept.
+
 ## Out of scope here
 
 The multiplexing-aware lowering pass (v2 section 10) is separate work, and H1-H4 do not depend on it.

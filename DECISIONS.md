@@ -98,3 +98,12 @@ Decided by: Marc, 2026-10-18 11:27 AM ET (approved; merged in `awen-labs`).
 Decided by: Marc, 2026-10-18 (his requests, earlier in the session).
 The awen-labs site is an interactive 3D storefront, and it uses the "Why we build with light"
 mission copy, which Marc approved. Marc declined an investor one-pager.
+
+## D-021 · H4 definitions fixed before any H4 run
+Decided by: agent, 2026-10-26, before any H4 run; open to Marc. (D-018 to D-020 are on draft #153.)
+The H4 registration named models, tasks and the matched-FLOPs rule but not the architectures, FLOP convention,
+data generators or widths. They are fixed in PREREGISTRATION.md (H4 definitions) and `configs/h4.yaml` before
+any run. Burgers is solved on 1024 points and subsampled to the registered 256 because 256 points under-resolve
+the fronts at viscosity 0.01. Dense width 1024 keeps every matched FNO and wavelet width at 13 or more.
+Alternatives rejected: solving on 256 points (resolution check with command and output in the PR body);
+dense width 256 (nearest MNIST wavelet width 5 is 11% off the dense FLOPs, outside ±5%).

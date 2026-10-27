@@ -1,0 +1,30 @@
+START Mon Oct 26 12:38:13 EDT 2026
+{"task": "burgers_1d", "model": "dense_mlp", "seed": 101, "score": 0.17661361396312714, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "dense_mlp", "seed": 102, "score": 0.17796699702739716, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "dense_mlp", "seed": 103, "score": 0.17907395958900452, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "fno", "seed": 101, "score": 0.06365537643432617, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "fno", "seed": 102, "score": 0.052156463265419006, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "fno", "seed": 103, "score": 0.0535724051296711, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "haar_wavelet", "seed": 101, "score": 0.44737598299980164, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "haar_wavelet", "seed": 102, "score": 0.4454098641872406, "metric": "relative_l2_error"}
+{"task": "burgers_1d", "model": "haar_wavelet", "seed": 103, "score": 0.45078518986701965, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "dense_mlp", "seed": 101, "score": 0.39132505655288696, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "dense_mlp", "seed": 102, "score": 0.3899228274822235, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "dense_mlp", "seed": 103, "score": 0.3880937993526459, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "fno", "seed": 101, "score": 0.2505267858505249, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "fno", "seed": 102, "score": 0.2522122263908386, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "fno", "seed": 103, "score": 0.2563558518886566, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "haar_wavelet", "seed": 101, "score": 0.27738457918167114, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "haar_wavelet", "seed": 102, "score": 0.27621808648109436, "metric": "relative_l2_error"}
+{"task": "multiscale_denoise_1d", "model": "haar_wavelet", "seed": 103, "score": 0.2770775854587555, "metric": "relative_l2_error"}
+{"task": "mnist_28x28", "model": "dense_mlp", "seed": 101, "score": 0.9818, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "dense_mlp", "seed": 102, "score": 0.9829, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "dense_mlp", "seed": 103, "score": 0.9833, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "fno", "seed": 101, "score": 0.9856, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "fno", "seed": 102, "score": 0.9865, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "fno", "seed": 103, "score": 0.9892, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "haar_wavelet", "seed": 101, "score": 0.4268, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "haar_wavelet", "seed": 102, "score": 0.4161, "metric": "test_accuracy"}
+{"task": "mnist_28x28", "model": "haar_wavelet", "seed": 103, "score": 0.395, "metric": "test_accuracy"}
+"kept"
+EXIT 0 Tue Oct 27 01:00:47 EDT 2026
