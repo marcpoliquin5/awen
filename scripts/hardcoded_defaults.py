@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Inventory of device energies and noise still hard-coded in Rust defaults.
+"""Inventory of device energies and noise still hard-coded in Rust, C++ and Python defaults.
 
 Master Prompt v2 section 9: every simulator and cost estimate should read device energies
 and noise from awen-spec/hardware_assumptions.yaml, and no other file may hard-code them.
 Until the compiler reads that file, this script keeps an exact list of the literals that are
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
 non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
-awen-native/src and the awen-mlir sources outside its lit tests):
+awen-native/src, the awen-mlir sources outside its lit tests and the awen-models Python
+packages outside tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
   (``.map_or(0.05, ...)``, ``.unwrap_or(0.0)``, ``.max(0.001)``, ``.min(1.0)``, ``.clamp(a, b)``),
   listed under the field ``expr:<method>``, and every C++ named default
-  (``constexpr <type> kDefault<Name> = <number>;``), listed under its constant name, and
+  (``constexpr <type> kDefault<Name> = <number>;``), listed under its constant name, and every
+  Python module constant, class-body field or parameter default with a literal number and a
+  device name (``DEFAULT_WAVELENGTH_M = 1550e-9``, ``tile_k: int = 64``), and
 * every listed entry must still exist in the code (no stale entries), and
 * each entry's status must agree with hardware_assumptions.yaml (``unsourced`` only when
   the assumption set has no value for it).
@@ -23,6 +26,7 @@ Usage: python scripts/hardcoded_defaults.py [--check]   (prints the inventory ta
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import sys
 from pathlib import Path
@@ -55,6 +59,10 @@ FN_NAME = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
 # `x < 0.0` and other constants such as `kDialectMajor` are not device defaults and are not matched).
 CPP_DEFAULT = re.compile(rf"^\s*(?:static\s+)?constexpr\s+[A-Za-z_:0-9]+\s+(kDefault[A-Za-z0-9_]*)\s*=\s*({FLOAT}|-?[0-9][0-9']*)\s*;")
 CPP_SUFFIXES = (".cpp", ".h", ".hpp")
+# Python: the Rust field pattern plus carrier wavelength and tile sizes. A bare `temperature` is the
+# softmax/sampling temperature in the Python model code (generate, distillation), not a device value;
+# a device temperature carries a unit suffix (for example `temperature_k`) and is still matched.
+PY_EXTRA_FIELD = re.compile(r"(wavelength|^tile_)")
 STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional", "numeric_guard"}
 
 
@@ -64,6 +72,67 @@ def parse_number(raw: str) -> float:
 
 def is_device_field(name: str) -> bool:
     return bool(DEVICE_FIELD.search(name)) and not name.endswith("_factor")
+
+
+def is_py_device_field(name: str) -> bool:
+    lowered = name.lower()
+    if lowered == "temperature":
+        return False
+    return (is_device_field(lowered) or bool(PY_EXTRA_FIELD.search(lowered))) and not lowered.endswith("_factor")
+
+
+def _py_number(node: ast.expr | None) -> float | None:
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _py_number(node.operand)
+        return None if inner is None else -inner
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+        return float(node.value)
+    return None
+
+
+def py_defaults(text: str) -> dict[tuple[str, str], float]:
+    """{(context, name): value} for numeric device defaults in Python source.
+
+    Three forms: module constants (``DEFAULT_WAVELENGTH_M = 1550e-9``, context ``<file scope>``), class-body
+    fields such as dataclass defaults (``tile_k: int = 64``, context ``class <Name>``) and parameter defaults
+    (``def f(tile_k: int = 64)``, context ``<fn>`` or ``<Class>.<fn>``). Only literal numbers count; a name
+    repeated in one context is numbered ``#2``... in source order.
+    """
+    found: dict[tuple[str, str], float] = {}
+
+    def assigned(stmt: ast.stmt) -> list[tuple[str, float]]:
+        if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+            pairs = [(stmt.target.id, _py_number(stmt.value))]
+        elif isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+            pairs = [(stmt.targets[0].id, _py_number(stmt.value))]
+        else:
+            return []
+        return [(n, v) for n, v in pairs if v is not None and is_py_device_field(n)]
+
+    def function(fn: ast.FunctionDef | ast.AsyncFunctionDef, context: str) -> None:
+        args = fn.args
+        positional = args.posonlyargs + args.args
+        pairs = list(zip(positional[len(positional) - len(args.defaults):], args.defaults))
+        pairs += [(a, d) for a, d in zip(args.kwonlyargs, args.kw_defaults) if d is not None]
+        for arg, default in pairs:
+            value = _py_number(default)
+            if value is not None and is_py_device_field(arg.arg):
+                add(found, context, arg.arg, value)
+
+    def body(statements: list[ast.stmt], owner: str | None) -> None:
+        for stmt in statements:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                function(stmt, f"{owner}.{stmt.name}" if owner else stmt.name)
+            elif isinstance(stmt, ast.ClassDef) and owner is None:
+                for name, value in [p for s in stmt.body for p in assigned(s)]:
+                    add(found, f"class {stmt.name}", name, value)
+                body(stmt.body, stmt.name)
+            elif owner is None:
+                for name, value in assigned(stmt):
+                    add(found, "<file scope>", name, value)
+
+    body(ast.parse(text).body, None)
+    return found
 
 
 def literals(text: str) -> dict[tuple[str, str], float]:
@@ -126,6 +195,8 @@ def scan(root: Path, scope: list[str]) -> dict[tuple[str, str, str], float]:
                 items = literals(path.read_text())
             elif path.suffix in CPP_SUFFIXES:
                 items = cpp_defaults(path.read_text())
+            elif path.suffix == ".py" and "tests" not in path.relative_to(root / tree).parts:
+                items = py_defaults(path.read_text())
             else:
                 continue
             rel = path.relative_to(root).as_posix()

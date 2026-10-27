@@ -29,13 +29,20 @@
 # constants not named kDefault* (for example `kDialectMajor = 1`). awen-native/src is Rust and is scanned with the
 # Rust forms; it has no literal in either form (its one numeric default is the PyO3 signature `signal = 1.0`, a
 # normalized input amplitude passed to predicted_sigmas, not a device value, and not a scanned form).
+# Python in awen-models (the `awen` and `awen_models` packages; tests and examples are not scanned) has three forms,
+# read with the ast module: module constants, class-body fields (dataclass defaults, context `class <Name>`) and
+# parameter defaults (context `<fn>` or `<Class>.<fn>`), with literal numbers only. Python names match the Rust
+# field pattern plus `wavelength` and `tile_*`; a bare `temperature` is the sampling/distillation softmax temperature
+# there and is not matched. Not seen in Python: nested functions, numbers inside expressions or calls, and physical
+# constants such as `PLANCK` and `LIGHT_SPEED` in photon_training.py (exact SI values, not device values).
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
-scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools]
+scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
+  awen-models/awen, awen-models/awen_models]
 not_yet_inventoried:
-  - "Python packages (awen-models, awen-physics, awen-systems, awen-qphotonic, awen-lab,\
-  \ awen-studio, awen-ecosystem)"
+  - "Python packages (awen-physics, awen-systems, awen-qphotonic, awen-lab, awen-studio, awen-ecosystem)"
+  - "awen-models/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
   - {id: noise_contract_ideal, file: awen-compiler/src/noise.rs, context: 'impl PhotonicNoiseContract::ideal'}
@@ -102,6 +109,14 @@ blocks:
   - {id: rt_state_coherence_window_new, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceWindow::new'}
   - {id: rt_state_reference_coherence_manager_create_window, file: awen-runtime/src/state/mod.rs, context: 'impl CoherenceManager for ReferenceCoherenceManager::create_window'}
   - {id: mlir_passes_file_scope, file: awen-mlir/lib/Transforms/Passes.cpp, context: '<file scope>'}
+  - {id: py_photonic_gemm_executor_init, file: awen-models/awen/photonic.py, context: 'PhotonicGemmExecutor.__init__'}
+  - {id: py_onnx_import_run, file: awen-models/awen_models/onnx_import.py, context: run}
+  - {id: py_photon_training_file_scope, file: awen-models/awen_models/photon_training.py, context: '<file scope>'}
+  - {id: py_surrogate_photonic_linear, file: awen-models/awen_models/photon_training.py, context: surrogate_photonic_linear}
+  - {id: py_photonic_mlp_forward, file: awen-models/awen_models/photon_training.py, context: 'PhotonicMLP.forward'}
+  - {id: py_photonic_mlp_forward_rust, file: awen-models/awen_models/photon_training.py, context: 'PhotonicMLP.forward_rust'}
+  - {id: py_photon_train_settings, file: awen-models/awen_models/photon_training.py, context: 'class PhotonTrainSettings'}
+  - {id: py_evaluate_rust, file: awen-models/awen_models/photon_training.py, context: evaluate_rust}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -316,3 +331,11 @@ entries:
   - {block: rt_state_reference_coherence_manager_create_window, field: 'fidelity_threshold', value: 0.95, unit: 'fraction', assumption: null, status: unsourced, notes: 'reference coherence manager fidelity threshold (state/mod.rs L350); no source'}
   - {block: mlir_passes_file_scope, field: 'kDefaultEffectiveBits', value: 8, unit: 'bits', assumption: system.pace_enob, status: differs_from_assumption, notes: 'minimum_effective_bits given to awen.tensor.gemm when the StableHLO op has no awen.minimum_effective_bits attribute (Passes.cpp L22, used L162); same value as the compiler pace_like_128 effective_bits; PACE system average channel ENOB is 7.61 bits (hua2025)'}
   - {block: mlir_passes_file_scope, field: 'kDefaultTile', value: 128, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_m, tile_n and tile_k of every photonic tile in awen-lower-tensor-to-photonic (Passes.cpp L23, used L208-L212); a tile is bounded by the mesh size, which v2 section 10 says is a device capability read from the descriptor; channels in the assumption set has no mesh-size entry'}
+  - {block: py_photon_training_file_scope, field: 'DEFAULT_WAVELENGTH_M', value: 1.55e-06, unit: 'm', assumption: null, status: unsourced, notes: 'carrier wavelength for the modeled optical energy per MAC n h c / lambda (photon_training.py L52); channels.wavelengths in the assumption set is null (a device capability); the shot-noise energy entry uses the same 1550 nm in its notes, not as a stored value'}
+  - {block: py_photonic_gemm_executor_init, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photonic.py L32); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_onnx_import_run, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (onnx_import.py L210); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_surrogate_photonic_linear, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (training surrogate, photon_training.py L129); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_photonic_mlp_forward, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photon_training.py L184); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_photonic_mlp_forward_rust, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photon_training.py L194); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_photon_train_settings, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (PhotonTrainSettings field, photon_training.py L216); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_evaluate_rust, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photon_training.py L274); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
