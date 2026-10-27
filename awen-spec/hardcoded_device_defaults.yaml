@@ -35,13 +35,23 @@
 # field pattern plus `wavelength` and `tile_*`; a bare `temperature` is the sampling/distillation softmax temperature
 # there and is not matched. Not seen in Python: nested functions, numbers inside expressions or calls, and physical
 # constants such as `PLANCK` and `LIGHT_SPEED` in photon_training.py (exact SI values, not device values).
+# awen-physics (`awen_physics`) and awen-systems (`awen_systems`) are scanned with the same Python forms (their tests sit
+# outside the package and are not scanned). awen_physics has no device default in a scanned form: device values are
+# required arguments, and its numeric defaults are solver settings (tolerances, step counts, `courant`, `points_per_um`)
+# or a source pulse centre (`centre_um = 1.0` in fdtd1d.reflectance_spectrum), which the field pattern does not match.
+# Not seen in awen_systems: the memory technology table in memory.py (numbers inside `P(value, unit, source type,
+# citation, ...)` calls, each already carrying its own source label), the illustrative fabric.study() parameters in a
+# dict literal (400e9 bit/s, 25e-9 s, 500e-9 s, labelled "assumed parameter (illustrative; not literature, not
+# measured)" in the code), `C_LIGHT` (exact SI value), and zero defaults whose names the field pattern does not match
+# (`Link.loss_db`, `FabricConfig.loss_db`, `FabricConfig.reconfig_delay_s`; each 0.0 disables its term) and Link
+# accumulators (`busy_until`, `bits`, `busy_s`).
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
-  awen-models/awen, awen-models/awen_models]
+  awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems]
 not_yet_inventoried:
-  - "Python packages (awen-physics, awen-systems, awen-qphotonic, awen-lab, awen-studio, awen-ecosystem)"
+  - "Python packages (awen-qphotonic, awen-lab, awen-studio, awen-ecosystem)"
   - "awen-models/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
@@ -117,6 +127,9 @@ blocks:
   - {id: py_photonic_mlp_forward_rust, file: awen-models/awen_models/photon_training.py, context: 'PhotonicMLP.forward_rust'}
   - {id: py_photon_train_settings, file: awen-models/awen_models/photon_training.py, context: 'class PhotonTrainSettings'}
   - {id: py_evaluate_rust, file: awen-models/awen_models/photon_training.py, context: evaluate_rust}
+  - {id: py_fabric_link, file: awen-systems/awen_systems/fabric.py, context: 'class Link'}
+  - {id: py_fabric_config, file: awen-systems/awen_systems/fabric.py, context: 'class FabricConfig'}
+  - {id: py_memory_stats, file: awen-systems/awen_systems/memory.py, context: 'class MemoryStats'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -339,3 +352,8 @@ entries:
   - {block: py_photonic_mlp_forward_rust, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photon_training.py L194); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
   - {block: py_photon_train_settings, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (PhotonTrainSettings field, photon_training.py L216); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
   - {block: py_evaluate_rust, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'tile_k of the photonic GEMM model passed to awen_native.photonic_gemm (photon_training.py L274); same as the awen-native PyO3 default tile_k = 64 (not a scanned form) and differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_fabric_link, field: 'latency_s', value: 0.0, unit: 's', assumption: null, status: definitional, notes: 'Link dataclass default (fabric.py L40); Fabric always builds links with the FabricConfig link_latency_s (L93), so the default applies only to a direct Link(...), where 0.0 adds no propagation delay (a disabled term)'}
+  - {block: py_fabric_link, field: 'energy_j_per_bit', value: 0.0, unit: 'J/bit', assumption: null, status: definitional, notes: 'Link dataclass default (fabric.py L41); Fabric always builds links with the required FabricConfig energy_j_per_bit (L93), so the default applies only to a direct Link(...), where 0.0 disables the dynamic link energy term (L164)'}
+  - {block: py_fabric_config, field: 'static_power_w', value: 0.0, unit: 'W', assumption: null, status: definitional, notes: 'FabricConfig default (fabric.py L58; docstring: all values are user inputs); 0.0 disables the static energy term static_power_w * makespan (L168, L222); fabric.study() leaves it at 0.0 and its docstring says energy is not compared'}
+  - {block: py_fabric_config, field: 'tx_power_dbm', value: 0.0, unit: 'dBm', assumption: null, status: unsourced, notes: 'FabricConfig transmit power default, 0 dBm = 1 mW (fabric.py L62), used in the link-budget check tx_power_dbm - loss_db >= rx_sensitivity_dbm (L102); with the default rx_sensitivity_dbm = -inf the check passes for any loss, so it has no effect unless a sensitivity is given; laser.channel_optical_power in the assumption set is per laser channel in mW (high 30 mW, hua2025), not a link launch power'}
+  - {block: py_memory_stats, field: 'energy_j', value: 0.0, unit: 'J', assumption: null, status: definitional, notes: 'MemoryStats energy accumulator starts at zero (memory.py L176); a zero-initialized accumulator, not a device value'}

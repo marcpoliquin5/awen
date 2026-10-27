@@ -39,14 +39,16 @@ def test_inventory_summary():
     assert INVENTORY["assumption_set"] == "awen.hardware-assumptions.v0"
     assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src", "awen-native/src",
                                   "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools",
-                                  "awen-models/awen", "awen-models/awen_models"]
+                                  "awen-models/awen", "awen-models/awen_models",
+                                  "awen-physics/awen_physics", "awen-systems/awen_systems"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
-    assert "awen-models," not in " ".join(INVENTORY["not_yet_inventoried"])
-    assert len(INVENTORY["entries"]) == 221
+    not_yet = " ".join(INVENTORY["not_yet_inventoried"])
+    assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems"))
+    assert len(INVENTORY["entries"]) == 226
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 147,
+        "unsourced": 148,
         "numeric_guard": 27,
-        "definitional": 42,
+        "definitional": 46,
         "differs_from_assumption": 4,
         "matches_assumption": 1,
     }
@@ -263,7 +265,7 @@ def test_new_native_literal_is_caught(tmp_path):
 
 def test_python_entries_in_inventory():
     files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
-    py = [e for e in INVENTORY["entries"] if files[e["block"]].endswith(".py")]
+    py = [e for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-models/")]
     assert Counter(e["field"] for e in py) == {"tile_k": 7, "DEFAULT_WAVELENGTH_M": 1}
     assert all(e["status"] == "unsourced" for e in py)
 
@@ -313,3 +315,39 @@ def test_python_tests_directory_is_not_scanned(tmp_path):
     tests.mkdir()
     (tests / "test_fixture.py").write_text("ADC_BITS = 6\n")
     assert hd.check(root) == []
+
+
+# ---------------------------------------------------------------- Python (awen-physics, awen-systems)
+
+
+def test_physics_and_systems_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    physics = [e for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-physics/")]
+    systems = {(files[e["block"]].rsplit("/", 1)[1], e["field"]): e["status"]
+               for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-systems/")}
+    assert physics == []
+    assert systems == {
+        ("fabric.py", "latency_s"): "definitional",
+        ("fabric.py", "energy_j_per_bit"): "definitional",
+        ("fabric.py", "static_power_w"): "definitional",
+        ("fabric.py", "tx_power_dbm"): "unsourced",
+        ("memory.py", "energy_j"): "definitional",
+    }
+
+
+def test_new_physics_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-physics/awen_physics/rings.py"
+    path.write_text(path.read_text() + "\n\ndef ring_heater(thermal_tuning_power_mw: float = 2.5):\n    return thermal_tuning_power_mw\n")
+    assert any("new hard-coded device default" in p and "ring_heater" in p for p in hd.check(root))
+
+
+def test_changed_systems_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-systems/awen_systems/fabric.py", "    tx_power_dbm: float = 0.0\n", "    tx_power_dbm: float = 3.0\n")
+    assert any("class FabricConfig" in p and "code has 3.0" in p for p in hd.check(root))
+
+
+def test_systems_tests_outside_package_are_not_in_scope():
+    assert all(not tree.endswith("/tests") for tree in INVENTORY["scope"])
+    assert (ROOT / "awen-systems/tests").is_dir() and not (ROOT / "awen-systems/awen_systems/tests").exists()

@@ -6,8 +6,8 @@ and noise from awen-spec/hardware_assumptions.yaml, and no other file may hard-c
 Until the compiler reads that file, this script keeps an exact list of the literals that are
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
 non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
-awen-native/src, the awen-mlir sources outside its lit tests and the awen-models Python
-packages outside tests):
+awen-native/src, the awen-mlir sources outside its lit tests and the awen-models,
+awen-physics and awen-systems Python packages outside tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
