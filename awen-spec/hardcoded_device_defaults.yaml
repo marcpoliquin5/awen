@@ -51,14 +51,22 @@
 # parameter matched by the `noise` field name, not a device value). Not seen in awen_qphotonic: ExperimentSpec
 # `source_efficiency`, `circuit_transmission` and `detector_efficiency` (each 1.0, lossless), `trigger_rate_hz = 1e6`
 # and `target_samples = 1000`, whose names the field pattern does not match, and `shots = 1000` in run_experiment.
+# awen-lab (`awen_lab`) is scanned with the same Python forms (its tests sit outside the package and are not scanned).
+# Found: three photon-count fields of policy.OperatingBounds, the request limits the Lab Agent checks before it runs a
+# simulation (photons_per_mac in [1, 1e9] for photonic_gemm, at most 4 input photons for boson_sampling); they bound
+# accepted requests and are not device values. Not seen in awen_lab: the other OperatingBounds limits, whose names the
+# field pattern does not match (`max_matrix_elements`, `max_inner_dim`, `max_seeds`, `max_modes`, `max_shots`), the
+# `exp.get("tile_k", 64)` fallback in sims.run_photonic_gemm (a number inside a call, the same 64 as the awen-models
+# tile_k entries), the bootstrap parameter defaults in agent.py (`seed = 0`, `resamples = 2000`; names not matched)
+# and the `3.0` factor of the boson-sampling tv_bound (a number inside an expression).
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
   awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems,
-  awen-qphotonic/awen_qphotonic]
+  awen-qphotonic/awen_qphotonic, awen-lab/awen_lab]
 not_yet_inventoried:
-  - "Python packages (awen-lab, awen-studio, awen-ecosystem)"
+  - "Python packages (awen-studio, awen-ecosystem)"
   - "awen-models/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
@@ -140,6 +148,7 @@ blocks:
   - {id: py_qp_threshold_detection, file: awen-qphotonic/awen_qphotonic/detection.py, context: threshold_detection}
   - {id: py_qp_run_experiment, file: awen-qphotonic/awen_qphotonic/kernel.py, context: run_experiment}
   - {id: py_qp_experiment_spec, file: awen-qphotonic/awen_qphotonic/resources.py, context: 'class ExperimentSpec'}
+  - {id: py_lab_operating_bounds, file: awen-lab/awen_lab/policy.py, context: 'class OperatingBounds'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -370,3 +379,6 @@ entries:
   - {block: py_qp_threshold_detection, field: 'dark_count', value: 0.0, unit: 'probability per gate', assumption: null, status: definitional, notes: 'threshold-detector dark-count probability per gate (detection.py L40); 0.0 is an ideal detector and removes the dark-count factor (1 - dark_count) in P(no click) (L49); photodetector.dark_current in the assumption set is a current in nA with no values, not a per-gate probability'}
   - {block: py_qp_run_experiment, field: 'noise', value: 0.15, unit: 'feature units (std)', assumption: null, status: unsourced, notes: 'standard deviation of the Gaussian jitter added to the synthetic moons/circles input features (kernel.py L143, used in make_moons L100 and make_circles L111); a dataset parameter, not a device noise value; shot noise in this module comes from the separate shots argument (binomial model in kernel_matrix_shots)'}
   - {block: py_qp_experiment_spec, field: 'dark_count_per_gate', value: 0.0, unit: 'probability per gate', assumption: null, status: definitional, notes: 'ExperimentSpec dark-count default (resources.py L22; module docstring: every quantity is evaluated on user-supplied parameters); 0.0 is an ideal detector, so the no-dark-count factor (1 - dark_count_per_gate)**modes is 1 (L46)'}
+  - {block: py_lab_operating_bounds, field: 'min_photons_per_mac', value: 1.0, unit: 'photons', assumption: null, status: unsourced, notes: 'lower request limit on contract.photons_per_mac for photonic_gemm simulations (policy.py L44, checked in Policy.check_simulation L106); a policy bound on accepted requests, not a device value; no source is given in the code'}
+  - {block: py_lab_operating_bounds, field: 'max_photons_per_mac', value: 1000000000.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper request limit on contract.photons_per_mac for photonic_gemm simulations (policy.py L45, checked L106); a policy bound, not a device value; the assumption set stores shot-noise energy per detection by bit depth, not a photon-count range'}
+  - {block: py_lab_operating_bounds, field: 'max_photons_quantum', value: 4.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper limit on total input photons for boson_sampling simulations (policy.py L48, checked L112); keeps the exact Fock-space reference simulation small; a policy bound, not a device value'}

@@ -41,13 +41,14 @@ def test_inventory_summary():
                                   "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools",
                                   "awen-models/awen", "awen-models/awen_models",
                                   "awen-physics/awen_physics", "awen-systems/awen_systems",
-                                  "awen-qphotonic/awen_qphotonic"]
+                                  "awen-qphotonic/awen_qphotonic", "awen-lab/awen_lab"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
     not_yet = " ".join(INVENTORY["not_yet_inventoried"])
-    assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems", "awen-qphotonic"))
-    assert len(INVENTORY["entries"]) == 229
+    assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems", "awen-qphotonic",
+                                                  "awen-lab"))
+    assert len(INVENTORY["entries"]) == 232
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 149,
+        "unsourced": 152,
         "numeric_guard": 27,
         "definitional": 48,
         "differs_from_assumption": 4,
@@ -384,3 +385,35 @@ def test_changed_qphotonic_default_is_caught(tmp_path):
 
 def test_qphotonic_tests_outside_package_are_not_in_scope():
     assert (ROOT / "awen-qphotonic/tests").is_dir() and not (ROOT / "awen-qphotonic/awen_qphotonic/tests").exists()
+
+
+# ---------------------------------------------------------------- Python (awen-lab)
+
+
+def test_lab_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    lab = {(files[e["block"]].rsplit("/", 1)[1], e["field"]): (e["value"], e["status"])
+           for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-lab/")}
+    assert lab == {
+        ("policy.py", "min_photons_per_mac"): (1.0, "unsourced"),
+        ("policy.py", "max_photons_per_mac"): (1e9, "unsourced"),
+        ("policy.py", "max_photons_quantum"): (4.0, "unsourced"),
+    }
+
+
+def test_new_lab_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-lab/awen_lab/sims.py"
+    path.write_text(path.read_text() + "\n\ndef lossy_gemm(insertion_loss_db: float = 3.0):\n    return insertion_loss_db\n")
+    assert any("new hard-coded device default" in p and "lossy_gemm" in p for p in hd.check(root))
+
+
+def test_changed_lab_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-lab/awen_lab/policy.py", "    max_photons_quantum: int = 4\n",
+         "    max_photons_quantum: int = 6\n")
+    assert any("class OperatingBounds" in p and "code has 6" in p for p in hd.check(root))
+
+
+def test_lab_tests_outside_package_are_not_in_scope():
+    assert (ROOT / "awen-lab/tests").is_dir() and not (ROOT / "awen-lab/awen_lab/tests").exists()
