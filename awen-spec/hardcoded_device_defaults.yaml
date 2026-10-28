@@ -45,13 +45,20 @@
 # measured)" in the code), `C_LIGHT` (exact SI value), and zero defaults whose names the field pattern does not match
 # (`Link.loss_db`, `FabricConfig.loss_db`, `FabricConfig.reconfig_delay_s`; each 0.0 disables its term) and Link
 # accumulators (`busy_until`, `bits`, `busy_s`).
+# awen-qphotonic (`awen_qphotonic`) is scanned with the same Python forms (its tests sit outside the package and are
+# not scanned). Found: two zero dark-count defaults (ideal detector) and the `noise` default of kernel.run_experiment,
+# which is the standard deviation of Gaussian jitter added to the synthetic moons/circles input features (a dataset
+# parameter matched by the `noise` field name, not a device value). Not seen in awen_qphotonic: ExperimentSpec
+# `source_efficiency`, `circuit_transmission` and `detector_efficiency` (each 1.0, lossless), `trigger_rate_hz = 1e6`
+# and `target_samples = 1000`, whose names the field pattern does not match, and `shots = 1000` in run_experiment.
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
-  awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems]
+  awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems,
+  awen-qphotonic/awen_qphotonic]
 not_yet_inventoried:
-  - "Python packages (awen-qphotonic, awen-lab, awen-studio, awen-ecosystem)"
+  - "Python packages (awen-lab, awen-studio, awen-ecosystem)"
   - "awen-models/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
@@ -130,6 +137,9 @@ blocks:
   - {id: py_fabric_link, file: awen-systems/awen_systems/fabric.py, context: 'class Link'}
   - {id: py_fabric_config, file: awen-systems/awen_systems/fabric.py, context: 'class FabricConfig'}
   - {id: py_memory_stats, file: awen-systems/awen_systems/memory.py, context: 'class MemoryStats'}
+  - {id: py_qp_threshold_detection, file: awen-qphotonic/awen_qphotonic/detection.py, context: threshold_detection}
+  - {id: py_qp_run_experiment, file: awen-qphotonic/awen_qphotonic/kernel.py, context: run_experiment}
+  - {id: py_qp_experiment_spec, file: awen-qphotonic/awen_qphotonic/resources.py, context: 'class ExperimentSpec'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -357,3 +367,6 @@ entries:
   - {block: py_fabric_config, field: 'static_power_w', value: 0.0, unit: 'W', assumption: null, status: definitional, notes: 'FabricConfig default (fabric.py L58; docstring: all values are user inputs); 0.0 disables the static energy term static_power_w * makespan (L168, L222); fabric.study() leaves it at 0.0 and its docstring says energy is not compared'}
   - {block: py_fabric_config, field: 'tx_power_dbm', value: 0.0, unit: 'dBm', assumption: null, status: unsourced, notes: 'FabricConfig transmit power default, 0 dBm = 1 mW (fabric.py L62), used in the link-budget check tx_power_dbm - loss_db >= rx_sensitivity_dbm (L102); with the default rx_sensitivity_dbm = -inf the check passes for any loss, so it has no effect unless a sensitivity is given; laser.channel_optical_power in the assumption set is per laser channel in mW (high 30 mW, hua2025), not a link launch power'}
   - {block: py_memory_stats, field: 'energy_j', value: 0.0, unit: 'J', assumption: null, status: definitional, notes: 'MemoryStats energy accumulator starts at zero (memory.py L176); a zero-initialized accumulator, not a device value'}
+  - {block: py_qp_threshold_detection, field: 'dark_count', value: 0.0, unit: 'probability per gate', assumption: null, status: definitional, notes: 'threshold-detector dark-count probability per gate (detection.py L40); 0.0 is an ideal detector and removes the dark-count factor (1 - dark_count) in P(no click) (L49); photodetector.dark_current in the assumption set is a current in nA with no values, not a per-gate probability'}
+  - {block: py_qp_run_experiment, field: 'noise', value: 0.15, unit: 'feature units (std)', assumption: null, status: unsourced, notes: 'standard deviation of the Gaussian jitter added to the synthetic moons/circles input features (kernel.py L143, used in make_moons L100 and make_circles L111); a dataset parameter, not a device noise value; shot noise in this module comes from the separate shots argument (binomial model in kernel_matrix_shots)'}
+  - {block: py_qp_experiment_spec, field: 'dark_count_per_gate', value: 0.0, unit: 'probability per gate', assumption: null, status: definitional, notes: 'ExperimentSpec dark-count default (resources.py L22; module docstring: every quantity is evaluated on user-supplied parameters); 0.0 is an ideal detector, so the no-dark-count factor (1 - dark_count_per_gate)**modes is 1 (L46)'}
