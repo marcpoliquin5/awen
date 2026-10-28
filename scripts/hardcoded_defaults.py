@@ -7,7 +7,8 @@ Until the compiler reads that file, this script keeps an exact list of the liter
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
 non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
 awen-native/src, the awen-mlir sources outside its lit tests and the awen-models,
-awen-physics, awen-systems and awen-qphotonic Python packages outside tests):
+awen-physics, awen-systems, awen-qphotonic and awen-lab Python packages outside
+tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
