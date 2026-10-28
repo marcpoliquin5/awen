@@ -40,15 +40,16 @@ def test_inventory_summary():
     assert INVENTORY["scope"] == ["awen-compiler/src", "awen-runtime/src", "awen-native/src",
                                   "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools",
                                   "awen-models/awen", "awen-models/awen_models",
-                                  "awen-physics/awen_physics", "awen-systems/awen_systems"]
+                                  "awen-physics/awen_physics", "awen-systems/awen_systems",
+                                  "awen-qphotonic/awen_qphotonic"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
     not_yet = " ".join(INVENTORY["not_yet_inventoried"])
-    assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems"))
-    assert len(INVENTORY["entries"]) == 226
+    assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems", "awen-qphotonic"))
+    assert len(INVENTORY["entries"]) == 229
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 148,
+        "unsourced": 149,
         "numeric_guard": 27,
-        "definitional": 46,
+        "definitional": 48,
         "differs_from_assumption": 4,
         "matches_assumption": 1,
     }
@@ -351,3 +352,35 @@ def test_changed_systems_default_is_caught(tmp_path):
 def test_systems_tests_outside_package_are_not_in_scope():
     assert all(not tree.endswith("/tests") for tree in INVENTORY["scope"])
     assert (ROOT / "awen-systems/tests").is_dir() and not (ROOT / "awen-systems/awen_systems/tests").exists()
+
+
+# ---------------------------------------------------------------- Python (awen-qphotonic)
+
+
+def test_qphotonic_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    qp = {(files[e["block"]].rsplit("/", 1)[1], e["field"]): (e["value"], e["status"])
+          for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-qphotonic/")}
+    assert qp == {
+        ("detection.py", "dark_count"): (0.0, "definitional"),
+        ("kernel.py", "noise"): (0.15, "unsourced"),
+        ("resources.py", "dark_count_per_gate"): (0.0, "definitional"),
+    }
+
+
+def test_new_qphotonic_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-qphotonic/awen_qphotonic/detection.py"
+    path.write_text(path.read_text() + "\n\ndef pnr_detection(dark_count_rate: float = 0.01):\n    return dark_count_rate\n")
+    assert any("new hard-coded device default" in p and "pnr_detection" in p for p in hd.check(root))
+
+
+def test_changed_qphotonic_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-qphotonic/awen_qphotonic/resources.py", "    dark_count_per_gate: float = 0.0\n",
+         "    dark_count_per_gate: float = 1e-5\n")
+    assert any("class ExperimentSpec" in p and "code has 1e-05" in p for p in hd.check(root))
+
+
+def test_qphotonic_tests_outside_package_are_not_in_scope():
+    assert (ROOT / "awen-qphotonic/tests").is_dir() and not (ROOT / "awen-qphotonic/awen_qphotonic/tests").exists()
