@@ -7,8 +7,8 @@ Until the compiler reads that file, this script keeps an exact list of the liter
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
 non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
 awen-native/src, the awen-mlir sources outside its lit tests and the awen-models,
-awen-physics, awen-systems, awen-qphotonic and awen-lab Python packages outside
-tests):
+awen-physics, awen-systems, awen-qphotonic, awen-lab and awen-studio Python packages
+outside tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
@@ -16,7 +16,8 @@ tests):
   listed under the field ``expr:<method>``, and every C++ named default
   (``constexpr <type> kDefault<Name> = <number>;``), listed under its constant name, and every
   Python module constant, class-body field or parameter default with a literal number and a
-  device name (``DEFAULT_WAVELENGTH_M = 1550e-9``, ``tile_k: int = 64``), and
+  device name (``DEFAULT_WAVELENGTH_M = 1550e-9``, ``tile_k: int = 64``, or a class-body
+  ``tile_k: int = Field(64, ...)``), and
 * every listed entry must still exist in the code (no stale entries), and
 * each entry's status must agree with hardware_assumptions.yaml (``unsourced`` only when
   the assumption set has no value for it).
@@ -91,21 +92,37 @@ def _py_number(node: ast.expr | None) -> float | None:
     return None
 
 
+def _py_field_default(node: ast.expr | None) -> float | None:
+    """A class-body default: a literal number, or the default of a pydantic ``Field(64, ...)`` /
+    ``Field(default=64)`` or dataclass ``field(default=64)`` call (``default_factory`` is not read)."""
+    value = _py_number(node)
+    if value is not None or not isinstance(node, ast.Call):
+        return value
+    name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", None)
+    if name not in ("Field", "field"):
+        return None
+    if node.args and name == "Field":
+        return _py_number(node.args[0])
+    return next((_py_number(k.value) for k in node.keywords if k.arg == "default"), None)
+
+
 def py_defaults(text: str) -> dict[tuple[str, str], float]:
     """{(context, name): value} for numeric device defaults in Python source.
 
     Three forms: module constants (``DEFAULT_WAVELENGTH_M = 1550e-9``, context ``<file scope>``), class-body
-    fields such as dataclass defaults (``tile_k: int = 64``, context ``class <Name>``) and parameter defaults
+    fields such as dataclass defaults (``tile_k: int = 64``, or the default of a pydantic ``Field(64, ...)`` or
+    dataclass ``field(default=64)``, context ``class <Name>``) and parameter defaults
     (``def f(tile_k: int = 64)``, context ``<fn>`` or ``<Class>.<fn>``). Only literal numbers count; a name
     repeated in one context is numbered ``#2``... in source order.
     """
     found: dict[tuple[str, str], float] = {}
 
-    def assigned(stmt: ast.stmt) -> list[tuple[str, float]]:
+    def assigned(stmt: ast.stmt, in_class: bool = False) -> list[tuple[str, float]]:
+        number = _py_field_default if in_class else _py_number
         if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-            pairs = [(stmt.target.id, _py_number(stmt.value))]
+            pairs = [(stmt.target.id, number(stmt.value))]
         elif isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
-            pairs = [(stmt.targets[0].id, _py_number(stmt.value))]
+            pairs = [(stmt.targets[0].id, number(stmt.value))]
         else:
             return []
         return [(n, v) for n, v in pairs if v is not None and is_py_device_field(n)]
@@ -125,7 +142,7 @@ def py_defaults(text: str) -> dict[tuple[str, str], float]:
             if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 function(stmt, f"{owner}.{stmt.name}" if owner else stmt.name)
             elif isinstance(stmt, ast.ClassDef) and owner is None:
-                for name, value in [p for s in stmt.body for p in assigned(s)]:
+                for name, value in [p for s in stmt.body for p in assigned(s, in_class=True)]:
                     add(found, f"class {stmt.name}", name, value)
                 body(stmt.body, stmt.name)
             elif owner is None:

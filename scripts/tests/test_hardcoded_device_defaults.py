@@ -41,14 +41,15 @@ def test_inventory_summary():
                                   "awen-mlir/include", "awen-mlir/lib", "awen-mlir/tools",
                                   "awen-models/awen", "awen-models/awen_models",
                                   "awen-physics/awen_physics", "awen-systems/awen_systems",
-                                  "awen-qphotonic/awen_qphotonic", "awen-lab/awen_lab"]
+                                  "awen-qphotonic/awen_qphotonic", "awen-lab/awen_lab",
+                                  "awen-studio/awen_studio"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
     not_yet = " ".join(INVENTORY["not_yet_inventoried"])
     assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems", "awen-qphotonic",
-                                                  "awen-lab"))
-    assert len(INVENTORY["entries"]) == 232
+                                                  "awen-lab", "awen-studio"))
+    assert len(INVENTORY["entries"]) == 233
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 152,
+        "unsourced": 153,
         "numeric_guard": 27,
         "definitional": 48,
         "differs_from_assumption": 4,
@@ -417,3 +418,51 @@ def test_changed_lab_default_is_caught(tmp_path):
 
 def test_lab_tests_outside_package_are_not_in_scope():
     assert (ROOT / "awen-lab/tests").is_dir() and not (ROOT / "awen-lab/awen_lab/tests").exists()
+
+
+# ---------------------------------------------------------------- Python (awen-studio)
+
+
+def test_studio_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    studio = {(files[e["block"]].rsplit("/", 1)[1], e["field"]): (e["value"], e["status"])
+              for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-studio/")}
+    assert studio == {("app.py", "tile_k"): (64.0, "unsourced")}
+
+
+def test_pydantic_and_dataclass_field_defaults_are_read():
+    found = hd.py_defaults(
+        "from pydantic import BaseModel, Field\n"
+        "import dataclasses\n"
+        "class A(BaseModel):\n"
+        "    tile_k: int = Field(32, ge=1)\n"
+        "    phase_sigma_rad: float = Field(default=0.01)\n"
+        "    m: int = Field(16, ge=1)\n"
+        "    noise: dict = Field(default_factory=dict)\n"
+        "@dataclasses.dataclass\n"
+        "class B:\n"
+        "    insertion_loss_db: float = dataclasses.field(default=3.0)\n"
+        "TILE = Field(8)\n"
+        "tile_n = Field(8)\n"
+    )
+    assert found == {("class A", "tile_k"): 32.0, ("class A", "phase_sigma_rad"): 0.01,
+                     ("class B", "insertion_loss_db"): 3.0}
+
+
+def test_changed_studio_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-studio/awen_studio/app.py", "    tile_k: int = Field(64, ge=1, le=MAX_GEMM_DIM)\n",
+         "    tile_k: int = Field(32, ge=1, le=MAX_GEMM_DIM)\n")
+    assert any("class CompareRequest" in p and "code has 32" in p for p in hd.check(root))
+
+
+def test_new_studio_field_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-studio/awen_studio/app.py"
+    path.write_text(path.read_text() + "\n\nclass LossyRequest(BaseModel):\n"
+                    "    insertion_loss_db: float = Field(3.0, ge=0)\n")
+    assert any("new hard-coded device default" in p and "LossyRequest" in p for p in hd.check(root))
+
+
+def test_studio_tests_outside_package_are_not_in_scope():
+    assert (ROOT / "awen-studio/tests").is_dir() and not (ROOT / "awen-studio/awen_studio/tests").exists()
