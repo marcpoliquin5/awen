@@ -42,14 +42,14 @@ def test_inventory_summary():
                                   "awen-models/awen", "awen-models/awen_models",
                                   "awen-physics/awen_physics", "awen-systems/awen_systems",
                                   "awen-qphotonic/awen_qphotonic", "awen-lab/awen_lab",
-                                  "awen-studio/awen_studio"]
+                                  "awen-studio/awen_studio", "awen-ecosystem/python_awen/awen_py"]
     assert not any(item.startswith(("awen-runtime", "awen-native", "awen-mlir")) for item in INVENTORY["not_yet_inventoried"])
     not_yet = " ".join(INVENTORY["not_yet_inventoried"])
     assert not any(name in not_yet for name in ("awen-models,", "awen-physics", "awen-systems", "awen-qphotonic",
                                                   "awen-lab", "awen-studio"))
-    assert len(INVENTORY["entries"]) == 233
+    assert len(INVENTORY["entries"]) == 236
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 153,
+        "unsourced": 156,
         "numeric_guard": 27,
         "definitional": 48,
         "differs_from_assumption": 4,
@@ -466,3 +466,44 @@ def test_new_studio_field_default_is_caught(tmp_path):
 
 def test_studio_tests_outside_package_are_not_in_scope():
     assert (ROOT / "awen-studio/tests").is_dir() and not (ROOT / "awen-studio/awen_studio/tests").exists()
+
+
+# ---------------------------------------------------------------- Python (awen-ecosystem)
+
+
+def test_ecosystem_entries_in_inventory():
+    files = {b["id"]: b["file"] for b in INVENTORY["blocks"]}
+    eco = {(files[e["block"]].rsplit("/", 1)[1], e["field"]): (e["value"], e["status"])
+           for e in INVENTORY["entries"] if files[e["block"]].startswith("awen-ecosystem/")}
+    assert eco == {("device.py", "tile_k"): (64.0, "unsourced"),
+                   ("runtime.py", "photonic_tile_k"): (64.0, "unsourced"),
+                   ("torch_backend.py", "photonic_tile_k"): (64.0, "unsourced")}
+
+
+def test_prefixed_tile_name_is_matched():
+    assert hd.is_py_device_field("photonic_tile_k") and hd.is_py_device_field("tile_k")
+    assert not hd.is_py_device_field("tiles") and not hd.is_py_device_field("projectile_count")
+    found = hd.py_defaults("class Opts:\n    photonic_tile_k: int = 32\n    max_abs_error: float = 1.0e-5\n")
+    assert found == {("class Opts", "photonic_tile_k"): 32.0}
+
+
+def test_changed_ecosystem_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    edit(root / "awen-ecosystem/python_awen/awen_py/runtime.py", "    photonic_tile_k: int = 64\n",
+         "    photonic_tile_k: int = 16\n")
+    assert any("class ExecutionOptions" in p and "code has 16" in p for p in hd.check(root))
+
+
+def test_new_ecosystem_default_is_caught(tmp_path):
+    root = copy_tree(tmp_path)
+    path = root / "awen-ecosystem/python_awen/awen_py/device.py"
+    path.write_text(path.read_text() + "\n\ndef lossy(insertion_loss_db: float = 3.0) -> float:\n"
+                    "    return insertion_loss_db\n")
+    assert any("new hard-coded device default" in p and "lossy" in p for p in hd.check(root))
+
+
+def test_ecosystem_tests_and_examples_outside_package_are_not_in_scope():
+    package = ROOT / "awen-ecosystem/python_awen"
+    assert (package / "tests").is_dir() and (package / "examples").is_dir()
+    assert not (package / "awen_py/tests").exists()
+    assert "awen-ecosystem/python_awen/examples (scripts)" in INVENTORY["not_yet_inventoried"]
