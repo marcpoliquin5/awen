@@ -59,14 +59,22 @@
 # `exp.get("tile_k", 64)` fallback in sims.run_photonic_gemm (a number inside a call, the same 64 as the awen-models
 # tile_k entries), the bootstrap parameter defaults in agent.py (`seed = 0`, `resamples = 2000`; names not matched)
 # and the `3.0` factor of the boson-sampling tv_bound (a number inside an expression).
+# awen-studio (`awen_studio`) is scanned with the same Python forms, and class-body fields also count when the default
+# is the first argument of a pydantic `Field(<number>, ...)` (or `Field(default=...)`, dataclass `field(default=...)`)
+# call; that form is new with awen-studio and finds nothing in the packages scanned before. Found: the `tile_k` request
+# default of CompareRequest (the photonic GEMM tile passed to awen_native.photonic_gemm). Not seen in awen_studio: the
+# other request defaults, whose names the field pattern does not match (`m`, `k`, `n`, `max_new_tokens`, `top_k`,
+# `seed`, `input_seed`, `MAX_GEMM_DIM = 512`, `MAX_NEW_TOKENS = 400`), the sampling `temperature` 0.8 (softmax
+# temperature, not matched in Python), `signal` 1.0 (normalized input amplitude, as in awen-native), the histogram
+# `bins=24` and the CLI `--port` 8765 (numbers inside calls). The frontend (TypeScript) is not scanned.
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
   awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems,
-  awen-qphotonic/awen_qphotonic, awen-lab/awen_lab]
+  awen-qphotonic/awen_qphotonic, awen-lab/awen_lab, awen-studio/awen_studio]
 not_yet_inventoried:
-  - "Python packages (awen-studio, awen-ecosystem)"
+  - "Python package awen-ecosystem"
   - "awen-models/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
@@ -149,6 +157,7 @@ blocks:
   - {id: py_qp_run_experiment, file: awen-qphotonic/awen_qphotonic/kernel.py, context: run_experiment}
   - {id: py_qp_experiment_spec, file: awen-qphotonic/awen_qphotonic/resources.py, context: 'class ExperimentSpec'}
   - {id: py_lab_operating_bounds, file: awen-lab/awen_lab/policy.py, context: 'class OperatingBounds'}
+  - {id: py_studio_compare_request, file: awen-studio/awen_studio/app.py, context: 'class CompareRequest'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -382,3 +391,4 @@ entries:
   - {block: py_lab_operating_bounds, field: 'min_photons_per_mac', value: 1.0, unit: 'photons', assumption: null, status: unsourced, notes: 'lower request limit on contract.photons_per_mac for photonic_gemm simulations (policy.py L44, checked in Policy.check_simulation L106); a policy bound on accepted requests, not a device value; no source is given in the code'}
   - {block: py_lab_operating_bounds, field: 'max_photons_per_mac', value: 1000000000.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper request limit on contract.photons_per_mac for photonic_gemm simulations (policy.py L45, checked L106); a policy bound, not a device value; the assumption set stores shot-noise energy per detection by bit depth, not a photon-count range'}
   - {block: py_lab_operating_bounds, field: 'max_photons_quantum', value: 4.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper limit on total input photons for boson_sampling simulations (policy.py L48, checked L112); keeps the exact Fock-space reference simulation small; a policy bound, not a device value'}
+  - {block: py_studio_compare_request, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'request default of POST /api/compare (pydantic Field(64, ge=1, le=MAX_GEMM_DIM), app.py L77), passed to awen_native.photonic_gemm as tile_k (L277); same 64 as the awen-models tile_k entries and the awen-native PyO3 default, differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
