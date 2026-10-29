@@ -46,8 +46,10 @@ python -m pytest -q awen-physics/tests awen-qphotonic/tests awen-systems/tests a
 python -m pytest -q awen-studio/tests awen-models/tests
 ```
 
-These are the same suites the required CI gate runs. The CI gate does not install from the lockfile yet; a
-fresh-clone lockfile install job is a planned follow-up.
+These are the same suites the required CI gate runs. The gate also runs this page's install and verify commands
+from the lockfile in a fresh clone of the commit under test: `scripts/fresh_clone_install.sh` (step "Fresh-clone install
+from the pinned CPU lockfile"). You can run that script locally; it needs `python3.12` (or set `PYTHON`) and network
+access to PyPI and the PyTorch CPU index.
 
 ## Updating the lockfile
 

@@ -252,6 +252,13 @@ jobs:
           path: sbom/
           retention-days: 30
 
+      # Installs docs/install.md's pinned CPU path into a new venv in a fresh clone of this commit,
+      # with --require-hashes, then runs pip check and the documented test suites.
+      - name: Fresh-clone install from the pinned CPU lockfile (docs/install.md)
+        env:
+          PYTHON: python3.12
+        run: scripts/fresh_clone_install.sh
+
       # The LLVM/MLIR 20 packages are ~180 MB. When the runner's Ubuntu mirror is slow the
       # download alone can exceed the job timeout (run 39870187780 was cancelled mid-download),
       # so the .deb files are cached and apt retries stalled fetches. Same packages as before.
