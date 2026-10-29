@@ -98,3 +98,12 @@ Decided by: Marc, 2026-10-18 11:27 AM ET (approved; merged in `awen-labs`).
 Decided by: Marc, 2026-10-18 (his requests, earlier in the session).
 The awen-labs site is an interactive 3D storefront, and it uses the "Why we build with light"
 mission copy, which Marc approved. Marc declined an investor one-pager.
+
+## D-022 · CUDA lockfile targets cu129, not cu128
+Decided by: agent, 2026-10-29 (within the brief's "cu128 or newer" requirement).
+The first CUDA lockfile (cu128 index, torch 2.11.0+cu128) failed the required gate's dependency review:
+torch 2.11.0 requires `setuptools<82`, and advisory GHSA-h35f-9h28-mq5c is fixed only in setuptools 83.
+The cu129 index offers torch 2.13.0+cu129, which allows setuptools 84.2.1, so `requirements/cu129-py312.txt`
+replaces the cu128 plan (#183). Rejected: overriding torch's setuptools metadata on cu128 (a pin that
+contradicts torch's declared requirement), and cu130 (torch 2.14.1, but needs a CUDA 13 driver). The laptop
+driver must support CUDA 12.9. Reversible: regenerate with another backend in `scripts/lock_cu129.sh`.
