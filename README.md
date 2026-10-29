@@ -198,6 +198,8 @@ measured product performance.
 
 ## Build and verify
 
+For a pinned, hash-checked CPU install of the Python packages, see [docs/install.md](docs/install.md).
+
 Install the current stable Rust toolchain with `rustfmt` and `clippy`, then run:
 
 ```bash
