@@ -67,15 +67,23 @@
 # `seed`, `input_seed`, `MAX_GEMM_DIM = 512`, `MAX_NEW_TOKENS = 400`), the sampling `temperature` 0.8 (softmax
 # temperature, not matched in Python), `signal` 1.0 (normalized input amplitude, as in awen-native), the histogram
 # `bins=24` and the CLI `--port` 8765 (numbers inside calls). The frontend (TypeScript) is not scanned.
+# awen-ecosystem (`awen-ecosystem/python_awen/awen_py`) is scanned with the same Python forms; the tile pattern now
+# also matches a prefixed name (`photonic_tile_k`), which finds nothing in the packages scanned before. Found: the
+# `tile_k` parameter of device.configure and the `photonic_tile_k` fields of ExecutionOptions and TorchBackendOptions
+# (all 64). Device values in the capability descriptors are read from the descriptor, not defaulted. Not seen: the
+# `"tile_k": 64` value of the device.py `_STATE` dict (a dict value), the tolerances `max_abs_error` and
+# `max_rel_error` 1e-5 and the finite-difference `epsilon` 1e-4 (names not matched; accuracy settings, not device
+# values) and the positional `0.0` offset passed to _validate_transfer for channel calibration (a number inside a
+# call). The examples (`python_awen/examples`) are scripts and are listed under not_yet_inventoried.
 # `not_yet_inventoried` names the code outside `scope`. Statuses describe the code as it is; no default is changed here.
 version: awen.hardcoded-device-defaults.v0
 assumption_set: awen.hardware-assumptions.v0
 scope: [awen-compiler/src, awen-runtime/src, awen-native/src, awen-mlir/include, awen-mlir/lib, awen-mlir/tools,
   awen-models/awen, awen-models/awen_models, awen-physics/awen_physics, awen-systems/awen_systems,
-  awen-qphotonic/awen_qphotonic, awen-lab/awen_lab, awen-studio/awen_studio]
+  awen-qphotonic/awen_qphotonic, awen-lab/awen_lab, awen-studio/awen_studio, awen-ecosystem/python_awen/awen_py]
 not_yet_inventoried:
-  - "Python package awen-ecosystem"
   - "awen-models/examples (scripts)"
+  - "awen-ecosystem/python_awen/examples (scripts)"
 blocks:
   - {id: noise_contract_default, file: awen-compiler/src/noise.rs, context: 'impl Default for PhotonicNoiseContract::default'}
   - {id: noise_contract_ideal, file: awen-compiler/src/noise.rs, context: 'impl PhotonicNoiseContract::ideal'}
@@ -158,6 +166,9 @@ blocks:
   - {id: py_qp_experiment_spec, file: awen-qphotonic/awen_qphotonic/resources.py, context: 'class ExperimentSpec'}
   - {id: py_lab_operating_bounds, file: awen-lab/awen_lab/policy.py, context: 'class OperatingBounds'}
   - {id: py_studio_compare_request, file: awen-studio/awen_studio/app.py, context: 'class CompareRequest'}
+  - {id: py_eco_device_configure, file: awen-ecosystem/python_awen/awen_py/device.py, context: configure}
+  - {id: py_eco_execution_options, file: awen-ecosystem/python_awen/awen_py/runtime.py, context: 'class ExecutionOptions'}
+  - {id: py_eco_torch_backend_options, file: awen-ecosystem/python_awen/awen_py/torch_backend.py, context: 'class TorchBackendOptions'}
 entries:
   - {block: noise_contract_default, field: photons_per_mac, value: 1000.0, unit: photons, assumption: null, status: unsourced, notes: 'illustrative operating point; the assumption set stores shot-noise energy per detection by bit depth (shot_noise.shot_noise_energy_per_detection_J), not photons per MAC'}
   - {block: noise_contract_default, field: quantum_efficiency, value: 0.8, unit: fraction, assumption: null, status: unsourced, notes: no assumption entry in this unit; photodetector.responsivity is in A/W and needs a wavelength to convert}
@@ -392,3 +403,6 @@ entries:
   - {block: py_lab_operating_bounds, field: 'max_photons_per_mac', value: 1000000000.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper request limit on contract.photons_per_mac for photonic_gemm simulations (policy.py L45, checked L106); a policy bound, not a device value; the assumption set stores shot-noise energy per detection by bit depth, not a photon-count range'}
   - {block: py_lab_operating_bounds, field: 'max_photons_quantum', value: 4.0, unit: 'photons', assumption: null, status: unsourced, notes: 'upper limit on total input photons for boson_sampling simulations (policy.py L48, checked L112); keeps the exact Fock-space reference simulation small; a policy bound, not a device value'}
   - {block: py_studio_compare_request, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'request default of POST /api/compare (pydantic Field(64, ge=1, le=MAX_GEMM_DIM), app.py L77), passed to awen_native.photonic_gemm as tile_k (L277); same 64 as the awen-models tile_k entries and the awen-native PyO3 default, differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_eco_device_configure, field: 'tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'parameter default of awen_py.device.configure (device.py L49), stored in _STATE and passed to awen_native.photonic_gemm as tile_k (L149); same 64 as the awen-models, awen-studio and awen-native PyO3 tile_k defaults, differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_eco_execution_options, field: 'photonic_tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'ExecutionOptions dataclass field (runtime.py L114), passed to the photonic GEMM as tile_k (L522); same 64 as the awen-models, awen-studio and awen-native PyO3 tile_k defaults, differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}
+  - {block: py_eco_torch_backend_options, field: 'photonic_tile_k', value: 64, unit: 'elements', assumption: null, status: unsourced, notes: 'TorchBackendOptions field (torch_backend.py L33), copied into the runtime ExecutionOptions (L49); same 64 as the awen-models, awen-studio and awen-native PyO3 tile_k defaults, differs from the awen-mlir kDefaultTile 128; a tile is bounded by the mesh size, a device capability read from the descriptor (v2 section 10); no mesh-size entry in the assumption set'}

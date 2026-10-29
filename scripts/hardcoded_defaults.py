@@ -7,8 +7,8 @@ Until the compiler reads that file, this script keeps an exact list of the liter
 still hard-coded (awen-spec/hardcoded_device_defaults.yaml) and checks it against every
 non-test Rust and C++ file in the inventory's `scope` (awen-compiler/src, awen-runtime/src,
 awen-native/src, the awen-mlir sources outside its lit tests and the awen-models,
-awen-physics, awen-systems, awen-qphotonic, awen-lab and awen-studio Python packages
-outside tests):
+awen-physics, awen-systems, awen-qphotonic, awen-lab, awen-studio and awen-ecosystem Python
+packages outside tests):
 
 * every device literal found must be listed with the same value (no new silent defaults), and
   so must every float literal passed to a fallback, floor or cap inside an expression
@@ -61,10 +61,11 @@ FN_NAME = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
 # `x < 0.0` and other constants such as `kDialectMajor` are not device defaults and are not matched).
 CPP_DEFAULT = re.compile(rf"^\s*(?:static\s+)?constexpr\s+[A-Za-z_:0-9]+\s+(kDefault[A-Za-z0-9_]*)\s*=\s*({FLOAT}|-?[0-9][0-9']*)\s*;")
 CPP_SUFFIXES = (".cpp", ".h", ".hpp")
-# Python: the Rust field pattern plus carrier wavelength and tile sizes. A bare `temperature` is the
+# Python: the Rust field pattern plus carrier wavelength and tile sizes (`tile_k`, or a prefixed
+# `photonic_tile_k`). A bare `temperature` is the
 # softmax/sampling temperature in the Python model code (generate, distillation), not a device value;
 # a device temperature carries a unit suffix (for example `temperature_k`) and is still matched.
-PY_EXTRA_FIELD = re.compile(r"(wavelength|^tile_)")
+PY_EXTRA_FIELD = re.compile(r"(wavelength|(^|_)tile_)")
 STATUSES = {"unsourced", "matches_assumption", "differs_from_assumption", "definitional", "numeric_guard"}
 
 
