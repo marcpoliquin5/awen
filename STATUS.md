@@ -70,7 +70,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | --- | --- | --- | --- |
 | Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130); loaded by `awen-compiler` and applied opt-in to the noise contract and cost inputs (#134, #135), defaults unchanged; `awen-compiler`, `awen-runtime`, `awen-native` and awen-mlir device literals, in-expression fallbacks and C++ named defaults, and `awen-models`, `awen-physics`, `awen-systems`, `awen-qphotonic`, `awen-lab` `awen-studio` and `awen-ecosystem` Python defaults (236 entries, forms listed in the truth table) inventoried and checked in CI; all Python packages now covered | replace inventoried literals one block at a time, each with a sourced value; runtime and Python readers |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
-| `Runtime(device="auto").load_model("awen-mini")` | 7 | `device="photonic-sim"` and cpu exist | `auto` + `load_model` API |
+| `Runtime(device="auto").load_model("awen-mini")` | 7 | API exists for the bundled from-scratch char model (`awen-models/awen/runtime.py`; `auto`, `cpu`, `cuda`, `cuda:N`, `photonic-sim`); CPU tests in `awen-models/tests/test_runtime.py` and, since P1-3, `test_runtime_devices.py` (`auto` falls back to CPU with CUDA hidden, explicit `cuda` without CUDA raises, tiny-config checkpoint loads by path and generates); the CUDA test is skipped here (no GPU) | CUDA run on Marc's laptop (P1-7); the same API for the fine-tuned AWEN-Mini (P1-1, P1-4) |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
 | OpenXLA PJRT plugin | 8 | StableHLO `dot_general` executor (L1) | plugin |
 | torch.compile backend with FX partitioning | 8 | PrivateUse1 eager GEMM (L1) | backend + capability report |
@@ -88,7 +88,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | --- | --- | --- |
 | P1-1 | Marc picks the AWEN-Mini base model (recommendation: Qwen3-0.6B, Apache-2.0; fallback SmolLM2-360M) | decision logged in DECISIONS.md |
 | P1-2 | `docs/install.md` + pinned CPU and CUDA (cu129, D-022) lockfiles; CPU fallback for every example | fresh-clone install test in CI |
-| P1-3 | `Runtime(device="auto"\|"cpu"\|"cuda").load_model("awen-mini").generate()` with a tiny CI config | CI test on CPU |
+| P1-3 | `Runtime(device="auto"\|"cpu"\|"cuda").load_model("awen-mini").generate()` with a tiny CI config | CI test on CPU(done: `awen-models/tests/test_runtime_devices.py`, P1-3 PR) |
 | P1-4 | AWEN-Mini v0 fine-tune script, model card, checkpoint SHA-256 (CPU smoke test; laptop GPU run plan for Marc) | smoke test passes; run plan written |
 | P1-5 | Same model on `device="photonic-sim"`: linear layers through the GEMM lowering, capability report, deviation from CPU | CI test with tiny config |
 | P1-6 | Three validation notebooks re-checked under v2 (slab modes, MZI mesh vs Clements, shot-noise bits) | notebooks run in CI |
