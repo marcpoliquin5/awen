@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-10-30 06:55 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-10-30 13:10 ET (time of this commit). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 This commit is based on main `d65c1be` (#187, PR gate run 41040938526 passed on head `07fdb0c`), after `0c7f757` (#186, gate run 41006898097 passed), after `798d3fa` (#185, PR gate run 41003390165 passed on head `acf311a`), after `6432479` (#184, gate run 40969775066 passed), after `bc3fd6c` (#183, PR gate run 40965792269 passed on head `2aef40f`), after `2672556` (#182, gate run 40917749158 passed), after `69c2a20` (#181, PR gate run 40912079353 passed on head `4669265`), after `698d1c2` (#180, gate run 40861558068 passed), after `0d41214` (#179, PR gate run 40858468897 passed on head `a2dd49e`), after `3a5c3bc` (#178, gate run 40819858857 passed), after `2b78fed` (#177, PR gate run 40817654678 passed on head `bff99e1`), after `332d4a7` (#176, gate run 40734046127 passed), after `5dde85c` (#175, PR gate run 40726725442 passed on head `e51ac97`), after `2fa522e` (#174, gate run 40674705701 passed), after `a7fd20e` (#173, PR gate run 40671584588 passed on head `a82b8a1`), after `04085c2` (#172, gate run 40634872813 passed), after `5dd19c4` (#171, PR gate run 40632619182 passed on head `e1f1dc5`), after `f3dfa08` (#170, gate run 40598529173 passed), after `9902d84` (#169, PR gate run 40595490211 passed on head `0a685a7`), after `41e224b` (#168, gate run 40544601082 passed), after `09beddb` (#167, gate run 40490344117 passed), after `213ce2b` (#166, gate run 40452031650 passed), after `3a562c9` (#165, PR gate run 40450135645 passed on head `c270358`), after `09390a2` (#164, gate run 40415390257 passed), `917f656` (#163, PR gate run 40412651063 passed on head `e04a9e7`), after `52e5821` (#162, gate run 40363060478 passed), `00ef6b7` (#160), `acb3298` (#159, gate run 40271853808 passed), `42f03e3` (#158, PR gate run 40269929547 passed on head `080fe5e`), `abd7abd` (#157, gate run 40242575808 passed), `7267774` (#156, gate run 40213918425 passed), `cf60185` (#155, PR gate run 40212149057 passed on head `a563254`), `17e3cad` (#154, gate run 40185998015 passed), `46f6394` (#152, gate run 40162396875 passed), `73e9780` (#151, gate run 40140095232 passed), `c294212` (#149, gate run 40112995081 passed), `122f1b5` (#147, gate run 40086556965 passed), `dac9b90` (#146, gate run 40063420420 passed), `e90414a` (#145, gate run 40034904339 passed), `c468e28` (#143, gate run 39988618058 passed), `87c3ee2` (#142), `14385b9` (#139), `c59586b` (#141), `950a859` (#135), `243acef` (#134), `01b927f` (#133),
 `c1086fc` (#132), `c02eee9` (#131), `132d4d9` (#130), `75d58f7` (#129), `ee2e8cf` (#127), `840f5c5` (#126) and `0235668` (#125).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9`. Gates passed on `0235668` (run 39140149777),
@@ -70,7 +70,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | --- | --- | --- | --- |
 | Simulators and cost estimates read `hardware_assumptions.yaml` | 9 | file merged (#126, #130); loaded by `awen-compiler` and applied opt-in to the noise contract and cost inputs (#134, #135), defaults unchanged; `awen-compiler`, `awen-runtime`, `awen-native` and awen-mlir device literals, in-expression fallbacks and C++ named defaults, and `awen-models`, `awen-physics`, `awen-systems`, `awen-qphotonic`, `awen-lab` `awen-studio` and `awen-ecosystem` Python defaults (236 entries, forms listed in the truth table) inventoried and checked in CI; all Python packages now covered | replace inventoried literals one block at a time, each with a sourced value; runtime and Python readers |
 | AWEN-Mini as a fine-tuned open model with model card, domain eval (≥300 Q) | 7 | from-scratch char model only | base model choice (Marc), SFT/KD, eval |
-| `Runtime(device="auto").load_model("awen-mini")` | 7 | API exists for the bundled from-scratch char model (`awen-models/awen/runtime.py`; `auto`, `cpu`, `cuda`, `cuda:N`, `photonic-sim`); CPU tests in `awen-models/tests/test_runtime.py` and, since P1-3 (#187, `d65c1be`), `test_runtime_devices.py` (`auto` falls back to CPU with CUDA hidden, explicit `cuda` without CUDA raises, tiny-config checkpoint loads by path and generates); the CUDA test is skipped here (no GPU) | CUDA run on Marc's laptop (P1-7); the same API for the fine-tuned AWEN-Mini (P1-1, P1-4) |
+| `Runtime(device="auto").load_model("awen-mini")` | 7 | API exists for the bundled from-scratch char model (`awen-models/awen/runtime.py`; `auto`, `cpu`, `cuda`, `cuda:N`, `photonic-sim`); CPU tests in `awen-models/tests/test_runtime.py` and, since P1-3 (#187, `d65c1be`), `test_runtime_devices.py` (`auto` falls back to CPU with CUDA hidden, explicit `cuda` without CUDA raises, tiny-config checkpoint loads by path and generates); the CUDA test is skipped here (no GPU); on `photonic-sim`, `capability_report(text)` since P1-5 (#189, `dcfdaf0`) reports lowered GEMMs, host fallbacks and deviation from CPU (L1) | CUDA run on Marc's laptop (P1-7); the same API for the fine-tuned AWEN-Mini (P1-1, P1-4) |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
 | OpenXLA PJRT plugin | 8 | StableHLO `dot_general` executor (L1) | plugin |
 | torch.compile backend with FX partitioning | 8 | PrivateUse1 eager GEMM (L1) | backend + capability report |
@@ -90,7 +90,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | P1-2 | `docs/install.md` + pinned CPU and CUDA (cu129, D-022) lockfiles; CPU fallback for every example | fresh-clone install test in CI |
 | P1-3 | `Runtime(device="auto"\|"cpu"\|"cuda").load_model("awen-mini").generate()` with a tiny CI config | CI test on CPU (done: `awen-models/tests/test_runtime_devices.py`, #187 `d65c1be`) |
 | P1-4 | AWEN-Mini v0 fine-tune script, model card, checkpoint SHA-256 (CPU smoke test; laptop GPU run plan for Marc) | smoke test passes; run plan written |
-| P1-5 | Same model on `device="photonic-sim"`: linear layers through the GEMM lowering, capability report, deviation from CPU | CI test with tiny config |
+| P1-5 | Same model on `device="photonic-sim"`: linear layers through the GEMM lowering, capability report, deviation from CPU | CI test with tiny config (done: `LoadedModel.capability_report`, `awen-models/tests/test_photonic_capability_report.py`, #189 `dcfdaf0`) |
 | P1-6 | Three validation notebooks re-checked under v2 (slab modes, MZI mesh vs Clements, shot-noise bits) | notebooks run in CI |
 | P1-7 | Laptop CUDA run logged by Marc for all three devices | log committed |
 
@@ -194,12 +194,14 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 ## Next 3 tasks
 
-1. Phase 1 session P1-5 check (needs no decision from Marc). P1-3 is done (#187, `d65c1be`): `awen-models/tests/test_runtime_devices.py`
-   covers `auto` falling back to CPU with CUDA hidden, explicit `cuda`/`cuda:0` raising without CUDA, and a tiny-config
-   checkpoint loaded by path and generated on `auto` and `cpu` (PR gate run 41040938526: awen-models 90 passed, 2 skipped,
-   measured by us); the CUDA test is skipped here and runs on Marc's laptop (P1-7). For P1-5,
-   `Runtime(device="photonic-sim")` routes every linear layer through the native GEMM simulator but returns no capability
-   report and no output deviation from the CPU reference; add both (tiny config, CI test on CPU). P1-4 waits on P1-1 (Marc).
+1. Phase 1 session P1-6 (needs no decision from Marc): re-check the three validation notebooks under v2 (slab modes,
+   MZI mesh vs Clements, shot-noise bits) and run them in CI. P1-5 is done (#189, `dcfdaf0`):
+   `LoadedModel.capability_report(text)` and `python -m awen.capability` report the GEMMs lowered, host fallbacks with
+   reasons, MAC split, conversion counts, contract precision and deviation from the CPU model (PR gate run
+   41091038534: awen-models 98 passed, 2 skipped, measured by us). Stored for `awen-mini` in
+   `awen-models/results/photonic-sim-capability/` (L1, measured by us, one seed, one input): ideal contract matches CPU
+   (mean NLL diff -8.1e-08 nats, top-1 agreement 1.0); default contract mean NLL 4.1710 vs 1.2882 nats, top-1 agreement
+   0.1667 (negative result: the noise-free-trained model does not survive the unsourced default contract).
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1), on the
    PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7, ADC 4.0 to 6.35 pJ),
    and on the agent decisions D-018 to D-022 (H2 counting rule, amendments A1 and A2, H4 definitions, cu129 lockfile).
