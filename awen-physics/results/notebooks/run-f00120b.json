@@ -1,0 +1,79 @@
+{
+  "schema": "awen_validation_notebooks_run.v1",
+  "command": "python scripts/run_validation_notebooks.py --require-native",
+  "commit": "f00120b10924a4f4db2946df12b042d913be9790",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "packages": {
+      "numpy": "2.5.4",
+      "awen_physics": "0.1.0",
+      "awen_native": "0.1.0"
+    }
+  },
+  "source_label": "measured by us (simulator and solver output on the build box)",
+  "notebooks": [
+    {
+      "notebook": "a_slab_waveguide_te_modes.ipynb",
+      "sha256": "3535cd93291dffd3108a34ec5f3ebd21ac0751bfdb98b82489fa35de53da77aa",
+      "evidence_level": "L0",
+      "status": "passed",
+      "error": null,
+      "seconds": 0.249,
+      "cells": [
+        {
+          "cell": 1,
+          "stdout": "V = 2.792 | TE modes: 2\nanalytic n_eff: [1.91822118, 1.67293431]\n"
+        },
+        {
+          "cell": 2,
+          "stdout": "50 pts/\u00b5m  |\u0394n_eff| = ['7.15e-05', '3.01e-04']\n100 pts/\u00b5m  |\u0394n_eff| = ['1.79e-05', '7.53e-05']\n200 pts/\u00b5m  |\u0394n_eff| = ['4.47e-06', '1.88e-05']\n400 pts/\u00b5m  |\u0394n_eff| = ['1.12e-06', '4.70e-06']\nobserved convergence orders: [2.0, 2.0, 2.0, 2.0]\n"
+        },
+        {
+          "cell": 3,
+          "stdout": "1.30 \u00b5m  analytic 1.9372143  numeric 1.9372153  \u0394 1.1e-06\n1.55 \u00b5m  analytic 1.9182212  numeric 1.9182223  \u0394 1.1e-06\n2.00 \u00b5m  analytic 1.8828900  numeric 1.8828911  \u0394 1.1e-06\n"
+        }
+      ]
+    },
+    {
+      "notebook": "b_clements_mzi_mesh.ipynb",
+      "sha256": "d25c73ae35d2d64d2604242791474962afa07794e6456ca481f2bbb2cea41573",
+      "evidence_level": "L0",
+      "status": "passed",
+      "error": null,
+      "seconds": 0.052,
+      "cells": [
+        {
+          "cell": 1,
+          "stdout": " N  MZIs  depth  max|U-U_mesh|  unitarity error\n 2     1      1       5.55e-16  2.22e-16\n 3     3      3       3.48e-16  1.45e-16\n 4     6      4       3.72e-16  3.33e-16\n 6    15      6       2.78e-16  3.33e-16\n 8    28      8       3.98e-16  4.44e-16\n16   120     16       5.00e-16  6.66e-16\n32   496     32       5.22e-16  8.88e-16\n"
+        },
+        {
+          "cell": 2,
+          "stdout": "\u03c3 = 0.0    rad  mean fidelity 1.000000\n\u03c3 = 0.001  rad  mean fidelity 0.999990\n\u03c3 = 0.01   rad  mean fidelity 0.999038\n\u03c3 = 0.05   rad  mean fidelity 0.974866\n"
+        }
+      ]
+    },
+    {
+      "notebook": "c_shot_noise_enob.ipynb",
+      "sha256": "d4502c4e252e56c81ce6e24d5166c5092610462276c4dac3f4528ba4387f9394",
+      "evidence_level": "L1",
+      "status": "passed",
+      "error": null,
+      "seconds": 0.06,
+      "cells": [
+        {
+          "cell": 1,
+          "stdout": "photons/MAC  ADC bits  N_fs        ENOB sim  ENOB theory\n         10      None  160            2.856        2.869\n         10         8  160            2.900        2.868\n        100      None  1600           4.517        4.530\n        100         8  1600           4.512        4.524\n       1000      None  16000          6.178        6.191\n       1000         8  16000          6.125        6.134\n      10000      None  160000         7.840        7.852\n      10000         8  160000         7.424        7.418\n     100000      None  1600000        9.501        9.513\n     100000         8  1600000        7.926        7.907\n"
+        },
+        {
+          "cell": 2,
+          "stdout": "ENOB gained per decade of photons: [1.661, 1.661, 1.661, 1.661]\n"
+        },
+        {
+          "cell": 3,
+          "stdout": "photons per extra bit: measured 3.999x, theory 3.999x\n"
+        }
+      ]
+    }
+  ]
+}

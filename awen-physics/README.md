@@ -51,15 +51,19 @@ a gradient step raises the objective as the first-order prediction says.
 
 ## Validation notebooks
 
-Each notebook states its claim, its tolerance and its references. The asserts
-in the notebook are the acceptance test. `tests/test_notebooks.py` runs every
-code cell in CI.
+Each notebook states its claim, its tolerance, its evidence level (L0 or L1), the
+source of every printed number and its references. The asserts in the notebook
+are the acceptance test. `tests/test_notebooks.py` runs every code cell in CI, and
+the gate also runs `python scripts/run_validation_notebooks.py --require-native`,
+which fails rather than skips notebook (c) when `awen_native` is missing and
+writes a run record (commit, environment, printed output). The last stored record
+is in `results/notebooks/`.
 
 | Notebook | Check | Tolerance |
 | --- | --- | --- |
 | `notebooks/a_slab_waveguide_te_modes.ipynb` | Finite differences vs analytic TE dispersion | \|Δn_eff\| < 1e-5 at 400 pts/µm; convergence order 1.8–2.2 |
 | `notebooks/b_clements_mzi_mesh.ipynb` | Mesh vs Clements et al., *Optica* 3, 1460 (2016) | N(N−1)/2 MZIs, depth N, reconstruction and unitarity error < 1e-12 for N ≤ 32 |
-| `notebooks/c_shot_noise_enob.ipynb` | Simulated ENOB vs shot-noise and quantization theory | \|ΔENOB\| < 0.1 bit |
+| `notebooks/c_shot_noise_enob.ipynb` | Simulated ENOB vs shot-noise and quantization theory; photons per extra bit | \|ΔENOB\| < 0.1 bit; 3.70x–4.37x photons per bit |
 
 ```bash
 pip install "./awen-physics[test]" ./awen-native
