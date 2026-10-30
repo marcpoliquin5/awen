@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -26,5 +27,31 @@ def test_three_validation_notebooks_exist():
 @pytest.mark.parametrize("path", NOTEBOOKS, ids=lambda p: p.stem)
 def test_notebook_meets_its_stated_tolerance(path):
     if path.name.startswith("c_") and importlib.util.find_spec("awen_native") is None:
+        if os.environ.get("AWEN_REQUIRE_NATIVE") == "1":
+            pytest.fail("AWEN_REQUIRE_NATIVE=1 but awen_native is not installed; notebook (c) would not run")
         pytest.skip("notebook (c) exercises the Rust model; install ./awen-native")
     run_notebook(path)
+
+
+@pytest.mark.parametrize("path", NOTEBOOKS, ids=lambda p: p.stem)
+def test_notebook_declares_evidence_level_and_sources(path):
+    notebook = json.loads(path.read_text())
+    header = "".join(notebook["cells"][0]["source"])
+    expected = "L1" if path.name.startswith("c_") else "L0"
+    assert f"**Evidence level.** {expected} " in header
+    assert "**Sources.**" in header and "measured by us" in header
+    assert "**Fidelity.**" in header
+
+
+@pytest.mark.parametrize("path", NOTEBOOKS, ids=lambda p: p.stem)
+def test_notebook_is_stored_without_outputs(path):
+    # Outputs live in the run record (scripts/run_validation_notebooks.py), not in the notebook.
+    for cell in json.loads(path.read_text())["cells"]:
+        if cell["cell_type"] == "code":
+            assert cell["outputs"] == [] and cell["execution_count"] is None
+
+
+def test_shot_noise_notebook_checks_photons_per_extra_bit():
+    path = next(p for p in NOTEBOOKS if p.name.startswith("c_"))
+    code = "".join("".join(c["source"]) for c in json.loads(path.read_text())["cells"] if c["cell_type"] == "code")
+    assert "photons per extra bit" in code and "assert low < measured_factor < high" in code

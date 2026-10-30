@@ -170,9 +170,12 @@ jobs:
         run: python -m pytest awen-models/tests -q
 
       - name: Run physics validation notebooks
+        env:
+          AWEN_REQUIRE_NATIVE: "1"
         run: |
           python -m pip install --disable-pip-version-check "./awen-physics[test]"
           python -m pytest awen-physics/tests -q
+          python scripts/run_validation_notebooks.py --require-native --out /tmp/awen-validation-notebooks.json
 
       - name: Test quantum-photonic reference simulators
         run: |
