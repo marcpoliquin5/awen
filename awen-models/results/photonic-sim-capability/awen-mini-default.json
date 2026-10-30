@@ -1,0 +1,537 @@
+{
+  "conversions": {
+    "adc": 737280,
+    "counting_rule": "simulator tiling: rows*inner input DAC, outputs*inner weight programming per call, rows*outputs*tiles ADC reads; tile partial sums accumulate on the host",
+    "dac_input": 215040,
+    "dac_weight": 983040
+  },
+  "deviation_vs_cpu": {
+    "cpu_mean_nll_nats": 1.2881511011018518,
+    "logits_max_abs_diff": 13.052613258361816,
+    "logits_relative_l2": 0.7145980900117065,
+    "logits_rms_diff": 3.334711956880836,
+    "nll_diff_nats": 2.882808116747966,
+    "positions": 48,
+    "sim_mean_nll_nats": 4.170959217849818,
+    "top1_agreement": 0.16666666666666666
+  },
+  "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml",
+  "execution": {
+    "backend": "awen_native photonic GEMM simulator",
+    "device": "photonic-sim",
+    "evidence_level": "L1",
+    "fidelity": "simulated (compact model)",
+    "physical": false,
+    "seed": 0,
+    "tile_k": 64
+  },
+  "fallback": [
+    {
+      "kind": "embedding lookup",
+      "macs": 0,
+      "op": "tok_emb",
+      "reason": "gather from a table, not a GEMM"
+    },
+    {
+      "kind": "embedding lookup",
+      "macs": 0,
+      "op": "pos_emb",
+      "reason": "gather from a table, not a GEMM"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.0.ln1",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "attention core (QK^T, softmax, AV)",
+      "macs": 589824,
+      "op": "blocks.0.attn.scaled_dot_product_attention",
+      "reason": "activation-by-activation products: both operands change every token, so no weight stays programmed; only weight GEMMs (AwenLinear) are routed"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.0.ln2",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "activation (gelu)",
+      "macs": 0,
+      "op": "blocks.0.ffn.gelu",
+      "reason": "elementwise nonlinearity; the simulator models a linear core with detection, nonlinearity stays in host electronics"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.1.ln1",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "attention core (QK^T, softmax, AV)",
+      "macs": 589824,
+      "op": "blocks.1.attn.scaled_dot_product_attention",
+      "reason": "activation-by-activation products: both operands change every token, so no weight stays programmed; only weight GEMMs (AwenLinear) are routed"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.1.ln2",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "activation (gelu)",
+      "macs": 0,
+      "op": "blocks.1.ffn.gelu",
+      "reason": "elementwise nonlinearity; the simulator models a linear core with detection, nonlinearity stays in host electronics"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.2.ln1",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "attention core (QK^T, softmax, AV)",
+      "macs": 589824,
+      "op": "blocks.2.attn.scaled_dot_product_attention",
+      "reason": "activation-by-activation products: both operands change every token, so no weight stays programmed; only weight GEMMs (AwenLinear) are routed"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.2.ln2",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "activation (gelu)",
+      "macs": 0,
+      "op": "blocks.2.ffn.gelu",
+      "reason": "elementwise nonlinearity; the simulator models a linear core with detection, nonlinearity stays in host electronics"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.3.ln1",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "attention core (QK^T, softmax, AV)",
+      "macs": 589824,
+      "op": "blocks.3.attn.scaled_dot_product_attention",
+      "reason": "activation-by-activation products: both operands change every token, so no weight stays programmed; only weight GEMMs (AwenLinear) are routed"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.3.ln2",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "activation (gelu)",
+      "macs": 0,
+      "op": "blocks.3.ffn.gelu",
+      "reason": "elementwise nonlinearity; the simulator models a linear core with detection, nonlinearity stays in host electronics"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.4.ln1",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "attention core (QK^T, softmax, AV)",
+      "macs": 589824,
+      "op": "blocks.4.attn.scaled_dot_product_attention",
+      "reason": "activation-by-activation products: both operands change every token, so no weight stays programmed; only weight GEMMs (AwenLinear) are routed"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "blocks.4.ln2",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "activation (gelu)",
+      "macs": 0,
+      "op": "blocks.4.ffn.gelu",
+      "reason": "elementwise nonlinearity; the simulator models a linear core with detection, nonlinearity stays in host electronics"
+    },
+    {
+      "kind": "layer norm",
+      "macs": 0,
+      "op": "ln_f",
+      "reason": "per-row mean/variance and division; not a linear map"
+    },
+    {
+      "kind": "tied output projection",
+      "macs": 399360,
+      "op": "head (x @ tok_emb.weight.T)",
+      "reason": "computed as a plain matmul in AwenMini.forward, not through AwenLinear, so the runtime cannot route it; changing that is a model change not made here"
+    },
+    {
+      "kind": "elementwise add",
+      "macs": 0,
+      "op": "bias and residual additions",
+      "reason": "AwenLinear adds bias on the host by design; residuals are host tensors"
+    }
+  ],
+  "input": {
+    "characters": 48,
+    "positions": 48
+  },
+  "lowered": [
+    {
+      "adc_conversions": 36864,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 49152,
+      "inner": 128,
+      "layer": "blocks.0.attn.qkv",
+      "macs": 2359296,
+      "max_abs_error_vs_exact": 1.344850977398313,
+      "outputs": 384,
+      "rms_error_vs_exact": 0.21587944688162455,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 12288,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 16384,
+      "inner": 128,
+      "layer": "blocks.0.attn.proj",
+      "macs": 786432,
+      "max_abs_error_vs_exact": 0.47329386446721666,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.09462161813778457,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 65536,
+      "inner": 128,
+      "layer": "blocks.0.ffn.fc",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 2.5856719645430433,
+      "outputs": 512,
+      "rms_error_vs_exact": 0.3180061297850399,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 24576,
+      "dac_weight_conversions": 65536,
+      "inner": 512,
+      "layer": "blocks.0.ffn.proj",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 0.7077409175543827,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.14618825609369634,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 8
+    },
+    {
+      "adc_conversions": 36864,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 49152,
+      "inner": 128,
+      "layer": "blocks.1.attn.qkv",
+      "macs": 2359296,
+      "max_abs_error_vs_exact": 4.468404709126212,
+      "outputs": 384,
+      "rms_error_vs_exact": 0.5843087532972328,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 12288,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 16384,
+      "inner": 128,
+      "layer": "blocks.1.attn.proj",
+      "macs": 786432,
+      "max_abs_error_vs_exact": 0.43430694566885986,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.10338271674891027,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 65536,
+      "inner": 128,
+      "layer": "blocks.1.ffn.fc",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 1.9916905858529967,
+      "outputs": 512,
+      "rms_error_vs_exact": 0.3426450316070557,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 24576,
+      "dac_weight_conversions": 65536,
+      "inner": 512,
+      "layer": "blocks.1.ffn.proj",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 0.8759499404615727,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.15968770593323556,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 8
+    },
+    {
+      "adc_conversions": 36864,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 49152,
+      "inner": 128,
+      "layer": "blocks.2.attn.qkv",
+      "macs": 2359296,
+      "max_abs_error_vs_exact": 5.21862663550587,
+      "outputs": 384,
+      "rms_error_vs_exact": 0.7213662383370879,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 12288,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 16384,
+      "inner": 128,
+      "layer": "blocks.2.attn.proj",
+      "macs": 786432,
+      "max_abs_error_vs_exact": 0.5909117063408977,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.11009021451159005,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 65536,
+      "inner": 128,
+      "layer": "blocks.2.ffn.fc",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 2.3170499803316855,
+      "outputs": 512,
+      "rms_error_vs_exact": 0.49825057119487043,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 24576,
+      "dac_weight_conversions": 65536,
+      "inner": 512,
+      "layer": "blocks.2.ffn.proj",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 1.20348643814176,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.23649185579548157,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 8
+    },
+    {
+      "adc_conversions": 36864,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 49152,
+      "inner": 128,
+      "layer": "blocks.3.attn.qkv",
+      "macs": 2359296,
+      "max_abs_error_vs_exact": 4.620478650527472,
+      "outputs": 384,
+      "rms_error_vs_exact": 0.6677221896505147,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 12288,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 16384,
+      "inner": 128,
+      "layer": "blocks.3.attn.proj",
+      "macs": 786432,
+      "max_abs_error_vs_exact": 0.5229068392423926,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.12107499755174152,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 65536,
+      "inner": 128,
+      "layer": "blocks.3.ffn.fc",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 3.094422955410911,
+      "outputs": 512,
+      "rms_error_vs_exact": 0.5970286421127551,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 24576,
+      "dac_weight_conversions": 65536,
+      "inner": 512,
+      "layer": "blocks.3.ffn.proj",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 1.5970136237027872,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.3379953761543571,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 8
+    },
+    {
+      "adc_conversions": 36864,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 49152,
+      "inner": 128,
+      "layer": "blocks.4.attn.qkv",
+      "macs": 2359296,
+      "max_abs_error_vs_exact": 3.619969228253684,
+      "outputs": 384,
+      "rms_error_vs_exact": 0.5617923573398268,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 12288,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 16384,
+      "inner": 128,
+      "layer": "blocks.4.attn.proj",
+      "macs": 786432,
+      "max_abs_error_vs_exact": 0.7991885718421362,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.12083247949038763,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 6144,
+      "dac_weight_conversions": 65536,
+      "inner": 128,
+      "layer": "blocks.4.ffn.fc",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 2.9500085389451147,
+      "outputs": 512,
+      "rms_error_vs_exact": 0.6396005151402406,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 2
+    },
+    {
+      "adc_conversions": 49152,
+      "calls": 1,
+      "dac_input_conversions": 24576,
+      "dac_weight_conversions": 65536,
+      "inner": 512,
+      "layer": "blocks.4.ffn.proj",
+      "macs": 3145728,
+      "max_abs_error_vs_exact": 4.231184374803512,
+      "outputs": 128,
+      "rms_error_vs_exact": 0.5555436683141289,
+      "rows": 48,
+      "tile_effective_bits": 5.543519656019143,
+      "tile_k": 64,
+      "tiles_per_output": 8
+    }
+  ],
+  "mac_split": {
+    "host_macs": 3348480,
+    "note": "dense counts; causal masking in attention is not subtracted",
+    "photonic_sim_fraction": 0.9337386018237082,
+    "photonic_sim_macs": 47185920
+  },
+  "model": {
+    "checkpoint": "awen-mini",
+    "config": {
+      "block_size": 128,
+      "ffn": "gelu",
+      "n_embd": 128,
+      "n_head": 4,
+      "n_layer": 5,
+      "shared_layers": false,
+      "vocab_size": 65
+    },
+    "parameters": 1016320
+  },
+  "precision_and_calibration": {
+    "adc_bits": 8,
+    "calibration": "assumed by the noise contract; no calibration was performed (simulation only)",
+    "contract_version": "awen.photonic-noise-contract.v1",
+    "dac_bits": 8,
+    "drift_rad_per_sqrt_s": 0.0,
+    "min_tile_effective_bits": 5.543519656019143,
+    "phase_sigma_rad": 0.002,
+    "photons_per_mac": 1000.0,
+    "seconds_since_calibration": 0.0
+  },
+  "report": "awen.runtime-capability-report.v1"
+}
