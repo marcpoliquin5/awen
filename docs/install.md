@@ -51,6 +51,20 @@ from the lockfile in a fresh clone of the commit under test: `scripts/fresh_clon
 from the pinned CPU lockfile"). You can run that script locally; it needs `python3.12` (or set `PYTHON`) and network
 access to PyPI and the PyTorch CPU index.
 
+## Check every example on CPU
+
+```bash
+python scripts/examples_cpu.py --run
+```
+
+Every file under an `examples/` directory has an entry in `scripts/examples_cpu.py`. The command runs each Python
+example with CUDA hidden (`CUDA_VISIBLE_DEVICES=""`), small arguments and a 600 s timeout, checks the exit code and
+the expected output (for `awen-models/examples/generate.py --device auto`, that it ran on `cpu`), and prints one JSON
+line per example. The Rust, C, C++ and JSON examples are CPU-only; their entries name the required-gate step that
+builds or runs them, and this command does not run them. `python scripts/examples_cpu.py --check` only checks that
+the list matches the files on disk (standard library only). The fresh-clone script runs this check after the suites
+above. A new example without an entry fails the check.
+
 ## Updating the lockfile
 
 Never edit `requirements/cpu-py312.txt` by hand. Change the ranges in the packages' `pyproject.toml` files, then run:
