@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -110,7 +111,7 @@ def build_report(loaded: Any, text: str) -> dict[str, Any]:
     contract = dict(executor.contract)
     return {
         "report": REPORT_VERSION,
-        "model": {"checkpoint": str(loaded.checkpoint_dir), "parameters": model.num_parameters(),
+        "model": {"checkpoint": Path(loaded.checkpoint_dir).name, "parameters": model.num_parameters(),
                   "config": {k: getattr(model.config, k) for k in ("n_layer", "n_head", "n_embd", "block_size",
                                                                      "vocab_size", "ffn", "shared_layers")}},
         "execution": {"device": "photonic-sim", "fidelity": "simulated (compact model)", "physical": False,
