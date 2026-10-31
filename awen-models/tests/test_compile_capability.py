@@ -55,3 +55,20 @@ def test_cli_defaults_to_per_gemm_seeds_and_shared_reproduces_v1(tmp_path):
         derive_gemm_seed(3, index) for index in range(len(independent["lowered"]))]
     assert {row["seed"] for row in correlated["lowered"]} == {3}
     assert independent["deviation_vs_reference"] != correlated["deviation_vs_reference"]
+
+
+def test_host_fallback_macs_match_the_runtime_path_count(ideal):
+    """Cross-check against P1-5's independent module-level count (awen.capability)."""
+    import torch
+
+    from awen.capability import _fallbacks
+
+    counts = ideal["compile"]["counts"]
+    assert counts["host_macs_uncounted_nodes"] == []
+    model, _, _ = load_checkpoint(bundled_checkpoint_dir("awen-mini"), torch.device("cpu"))
+    runtime = _fallbacks(model, ideal["input"]["positions"])
+    # The compile path lowers the tied head; the Runtime path leaves it on the host.
+    expected = sum(row["macs"] for row in runtime if not row["op"].startswith("head"))
+    assert expected > 0 and counts["host_fallback_macs"] == expected
+    total = counts["lowered_macs"] + counts["host_fallback_macs"]
+    assert counts["lowered_mac_fraction"] == pytest.approx(counts["lowered_macs"] / total)
