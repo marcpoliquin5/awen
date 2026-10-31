@@ -1,0 +1,74 @@
+{
+  "schema": "awen.phase1-devices-run.v1",
+  "command": "python scripts/phase1_devices.py --devices cpu,photonic-sim --ideal --out awen-models/results/phase1-devices/run-8d1bff4-ideal.json",
+  "commit": "8d1bff4955dbe243baec6f552935780bd8860b34",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "packages": {
+      "torch": "2.14.1+cpu",
+      "numpy": "2.5.4",
+      "awen": "0.1.0",
+      "awen_models": "0.1.0",
+      "awen_native": "0.1.0"
+    },
+    "cuda_available": false,
+    "cuda_device": null,
+    "torch_cuda_build": null
+  },
+  "source_label": "measured by us (host execution; photonic-sim is simulated, L1)",
+  "model": "awen-mini",
+  "prompt": "ROMEO:",
+  "max_new_tokens": 32,
+  "seed": 0,
+  "photonic_sim_contract": "ideal (noise-free)",
+  "devices": [
+    {
+      "requested": "cpu",
+      "device": "cpu",
+      "fidelity": "measured",
+      "gemm_backend": "torch-cpu",
+      "text": "ROMEO:\nThree fair Romeo?\n\nWARWICK:\nThe",
+      "text_sha256": "c9c9e69e4660b3ed31f19d724c1f3986c01bcf3b9f42a5fc820618cc762cf071",
+      "seconds": 0.05,
+      "status": "passed",
+      "error": null
+    },
+    {
+      "requested": "photonic-sim",
+      "device": "photonic-sim",
+      "fidelity": "simulated",
+      "gemm_backend": "awen_native photonic GEMM simulator",
+      "text": "ROMEO:\nThree fair Romeo?\n\nWARWICK:\nThe",
+      "text_sha256": "c9c9e69e4660b3ed31f19d724c1f3986c01bcf3b9f42a5fc820618cc762cf071",
+      "capability": {
+        "report": "awen.runtime-capability-report.v1",
+        "evidence_level": "L1",
+        "physical": false,
+        "fidelity": "simulated (compact model)",
+        "lowered_gemms": 20,
+        "host_fallbacks": 25,
+        "photonic_sim_fraction": 0.9839846252402307,
+        "conversions": {
+          "dac_input": 26880,
+          "dac_weight": 983040,
+          "adc": 92160
+        },
+        "deviation_vs_cpu": {
+          "positions": 6,
+          "logits_max_abs_diff": 4.76837158203125e-06,
+          "logits_rms_diff": 1.3651544587991835e-06,
+          "logits_relative_l2": 4.2284472794478075e-07,
+          "top1_agreement": 1.0,
+          "sim_mean_nll_nats": 0.6821545346380168,
+          "cpu_mean_nll_nats": 0.6821546436695256,
+          "nll_diff_nats": -1.0903150882146662e-07
+        },
+        "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml"
+      },
+      "seconds": 0.874,
+      "status": "passed",
+      "error": null
+    }
+  ]
+}

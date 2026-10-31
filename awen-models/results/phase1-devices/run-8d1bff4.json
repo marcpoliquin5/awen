@@ -1,0 +1,90 @@
+{
+  "schema": "awen.phase1-devices-run.v1",
+  "command": "python scripts/phase1_devices.py --out awen-models/results/phase1-devices/run-8d1bff4.json",
+  "commit": "8d1bff4955dbe243baec6f552935780bd8860b34",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.41",
+    "packages": {
+      "torch": "2.14.1+cpu",
+      "numpy": "2.5.4",
+      "awen": "0.1.0",
+      "awen_models": "0.1.0",
+      "awen_native": "0.1.0"
+    },
+    "cuda_available": false,
+    "cuda_device": null,
+    "torch_cuda_build": null
+  },
+  "source_label": "measured by us (host execution; photonic-sim is simulated, L1)",
+  "model": "awen-mini",
+  "prompt": "ROMEO:",
+  "max_new_tokens": 32,
+  "seed": 0,
+  "photonic_sim_contract": "default awen_native contract",
+  "devices": [
+    {
+      "requested": "cpu",
+      "device": "cpu",
+      "fidelity": "measured",
+      "gemm_backend": "torch-cpu",
+      "text": "ROMEO:\nThree fair Romeo?\n\nWARWICK:\nThe",
+      "text_sha256": "c9c9e69e4660b3ed31f19d724c1f3986c01bcf3b9f42a5fc820618cc762cf071",
+      "seconds": 0.051,
+      "status": "passed",
+      "error": null
+    },
+    {
+      "requested": "auto",
+      "device": "cpu",
+      "fidelity": "measured",
+      "gemm_backend": "torch-cpu",
+      "text": "ROMEO:\nThree fair Romeo?\n\nWARWICK:\nThe",
+      "text_sha256": "c9c9e69e4660b3ed31f19d724c1f3986c01bcf3b9f42a5fc820618cc762cf071",
+      "seconds": 0.038,
+      "status": "passed",
+      "error": null
+    },
+    {
+      "requested": "photonic-sim",
+      "device": "photonic-sim",
+      "fidelity": "simulated",
+      "gemm_backend": "awen_native photonic GEMM simulator",
+      "text": "ROMEO:ts ifmh,ts tsupsnlwe lolDTy-! o'",
+      "text_sha256": "09270b8a6799b9e2d0d65cfe9fd7696bd320658fddca2b6538f5fc4062fe9b65",
+      "capability": {
+        "report": "awen.runtime-capability-report.v1",
+        "evidence_level": "L1",
+        "physical": false,
+        "fidelity": "simulated (compact model)",
+        "lowered_gemms": 20,
+        "host_fallbacks": 25,
+        "photonic_sim_fraction": 0.9839846252402307,
+        "conversions": {
+          "dac_input": 26880,
+          "dac_weight": 983040,
+          "adc": 92160
+        },
+        "deviation_vs_cpu": {
+          "positions": 6,
+          "logits_max_abs_diff": 13.990453720092773,
+          "logits_rms_diff": 3.8940003702080404,
+          "logits_relative_l2": 1.2061327687460643,
+          "top1_agreement": 0.0,
+          "sim_mean_nll_nats": 5.537324070370682,
+          "cpu_mean_nll_nats": 0.6821546436695256,
+          "nll_diff_nats": 4.855169426701156
+        },
+        "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml"
+      },
+      "seconds": 2.083,
+      "status": "passed",
+      "error": null
+    },
+    {
+      "requested": "cuda",
+      "status": "skipped",
+      "error": "torch.cuda.is_available() is False"
+    }
+  ]
+}
