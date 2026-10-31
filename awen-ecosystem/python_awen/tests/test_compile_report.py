@@ -127,3 +127,56 @@ def test_per_gemm_policy_keeps_the_ideal_contract_exact():
     report = build_compile_capability_report(capture, output, reference)
     assert report["deviation_vs_reference"]["max_abs_diff"] < 1e-5
     assert len({row["seed"] for row in report["lowered"]}) == 2
+
+
+class Attention(torch.nn.Module):
+    """One projection (lowered), causal attention, an addmm and a cumsum (both host)."""
+
+    def __init__(self):
+        super().__init__()
+        self.qkv = torch.nn.Linear(16, 48)
+        self.weight = torch.nn.Parameter(torch.randn(16, 8))
+        self.bias = torch.nn.Parameter(torch.randn(8))
+
+    def forward(self, x):
+        q, k, v = self.qkv(x).split(16, dim=-1)
+        q, k, v = (t.view(2, 6, 2, 8).transpose(1, 2) for t in (q, k, v))
+        y = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=True)
+        y = y.transpose(1, 2).reshape(2, 6, 16)
+        return torch.addmm(self.bias, y.reshape(12, 16), self.weight).cumsum(-1)
+
+
+def _attention_report():
+    torch._dynamo.reset()
+    torch.manual_seed(5)
+    model = Attention().eval()
+    x = torch.randn(2, 6, 16)
+    capture = CompileCapture({"target": "photonic", "photonic_noise": awen_native.ideal_contract()})
+    compiled = torch.compile(model, backend=capture, fullgraph=True)
+    with torch.no_grad():
+        reference, output = model(x), compiled(x)
+    return build_compile_capability_report(capture, output, reference)
+
+
+def test_host_macs_count_attention_and_addmm_and_list_unknown_nodes():
+    report = _attention_report()
+    counts = report["counts"]
+    attention = 2 * 2 * 6 * 6 * (8 + 8)  # batch 2 x heads 2, L = S = 6, QK^T (E 8) plus AV (Ev 8)
+    addmm = 12 * 16 * 8
+    rows = {row["target"]: row for row in report["fallback"]}
+    sdpa = [row for name, row in rows.items() if "scaled_dot_product_attention" in name]
+    assert sdpa and sdpa[0]["macs"] == attention
+    assert [row["macs"] for name, row in rows.items() if name.endswith("addmm")] == [addmm]
+    assert [row["macs"] for name, row in rows.items() if "cumsum" in name] == [None]
+    assert counts["host_fallback_macs"] == attention + addmm
+    assert counts["host_macs_uncounted_nodes"] == rows[[n for n in rows if "cumsum" in n][0]]["nodes"]
+    assert counts["lowered_mac_fraction"] is None  # not computed while a node is uncounted
+    assert counts["lowered_macs"] == 12 * 16 * 48
+    assert "causal masking is not subtracted" in counts["host_mac_rule"]
+
+
+def test_host_macs_are_zero_for_elementwise_only_fallback():
+    capture, output, reference = _run(awen_native.ideal_contract())
+    counts = build_compile_capability_report(capture, output, reference)["counts"]
+    assert counts["host_fallback_macs"] == 0 and counts["host_macs_uncounted_nodes"] == []
+    assert counts["lowered_mac_fraction"] == 1.0

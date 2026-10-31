@@ -10,8 +10,10 @@
 The report follows the entry-point checklist: which FX nodes lowered, which
 fell back and why, the precision and calibration the noise contract assumes,
 simulated vs physical execution, conversion counts, and the deviation from an
-eager reference. Everything is simulated (L1); no energy, latency or speedup
-figure is produced.
+eager reference. Host fallback nodes are shape-analysed from the FX
+``example_value`` metadata to count the multiply-accumulates they leave on the
+host (``HOST_MAC_RULE``). Everything is simulated (L1); no energy, latency or
+speedup figure is produced.
 """
 
 from __future__ import annotations
@@ -42,6 +44,13 @@ FALLBACK_REASONS = (
     ("operator.mul", "elementwise product; host electronics"),
     ("arange", "index generation; host"),
 )
+HOST_MAC_RULE = ("contraction MACs only: scaled_dot_product_attention counts QK^T plus AV densely "
+                 "(batch*L*S*(E+Ev); causal masking is not subtracted), addmm/baddbmm count rows*inner*outputs; "
+                 "elementwise, normalisation, gather, index and layout nodes count 0 by definition (their adds, "
+                 "squares and reductions are not matrix MACs); any other node is listed as uncounted")
+# Fallback targets that perform no matrix contraction (substring of the target name).
+ZERO_MAC_TOKENS = ("embedding", "layer_norm", "gelu", "relu", "silu", "softmax", "dropout", "operator.add",
+                   "operator.mul", "operator.sub", "operator.truediv", "arange")
 LAYOUT_TARGETS = ("view", "reshape", "transpose", "permute", "contiguous", "split", "getitem", "size",
                   "unsqueeze", "squeeze", "expand", "flatten", "numpy_t")
 
@@ -75,6 +84,42 @@ def fallback_reason(target: str) -> str:
     if any(target == token or target.endswith("." + token) for token in LAYOUT_TARGETS):
         return "view or layout change; no arithmetic"
     return "no AWEN lowering for this operation in " + TORCH_BACKEND_VERSION
+
+
+def _shape(value: Any) -> Optional[List[int]]:
+    meta = getattr(value, "meta", None)
+    if not isinstance(meta, dict):
+        return None
+    tensor = meta.get("example_value")
+    if tensor is None:
+        tensor = meta.get("tensor_meta")
+    shape = getattr(tensor, "shape", None)
+    return None if shape is None else [int(size) for size in shape]
+
+
+def _argument(node: Any, index: int, name: str) -> Any:
+    return node.args[index] if len(node.args) > index else node.kwargs.get(name)
+
+
+def host_macs(node: Any, target: str) -> Optional[int]:
+    """Contraction MACs a fallback FX node runs on the host, by ``HOST_MAC_RULE``; ``None`` if not countable."""
+    if "scaled_dot_product_attention" in target:
+        query, key, value = (_shape(_argument(node, index, name))
+                             for index, name in enumerate(("query", "key", "value")))
+        output = _shape(node)
+        if not (query and key and value and output) or min(len(query), len(key), len(value)) < 2:
+            return None
+        return prod(output[:-2]) * query[-2] * key[-2] * (query[-1] + value[-1])
+    if target.endswith("addmm") or target.endswith("baddbmm"):
+        lhs, rhs = _shape(_argument(node, 1, "mat1")), _shape(_argument(node, 2, "mat2"))
+        if target.endswith("baddbmm"):
+            lhs, rhs = _shape(_argument(node, 1, "batch1")), _shape(_argument(node, 2, "batch2"))
+        if not (lhs and rhs) or len(lhs) < 2 or len(rhs) < 2:
+            return None
+        return prod(lhs[:-1]) * lhs[-1] * rhs[-1]
+    if any(token in target for token in ZERO_MAC_TOKENS) or fallback_reason(target).startswith("view or layout"):
+        return 0
+    return None
 
 
 def _gemm_row(node: str, operation: str, shapes: Sequence[Sequence[int]], tile_k: int) -> Dict[str, Any]:
@@ -124,12 +169,22 @@ def build_compile_capability_report(capture: CompileCapture, output: Any, refere
                for node, trace in zip(report.supported_nodes, traces)]
     for index, row in enumerate(lowered):
         row["seed"] = options.gemm_seed(index)
+    graph_nodes = {node.name: node for node in capture.compiled[0].awen_graph_module.graph.nodes}
     fallback: Dict[str, Dict[str, Any]] = {}
+    uncounted: List[str] = []
     for diagnostic in report.diagnostics:
         row = fallback.setdefault(diagnostic.target, {"target": diagnostic.target, "count": 0, "nodes": [],
-                                                      "reason": fallback_reason(diagnostic.target)})
+                                                      "reason": fallback_reason(diagnostic.target), "macs": 0})
         row["count"] += 1
         row["nodes"].append(diagnostic.node)
+        macs = host_macs(graph_nodes[diagnostic.node], diagnostic.target) if diagnostic.node in graph_nodes else None
+        if macs is None:
+            uncounted.append(diagnostic.node)
+            row["macs"] = None
+        elif row["macs"] is not None:
+            row["macs"] += macs
+    lowered_macs = sum(row["macs"] for row in lowered)
+    host_total = sum(row["macs"] for row in fallback.values() if row["macs"] is not None)
     contract = dict(options.photonic_noise or awen_native.default_contract())
     return {
         "report": REPORT_VERSION,
@@ -141,8 +196,12 @@ def build_compile_capability_report(capture: CompileCapture, output: Any, refere
         "lowered": lowered,
         "fallback": sorted(fallback.values(), key=lambda row: (-row["count"], row["target"])),
         "counts": {"lowered_nodes": len(lowered), "fallback_nodes": len(report.fallback_nodes),
-                   "regions": len(report.regions), "lowered_macs": sum(row["macs"] for row in lowered),
-                   "host_macs": "not counted (fallback nodes are not shape-analysed in v1)"},
+                   "regions": len(report.regions), "lowered_macs": lowered_macs,
+                   "host_macs": "see host_fallback_macs (fallback nodes are shape-analysed since P2-3)",
+                   "host_fallback_macs": host_total, "host_macs_uncounted_nodes": uncounted,
+                   "host_mac_rule": HOST_MAC_RULE,
+                   "lowered_mac_fraction": (lowered_macs / (lowered_macs + host_total)
+                                            if not uncounted and lowered_macs + host_total else None)},
         "precision_and_calibration": {
             "contract_version": contract.get("version"),
             **{key: contract.get(key) for key in CONTRACT_PRECISION_KEYS},

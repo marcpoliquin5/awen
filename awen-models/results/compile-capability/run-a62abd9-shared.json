@@ -1,0 +1,784 @@
+{
+  "compile": {
+    "backend": {
+      "graph_fingerprint": "sha256:83e4f2341897532414be7e4dedbd4b715ed83441f6c31fd34d5b5639be973363",
+      "graphs": 1,
+      "torch_version": "2.14.1",
+      "version": "awen.torch-backend.v1"
+    },
+    "conversions": {
+      "adc": 743520,
+      "counting_rule": "simulator tiling: rows*inner input DAC, weights programmed once per call, rows*outputs*ceil(inner/tile_k) ADC reads; partial sums accumulate on the host",
+      "dac_input": 221184,
+      "dac_weight": 991360
+    },
+    "counts": {
+      "fallback_nodes": 107,
+      "host_fallback_macs": 2949120,
+      "host_mac_rule": "contraction MACs only: scaled_dot_product_attention counts QK^T plus AV densely (batch*L*S*(E+Ev); causal masking is not subtracted), addmm/baddbmm count rows*inner*outputs; elementwise, normalisation, gather, index and layout nodes count 0 by definition (their adds, squares and reductions are not matrix MACs); any other node is listed as uncounted",
+      "host_macs": "see host_fallback_macs (fallback nodes are shape-analysed since P2-3)",
+      "host_macs_uncounted_nodes": [],
+      "lowered_mac_fraction": 0.9416413373860182,
+      "lowered_macs": 47585280,
+      "lowered_nodes": 21,
+      "regions": 21
+    },
+    "deviation_vs_reference": {
+      "max_abs_diff": 15.938662052154541,
+      "relative_l2": 0.8462108007333526,
+      "rms_diff": 3.948890032998808,
+      "top1_agreement": 0.020833333333333332
+    },
+    "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml",
+    "execution": {
+      "evidence_level": "L1",
+      "fidelity": "simulated (compact model)",
+      "physical": false,
+      "seed": 0,
+      "seed_note": "seed_policy 'shared': every lowered GEMM of a call gets the same seed, so their noise draws are correlated",
+      "seed_policy": "shared",
+      "target": "simulated:photonic",
+      "tile_k": 64
+    },
+    "fallback": [
+      {
+        "count": 20,
+        "macs": 0,
+        "nodes": [
+          "q_1",
+          "k_1",
+          "v_1",
+          "transpose_3",
+          "q_3",
+          "k_3",
+          "v_3",
+          "transpose_7",
+          "q_5",
+          "k_5",
+          "v_5",
+          "transpose_11",
+          "q_7",
+          "k_7",
+          "v_7",
+          "transpose_15",
+          "q_9",
+          "k_9",
+          "v_9",
+          "transpose_19"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "transpose"
+      },
+      {
+        "count": 20,
+        "macs": 0,
+        "nodes": [
+          "view",
+          "view_1",
+          "view_2",
+          "view_3",
+          "view_4",
+          "view_5",
+          "view_6",
+          "view_7",
+          "view_8",
+          "view_9",
+          "view_10",
+          "view_11",
+          "view_12",
+          "view_13",
+          "view_14",
+          "view_15",
+          "view_16",
+          "view_17",
+          "view_18",
+          "view_19"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "view"
+      },
+      {
+        "count": 15,
+        "macs": 0,
+        "nodes": [
+          "q",
+          "k",
+          "v",
+          "q_2",
+          "k_2",
+          "v_2",
+          "q_4",
+          "k_4",
+          "v_4",
+          "q_6",
+          "k_6",
+          "v_6",
+          "q_8",
+          "k_8",
+          "v_8"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "_operator.getitem"
+      },
+      {
+        "count": 11,
+        "macs": 0,
+        "nodes": [
+          "add",
+          "x_1",
+          "x_2",
+          "x_3",
+          "x_4",
+          "x_5",
+          "x_6",
+          "x_7",
+          "x_8",
+          "x_9",
+          "x_10"
+        ],
+        "reason": "elementwise add (residual or bias); host electronics",
+        "target": "_operator.add"
+      },
+      {
+        "count": 11,
+        "macs": 0,
+        "nodes": [
+          "layer_norm",
+          "layer_norm_1",
+          "layer_norm_2",
+          "layer_norm_3",
+          "layer_norm_4",
+          "layer_norm_5",
+          "layer_norm_6",
+          "layer_norm_7",
+          "layer_norm_8",
+          "layer_norm_9",
+          "x_11"
+        ],
+        "reason": "per-row mean, variance and division; not a linear map",
+        "target": "torch.nn.functional.layer_norm"
+      },
+      {
+        "count": 6,
+        "macs": 0,
+        "nodes": [
+          "x",
+          "dropout_1",
+          "dropout_2",
+          "dropout_3",
+          "dropout_4",
+          "dropout_5"
+        ],
+        "reason": "identity at inference; host",
+        "target": "torch.nn.functional.dropout"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "contiguous",
+          "contiguous_1",
+          "contiguous_2",
+          "contiguous_3",
+          "contiguous_4"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "contiguous"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "split",
+          "split_1",
+          "split_2",
+          "split_3",
+          "split_4"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "split"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "hidden",
+          "hidden_1",
+          "hidden_2",
+          "hidden_3",
+          "hidden_4"
+        ],
+        "reason": "elementwise nonlinearity; stays in host electronics after detection",
+        "target": "torch._c._nn.gelu"
+      },
+      {
+        "count": 5,
+        "macs": 2949120,
+        "nodes": [
+          "y",
+          "y_1",
+          "y_2",
+          "y_3",
+          "y_4"
+        ],
+        "reason": "attention core (QK^T, softmax, AV): both operands are activations, so no weight stays programmed; torch-backend v1 lowers only matmul/mm/bmm and linear nodes",
+        "target": "torch._c._nn.scaled_dot_product_attention"
+      },
+      {
+        "count": 2,
+        "macs": 0,
+        "nodes": [
+          "embedding",
+          "embedding_1"
+        ],
+        "reason": "table gather, not a matrix product",
+        "target": "torch.nn.functional.embedding"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "numpy_t"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "torch._ops.aten.pybind11_detail_function_record_v1_system_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_1.numpy_t"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "positions"
+        ],
+        "reason": "index generation; host",
+        "target": "torch._variablefunctionsclass.arange"
+      }
+    ],
+    "lowered": [
+      {
+        "adc_conversions": 36864,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 49152,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            384
+          ]
+        ],
+        "macs": 2359296,
+        "node": "linear",
+        "operation": "linear",
+        "outputs": 384,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 12288,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 16384,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "macs": 786432,
+        "node": "linear_1",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 65536,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            512
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_2",
+        "operation": "linear",
+        "outputs": 512,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 24576,
+        "dac_weight_conversions": 65536,
+        "inner": 512,
+        "input_shapes": [
+          [
+            1,
+            48,
+            512
+          ],
+          [
+            512,
+            128
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_3",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 8
+      },
+      {
+        "adc_conversions": 36864,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 49152,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            384
+          ]
+        ],
+        "macs": 2359296,
+        "node": "linear_4",
+        "operation": "linear",
+        "outputs": 384,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 12288,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 16384,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "macs": 786432,
+        "node": "linear_5",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 65536,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            512
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_6",
+        "operation": "linear",
+        "outputs": 512,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 24576,
+        "dac_weight_conversions": 65536,
+        "inner": 512,
+        "input_shapes": [
+          [
+            1,
+            48,
+            512
+          ],
+          [
+            512,
+            128
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_7",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 8
+      },
+      {
+        "adc_conversions": 36864,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 49152,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            384
+          ]
+        ],
+        "macs": 2359296,
+        "node": "linear_8",
+        "operation": "linear",
+        "outputs": 384,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 12288,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 16384,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "macs": 786432,
+        "node": "linear_9",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 65536,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            512
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_10",
+        "operation": "linear",
+        "outputs": 512,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 24576,
+        "dac_weight_conversions": 65536,
+        "inner": 512,
+        "input_shapes": [
+          [
+            1,
+            48,
+            512
+          ],
+          [
+            512,
+            128
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_11",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 8
+      },
+      {
+        "adc_conversions": 36864,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 49152,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            384
+          ]
+        ],
+        "macs": 2359296,
+        "node": "linear_12",
+        "operation": "linear",
+        "outputs": 384,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 12288,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 16384,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "macs": 786432,
+        "node": "linear_13",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 65536,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            512
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_14",
+        "operation": "linear",
+        "outputs": 512,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 24576,
+        "dac_weight_conversions": 65536,
+        "inner": 512,
+        "input_shapes": [
+          [
+            1,
+            48,
+            512
+          ],
+          [
+            512,
+            128
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_15",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 8
+      },
+      {
+        "adc_conversions": 36864,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 49152,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            384
+          ]
+        ],
+        "macs": 2359296,
+        "node": "linear_16",
+        "operation": "linear",
+        "outputs": 384,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 12288,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 16384,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            128
+          ]
+        ],
+        "macs": 786432,
+        "node": "linear_17",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 65536,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            512
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_18",
+        "operation": "linear",
+        "outputs": 512,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 49152,
+        "dac_input_conversions": 24576,
+        "dac_weight_conversions": 65536,
+        "inner": 512,
+        "input_shapes": [
+          [
+            1,
+            48,
+            512
+          ],
+          [
+            512,
+            128
+          ]
+        ],
+        "macs": 3145728,
+        "node": "linear_19",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 8
+      },
+      {
+        "adc_conversions": 6240,
+        "dac_input_conversions": 6144,
+        "dac_weight_conversions": 8320,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            48,
+            128
+          ],
+          [
+            128,
+            65
+          ]
+        ],
+        "macs": 399360,
+        "node": "logits",
+        "operation": "batched_gemm",
+        "outputs": 65,
+        "rows": 48,
+        "seed": 0,
+        "tiles_per_output": 2
+      }
+    ],
+    "precision_and_calibration": {
+      "adc_bits": 8,
+      "calibration": "assumed by the noise contract; no calibration was performed (simulation only)",
+      "contract_version": "awen.photonic-noise-contract.v1",
+      "dac_bits": 8,
+      "drift_rad_per_sqrt_s": 0.0,
+      "phase_sigma_rad": 0.002,
+      "photons_per_mac": 1000.0,
+      "seconds_since_calibration": 0.0
+    },
+    "report": "awen.torch-compile-capability-report.v1"
+  },
+  "contract": "default",
+  "input": {
+    "characters": 48,
+    "positions": 48
+  },
+  "model": {
+    "checkpoint": "awen-mini",
+    "parameters": 1016320
+  },
+  "report": "awen.mini-compile-capability-report.v1"
+}
