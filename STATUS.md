@@ -43,7 +43,7 @@ command shown.
 | Runtime, HAL, scheduler, streams, fallback, replay, profiler | `awen-runtime` | L1 (simulated device) | 305 tests, measured @ 0235668: `cd awen-runtime && cargo test -q` |
 | C SDK, `awenctl` CLI, model conversion | `awen-runtime`, `awen-models` | L0/L1 | CI C example, CLI tests |
 | Python SDK `Runtime(device="photonic-sim")`, PyO3 binding | `awen-ecosystem`, `awen-native` | L1 | 48 + 23 tests, measured @ 0235668: `pytest -q` in `awen-ecosystem/python_awen` and `awen-native/tests` |
-| PyTorch PrivateUse1 "awen" device (eager GEMM) | `awen-ecosystem` | L1 | tests; `torch.compile(backend=awen)` (C3, #84) lowers `linear`/`matmul` to the Rust photonic GEMM; graph capability report for `awen-mini` since P2-1 (#195, `ea3a9e0`): 21 GEMMs lowered, 107 host fallbacks, E-017 |
+| PyTorch PrivateUse1 "awen" device (eager GEMM) | `awen-ecosystem` | L1 | tests; `torch.compile(backend=awen)` (C3, #84) lowers `linear`/`matmul` to the Rust photonic GEMM; graph capability report for `awen-mini` since P2-1 (#195, `ea3a9e0`): 21 GEMMs lowered, 107 host fallbacks, E-017; opt-in per-GEMM deterministic noise seeds (`seed_policy="per_gemm"`, backend default still `shared`) since P2-2 (#197, `68cdcef`), E-018 |
 | JAX StableHLO `dot_general` on AWEN | `awen-ecosystem` | L1 | `docs/PJRT_BOUNDARY.md`; no PJRT plugin |
 | ONNX import with support report | `awen-models` | L0 (report) / L1 (GEMMs) | 7 tests, measured @ 0235668: `pytest -q awen-models/tests/test_onnx*.py` |
 | AWEN-Mini (1,016,320-param char model, trained on CPU; stored result `awen-models/results/awen-mini-eval.json`) | `awen-models` | L0 on CPU, L1 on photonic-sim | checkpoint + eval JSON |
@@ -73,7 +73,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 | `Runtime(device="auto").load_model("awen-mini")` | 7 | API exists for the bundled from-scratch char model (`awen-models/awen/runtime.py`; `auto`, `cpu`, `cuda`, `cuda:N`, `photonic-sim`); CPU tests in `awen-models/tests/test_runtime.py` and, since P1-3 (#187, `d65c1be`), `test_runtime_devices.py` (`auto` falls back to CPU with CUDA hidden, explicit `cuda` without CUDA raises, tiny-config checkpoint loads by path and generates); the CUDA test is skipped here (no GPU); on `photonic-sim`, `capability_report(text)` since P1-5 (#189, `dcfdaf0`) reports lowered GEMMs, host fallbacks and deviation from CPU (L1) | CUDA run on Marc's laptop (P1-7; the CPU half runs in the fresh-clone gate via `scripts/phase1_devices.py`, #193); the same API for the fine-tuned AWEN-Mini (P1-1, P1-4) |
 | AWEN-Photon curves: bits, energy/MAC, recalibration interval, conversions/token, sim-to-real noise control | 7 | MNIST shot-noise curves only (L1) | four curves + independent noise model |
 | OpenXLA PJRT plugin | 8 | StableHLO `dot_general` executor (L1) | plugin |
-| torch.compile backend with FX partitioning | 8 | backend exists (C3, #84) and, since P2-1 (#195), a graph capability report and `python -m awen.compile_capability` for `awen-mini` with CPU CI tests (L1) | independent per-GEMM noise seeds (v1 reuses one seed per call); host fallback MAC count; same path for a fine-tuned AWEN-Mini |
+| torch.compile backend with FX partitioning | 8 | backend exists (C3, #84) and, since P2-1 (#195), a graph capability report (per-GEMM seeds since #197) and `python -m awen.compile_capability` for `awen-mini` with CPU CI tests (L1) | host fallback MAC count; same path for a fine-tuned AWEN-Mini; backend default `seed_policy` (per-GEMM seeds are opt-in since #197, default in the AWEN-Mini driver; flipping the default is Marc's decision) |
 | ONNX Runtime execution provider | 8 | ONNX import report (L0) | EP |
 | Adapters to Meep, SAX, gdsfactory, Perceval, MrMustard | 8, 11 | own reference solvers (L0) | adapters + oracle comparisons |
 | Reproduce ≥3 published photonic results | 11 | analytic checks only | 3 reproductions |
@@ -194,13 +194,12 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 
 ## Next 3 tasks
 
-1. Phase 2 (needs no decision from Marc): give each GEMM lowered by `torch.compile(backend=awen)` its own noise seed
-   (derived deterministically from the call seed and node index), so that layer noise is independent. Today torch-backend
-   v1 passes one seed to every GEMM of a call (`seed_note` in the P2-1 report). This changes default-contract outputs, so
-   the report version and E-017 records must be regenerated. P2-1 is done (#195, `ea3a9e0`):
-   `python -m awen.compile_capability` compiles `awen-mini` with `fullgraph=True`, lowers 21 GEMMs (20 `AwenLinear` plus the
-   tied head) and lists 107 host fallback nodes with reasons (L1, E-017). P1-7's CUDA log is still Marc's laptop run:
-   `python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json` (not run).
+1. Phase 2 (needs no decision from Marc): count host fallback MACs in the `torch.compile(backend=awen)` capability
+   report (v1 records "not counted"; shape-analyse `scaled_dot_product_attention`, `layer_norm`, `gelu` and the other
+   fallback nodes from FX `tensor_meta`), with tests and regenerated E-018 records. P2-2 is done (#197, `68cdcef`):
+   lowered GEMMs get deterministic per-GEMM seeds under `seed_policy="per_gemm"` (default in
+   `python -m awen.compile_capability`; backend default still `shared`), E-018. P1-7's CUDA log is still Marc's laptop
+   run: `python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json` (not run).
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1, which also
    unblocks P1-4), on the PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7,
    ADC 4.0 to 6.35 pJ), and on the agent decisions D-018 to D-022 (H2 counting rule, amendments A1 and A2, H4
