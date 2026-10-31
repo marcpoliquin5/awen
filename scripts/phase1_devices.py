@@ -1,30 +1,16 @@
 #!/usr/bin/env python3
 """Phase 1 device check: load awen-mini through Runtime on every device, generate, store a run record.
 
-Master Prompt v2 Phase 1 is done when a fresh clone with the documented install runs all three devices
-(``auto``, ``cpu``, ``photonic-sim``) on CPU in CI with a tiny config, and on CUDA on Marc's laptop (logged).
-This command checks that by name. The tiny config is the bundled ``awen-mini`` checkpoint (1,016,320-parameter
-character model); the AWEN-Mini v0 base model is still Marc's decision (DECISIONS.md D-008).
+Phase 1 (Master Prompt v2) is done when a fresh clone runs ``auto``, ``cpu`` and ``photonic-sim`` on CPU in CI with
+a tiny config, and on CUDA on Marc's laptop (logged). The tiny config is the bundled ``awen-mini`` checkpoint; the
+AWEN-Mini v0 base model is Marc's decision (D-008). ``cuda`` runs when ``torch.cuda.is_available()``, else it is
+skipped (``--require-cuda`` makes that a failure). ``photonic-sim`` also stores a capability-report summary;
+with ``--ideal`` it uses the noise-free contract and must reproduce the ``cpu`` text. ``auto`` must resolve to
+``cuda`` when present, else to ``cpu`` with the ``cpu`` text. Simulated or host execution only: no energy, latency
+or speedup figure; ``seconds`` is host wall-clock for load plus generate. Checks are documented in docs/install.md.
 
-For each device it runs ``Runtime(device=...).load_model(model).generate(prompt, ...)`` and records the
-resolved device, fidelity label, GEMM backend, generated text and its SHA-256. ``cuda`` runs when
-``torch.cuda.is_available()``; otherwise it is recorded as skipped (``--require-cuda`` makes that a failure).
-For ``photonic-sim`` it also stores a summary of ``capability_report()`` (lowered GEMMs, host fallbacks,
-conversion counts, deviation from the CPU reference). Checks:
-
-* every requested device loads and generates ``len(prompt) + max_new_tokens`` characters starting with the prompt;
-* ``cpu`` and ``cuda`` report fidelity ``measured``; ``photonic-sim`` reports ``simulated``, evidence level L1,
-  ``physical: false`` and at least one lowered GEMM;
-* ``auto`` resolves to ``cuda`` when available, else ``cpu``; when it resolves to ``cpu`` its text equals the
-  ``cpu`` text (same checkpoint and seed);
-* with ``--ideal``, ``photonic-sim`` uses the noise-free contract (``awen_native.ideal_contract()``) and its text
-  must equal the ``cpu`` text, so every routed GEMM is checked end to end against the CPU path.
-
-Everything is simulated or host execution; no energy, latency or speedup figure is produced. ``seconds`` is
-host wall-clock time for load plus generate, not device latency.
-
-    python scripts/phase1_devices.py --out phase1-devices.json                      # CI / CPU box
-    python scripts/phase1_devices.py --devices cpu,photonic-sim --ideal              # routing check
+    python scripts/phase1_devices.py --out phase1-devices.json
+    python scripts/phase1_devices.py --devices cpu,photonic-sim --ideal
     python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json  # laptop with CUDA
 """
 
