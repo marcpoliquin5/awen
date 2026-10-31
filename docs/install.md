@@ -65,6 +65,24 @@ builds or runs them, and this command does not run them. `python scripts/example
 the list matches the files on disk (standard library only). The fresh-clone script runs this check after the suites
 above. A new example without an entry fails the check.
 
+## Run the three Phase 1 devices
+
+```bash
+python scripts/phase1_devices.py --out phase1-devices.json
+python scripts/phase1_devices.py --devices cpu,photonic-sim --ideal --out phase1-devices-ideal.json
+```
+
+The first command loads the bundled tiny `awen-mini` checkpoint through `Runtime` on `cpu`, `auto` and
+`photonic-sim` (and on `cuda` when `torch.cuda.is_available()`; otherwise `cuda` is recorded as skipped), generates 32
+characters from `ROMEO:` with seed 0, and writes a run record: commit, environment, and for each device the resolved
+device, fidelity label, GEMM backend, generated text and its SHA-256, plus for `photonic-sim` a summary of the
+capability report (lowered GEMMs, host fallbacks, conversion counts, deviation from the CPU reference). It fails if a
+device does not load or generate, if `auto` does not resolve to `cuda` when present and to `cpu` otherwise, or if
+`auto` on CPU does not reproduce the `cpu` text. The second command runs `photonic-sim` under the noise-free contract
+and fails unless its text equals the `cpu` text. `photonic-sim` is simulated (L1); no command here produces an energy,
+latency or speedup figure. The fresh-clone script runs both commands and the gate uploads both records as the
+`awen-phase1-devices-<commit>` artifact.
+
 ## Updating the lockfile
 
 Never edit `requirements/cpu-py312.txt` by hand. Change the ranges in the packages' `pyproject.toml` files, then run:
@@ -111,4 +129,11 @@ python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda
 
 Then run the suites from [Verify the install](#verify-the-install). Regenerate with `./scripts/lock_cu129.sh` (same
 rules as the CPU lockfile); `scripts/tests/test_cu129_lockfile.py` checks it. A logged laptop run and a CPU fallback
-check for every example are later slices of this task.
+check for every example are done (see [Check every example on CPU](#check-every-example-on-cpu)); the logged laptop
+run is not run yet. On the laptop, after the install above, the Phase 1 CUDA log is:
+
+```bash
+python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json
+```
+
+`--require-cuda` makes a missing GPU a failure instead of a skip.
