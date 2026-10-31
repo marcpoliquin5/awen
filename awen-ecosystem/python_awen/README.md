@@ -60,6 +60,23 @@ compiled = torch.compile(
 Installed packages also register the string backend name, so
 `torch.compile(model, backend="awen")` is supported.
 
+For a graph-level capability report on the photonic simulator (lowered GEMMs,
+host fallback nodes grouped with reasons, conversion counts, deviation from an
+eager reference), compile with `CompileCapture` and pass the output to
+`build_compile_capability_report`:
+
+```python
+from awen_py.compile_report import CompileCapture, build_compile_capability_report
+
+capture = CompileCapture({"target": "photonic", "seed": 0})
+reference = model(x)
+output = torch.compile(model, backend=capture, fullgraph=True)(x)
+report = build_compile_capability_report(capture, output, reference)
+```
+
+The report is simulated (evidence L1) and carries no energy, latency or
+speedup figure.
+
 ## JAX and StableHLO
 
 ```python
