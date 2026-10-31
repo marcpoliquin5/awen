@@ -2,7 +2,8 @@
 # Fresh-clone check of the pinned CPU install in docs/install.md.
 # Clones the current commit into an empty temporary directory, creates a new virtual environment,
 # installs requirements/cpu-py312.txt with --require-hashes, installs the eight AWEN Python packages
-# with --no-deps, runs pip check, the test suites from "Verify the install" and the CPU check of every example.
+# with --no-deps, runs pip check, the test suites from "Verify the install", the CPU check of every example
+# and the Phase 1 device check (scripts/phase1_devices.py).
 # The install and verify commands below must stay identical to docs/install.md
 # (scripts/tests/test_fresh_clone_install.py checks this).
 # Usage: scripts/fresh_clone_install.sh [source-repo]   (PYTHON=python3.12 by default)
@@ -36,6 +37,12 @@ python -m pytest -q awen-studio/tests awen-models/tests
 
 # Check every example on CPU (docs/install.md)
 python scripts/examples_cpu.py --run
+
+# Run the three Phase 1 devices (docs/install.md); records go to PHASE1_RECORD_DIR when set
+RECORDS="${PHASE1_RECORD_DIR:-$WORK/records}"
+mkdir -p "$RECORDS"
+python scripts/phase1_devices.py --out "$RECORDS/phase1-devices.json"
+python scripts/phase1_devices.py --devices cpu,photonic-sim --ideal --out "$RECORDS/phase1-devices-ideal.json"
 
 python --version
 echo "fresh-clone lockfile install passed at $COMMIT"
