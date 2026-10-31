@@ -102,3 +102,41 @@ def test_compatibility_wrapper_uses_live_analytic_autograd():
     )
     torch.testing.assert_close(gradients[0], expected_left)
     torch.testing.assert_close(gradients[1], expected_right)
+
+
+def test_gemm_seed_derivation_is_pinned_and_policy_is_validated():
+    import hashlib
+
+    from awen_py.errors import ContractError
+    from awen_py.torch_backend import TorchBackendOptions, derive_gemm_seed
+
+    expected = int.from_bytes(hashlib.sha256(b"awen.torch-backend.gemm-seed.v1:4:2").digest()[:8], "big") >> 2
+    assert derive_gemm_seed(4, 2) == expected
+    seeds = [derive_gemm_seed(4, index) for index in range(64)]
+    assert len(set(seeds)) == 64 and all(0 <= seed < 2**62 for seed in seeds)
+    assert derive_gemm_seed(5, 2) != expected
+    with pytest.raises(ContractError):
+        derive_gemm_seed(-1, 0)
+    assert TorchBackendOptions().seed_policy == "shared"  # default unchanged from v1
+    assert TorchBackendOptions(seed=4).gemm_seed(7) == 4
+    assert TorchBackendOptions(seed=4, seed_policy="per_gemm").gemm_seed(2) == expected
+    with pytest.raises(ContractError, match="seed_policy"):
+        TorchBackendOptions.from_mapping({"seed_policy": "per_layer"})
+
+
+
+def test_lowered_nodes_carry_their_graph_order_gemm_index():
+    from awen_py.torch_backend import awen_backend
+
+    graphs = []
+
+    def capture(graph_module, example_inputs):
+        compiled = awen_backend(graph_module, example_inputs)
+        graphs.append(compiled.awen_graph_module)
+        return compiled
+
+    torch._dynamo.reset()
+    torch.compile(MixedModel(), backend=capture)(torch.ones(2, 3), torch.ones(3, 4))
+    lowered = [node for node in graphs[0].graph.nodes if node.meta.get("awen.supported")]
+    assert [node.meta["awen.gemm_index"] for node in lowered] == [0, 1]
+    assert [node.kwargs["awen_gemm_index"] for node in lowered] == [0, 1]
