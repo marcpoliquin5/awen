@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 import hashlib
 import json
 import operator
@@ -17,6 +17,24 @@ from .runtime import ExecutionOptions, NumericalContract, get_runtime
 TORCH_BACKEND_VERSION = "awen.torch-backend.v1"
 _SUPPORTED_TORCH_MINORS = (10, 15)  # PyTorch 2.x, inclusive lower and exclusive upper minor
 SUPPORTED_TORCH_RANGE = f">=2.{_SUPPORTED_TORCH_MINORS[0]},<2.{_SUPPORTED_TORCH_MINORS[1]}"
+# "shared": every lowered GEMM of a call gets ``seed`` (v1 behaviour, the default).
+# "per_gemm": lowered GEMM number i (graph order) gets derive_gemm_seed(seed, i).
+SEED_POLICIES = ("shared", "per_gemm")
+GEMM_SEED_DERIVATION = "awen.torch-backend.gemm-seed.v1"
+_GEMM_INDEX_KWARG = "awen_gemm_index"
+
+
+def derive_gemm_seed(seed: int, gemm_index: int) -> int:
+    """Deterministic noise seed for lowered GEMM ``gemm_index`` of a graph run with ``seed``.
+
+    The first 8 bytes of SHA-256 over ``"awen.torch-backend.gemm-seed.v1:<seed>:<index>"``,
+    shifted right by 2 bits so the result stays below 2**62: the photonic dispatcher adds
+    the batch index to the seed for batched GEMMs, and the native seed is a u64.
+    """
+    if seed < 0 or gemm_index < 0:
+        raise ContractError("seed and GEMM index must be non-negative")
+    digest = hashlib.sha256(f"{GEMM_SEED_DERIVATION}:{seed}:{gemm_index}".encode()).digest()
+    return int.from_bytes(digest[:8], "big") >> 2
 
 
 @dataclass(frozen=True)
@@ -31,6 +49,7 @@ class TorchBackendOptions:
     profile: bool = True
     photonic_noise: Optional[Mapping[str, Any]] = field(default=None, compare=False, hash=False)
     photonic_tile_k: int = 64
+    seed_policy: str = "shared"
 
     @classmethod
     def from_mapping(cls, values: Optional[Mapping[str, Any]]) -> "TorchBackendOptions":
@@ -39,6 +58,8 @@ class TorchBackendOptions:
         if unknown:
             raise ContractError(f"unknown torch backend options: {sorted(unknown)}")
         result = cls(**values)
+        if result.seed_policy not in SEED_POLICIES:
+            raise ContractError(f"seed_policy must be one of {list(SEED_POLICIES)}, got {result.seed_policy!r}")
         result.contract().validate()
         ExecutionOptions(
             target=result.target,
@@ -56,6 +77,10 @@ class TorchBackendOptions:
             max_rel_error=self.max_rel_error,
             minimum_effective_bits=self.minimum_effective_bits,
         )
+
+    def gemm_seed(self, gemm_index: int) -> int:
+        """Noise seed passed to lowered GEMM ``gemm_index`` under this seed policy."""
+        return derive_gemm_seed(self.seed, gemm_index) if self.seed_policy == "per_gemm" else self.seed
 
     def execution(self) -> ExecutionOptions:
         return ExecutionOptions(
@@ -144,7 +169,7 @@ def awen_backend(graph_module: Any, example_inputs: Sequence[Any], **kwargs: Any
     for node in graph_module.graph.nodes:
         operation = _classify_node(graph_module, node)
         if operation is not None:
-            _rewrite_node(graph_module, node, operation)
+            _rewrite_node(graph_module, node, operation, len(supported))
             supported.append(node.name)
             node_operations[node.name] = operation
         elif node.op in {"call_function", "call_method", "call_module"}:
@@ -227,32 +252,35 @@ def get_last_execution_traces() -> Tuple[Any, ...]:
     return _EXECUTION_TRACES.get()
 
 
-def _awen_matmul(lhs: Any, rhs: Any):
+def _awen_matmul(lhs: Any, rhs: Any, *, awen_gemm_index: int = 0):
     rank = max(lhs.dim(), rhs.dim())
     operation = "batched_gemm" if rank > 2 else "gemm"
     if lhs.is_complex() or rhs.is_complex():
         operation = "complex_gemm"
-    return _execute_torch(operation, lhs, rhs)
+    return _execute_torch(operation, lhs, rhs, gemm_index=awen_gemm_index)
 
 
-def _awen_linear(inputs: Any, weight: Any, bias: Optional[Any] = None):
+def _awen_linear(inputs: Any, weight: Any, bias: Optional[Any] = None, *, awen_gemm_index: int = 0):
     # torch.nn.functional.linear stores [out_features, in_features].
     transposed = weight.transpose(-2, -1)
     operands = (inputs, transposed) if bias is None else (inputs, transposed, bias)
-    return _execute_torch("linear", *operands)
+    return _execute_torch("linear", *operands, gemm_index=awen_gemm_index)
 
 
-def _execute_torch(operation: str, *inputs: Any):
+def _execute_torch(operation: str, *inputs: Any, gemm_index: int = 0):
     import torch
 
     options = _OPTIONS.get()
+    execution = options.execution()
+    if options.seed_policy != "shared":
+        execution = replace(execution, seed=options.gemm_seed(gemm_index))
     context = torch.profiler.record_function(f"awen::{operation}") if options.profile else nullcontext()
     with context:
         result = get_runtime().execute_with_trace(
             operation,
             *inputs,
             contract=options.contract(),
-            options=options.execution(),
+            options=execution,
         )
     _EXECUTION_TRACES.set(_EXECUTION_TRACES.get() + (result.trace,))
     return result.outputs
@@ -281,7 +309,7 @@ def _classify_node(graph_module: Any, node: Any) -> Optional[str]:
     return None
 
 
-def _rewrite_node(graph_module: Any, node: Any, operation: str) -> None:
+def _rewrite_node(graph_module: Any, node: Any, operation: str, gemm_index: int) -> None:
     if operation == "linear_module":
         target = str(node.target)
         with graph_module.graph.inserting_before(node):
@@ -298,6 +326,9 @@ def _rewrite_node(graph_module: Any, node: Any, operation: str) -> None:
     else:
         node.op = "call_function"
         node.target = _awen_matmul
+    # The graph-order index of this GEMM; it selects the noise seed under seed_policy="per_gemm".
+    node.kwargs = {**node.kwargs, _GEMM_INDEX_KWARG: gemm_index}
+    node.meta["awen.gemm_index"] = gemm_index
     node.meta["awen.supported"] = True
     node.meta["awen.operation"] = "linear" if operation.startswith("linear") else "gemm"
 

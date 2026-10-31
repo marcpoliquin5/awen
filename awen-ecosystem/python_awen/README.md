@@ -77,6 +77,12 @@ report = build_compile_capability_report(capture, output, reference)
 The report is simulated (evidence L1) and carries no energy, latency or
 speedup figure.
 
+By default (`"seed_policy": "shared"`, v1 behaviour) every lowered GEMM of a
+call gets the same noise seed, so their noise draws are correlated. Pass
+`"seed_policy": "per_gemm"` to give lowered GEMM *i* (graph order) its own
+deterministic seed, `awen_py.torch_backend.derive_gemm_seed(seed, i)`; the
+report records the seed of every lowered row.
+
 ## JAX and StableHLO
 
 ```python

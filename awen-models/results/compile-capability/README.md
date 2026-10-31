@@ -33,3 +33,38 @@ head `logits`), 47,585,280 lowered MACs, 107 host fallback nodes (5 `scaled_dot_
 
 Not comparable one-to-one with `../photonic-sim-capability/` (P1-5, Runtime path): this path also lowers the
 output head, and torch-backend v1 reuses one seed for every lowered GEMM of a call (`seed_note` in the JSON).
+Superseded as the CLI default by the P2-2 records below; kept unchanged for comparison.
+
+## P2-2: per-GEMM deterministic seeds
+
+Source label: **measured by us** (simulator output, not hardware), evidence level L1. Same box, venv and input as
+above. Commit `a6db2f4` (branch `work/p2-2-per-gemm-seeds`), 2026-10-31 ET. From `awen-models/`:
+
+```
+python -m awen.compile_capability --out results/compile-capability/run-a6db2f4.json
+python -m awen.compile_capability --ideal --out results/compile-capability/run-a6db2f4-ideal.json
+python -m awen.compile_capability --seed-policy shared --out results/compile-capability/run-a6db2f4-shared.json
+```
+
+The CLI now defaults to `--seed-policy per_gemm`: lowered GEMM *i* (graph order) gets
+`int.from_bytes(sha256(f"awen.torch-backend.gemm-seed.v1:{seed}:{i}")[:8], "big") >> 2`, recorded per row as
+`lowered[i].seed`. The backend option `seed_policy` still defaults to `"shared"` (v1 behaviour).
+
+| File | SHA-256 |
+| --- | --- |
+| `run-a6db2f4.json` | `7a4c39307c48d9b6f180a77e2f9f6327b1b089d0d47e2a92cf89998e60091dbe` |
+| `run-a6db2f4-ideal.json` | `7579e88f5dae14da33cb530cb69d715a8a4ce2be744ca00220b7343e490c2629` |
+| `run-a6db2f4-shared.json` | `bba4b340430d3529308154e73d6abf7f1eb101b156b6f112f29b220ea3d523c2` |
+
+Summary (one base seed, one input; no confidence interval):
+
+| Contract / seed policy | logits max abs diff | rms diff | rel. L2 | top-1 agreement |
+| --- | --- | --- | --- | --- |
+| default, per_gemm | 17.07 | 3.457 | 0.7409 | 0.0833 |
+| default, shared | 15.94 | 3.949 | 0.8462 | 0.0208 |
+| ideal, per_gemm | 1.43e-05 | 2.06e-06 | 4.4e-07 | 1.0000 |
+
+Checks: the `shared` record's deviation, counts and conversions equal `run-44009a6.json` exactly (only
+`seed_policy`, per-row `seed`, `seed_note` and the graph fingerprint differ, because the option set is part of the
+fingerprint); the ideal deviation equals `run-44009a6-ideal.json`; a second `per_gemm` run gave the same SHA-256.
+One seed and one input cannot say whether per-GEMM seeds make the noisy deviation larger or smaller in general.

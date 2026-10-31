@@ -19,7 +19,8 @@ from __future__ import annotations
 from math import ceil, prod
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from .torch_backend import TORCH_BACKEND_VERSION, awen_backend, get_last_execution_traces
+from .torch_backend import (GEMM_SEED_DERIVATION, TORCH_BACKEND_VERSION, awen_backend,
+                            get_last_execution_traces)
 
 REPORT_VERSION = "awen.torch-compile-capability-report.v1"
 CONTRACT_PRECISION_KEYS = ("dac_bits", "adc_bits", "photons_per_mac", "phase_sigma_rad",
@@ -56,6 +57,15 @@ class CompileCapture:
         compiled = awen_backend(graph_module, example_inputs, options=self.options)
         self.compiled.append(compiled)
         return compiled
+
+
+_SEED_NOTES = {
+    "shared": "seed_policy 'shared': every lowered GEMM of a call gets the same seed, so their noise draws are "
+              "correlated",
+    "per_gemm": f"seed_policy 'per_gemm': lowered GEMM i (graph order) gets its own seed, derived by "
+                f"{GEMM_SEED_DERIVATION} (SHA-256 of '{GEMM_SEED_DERIVATION}:<seed>:<i>', first 8 bytes >> 2); "
+                f"each row lists its seed",
+}
 
 
 def fallback_reason(target: str) -> str:
@@ -112,6 +122,8 @@ def build_compile_capability_report(capture: CompileCapture, output: Any, refere
                          "call the compiled model once before building the report")
     lowered = [_gemm_row(node, trace.events[0].operation, trace.events[0].input_shapes, options.photonic_tile_k)
                for node, trace in zip(report.supported_nodes, traces)]
+    for index, row in enumerate(lowered):
+        row["seed"] = options.gemm_seed(index)
     fallback: Dict[str, Dict[str, Any]] = {}
     for diagnostic in report.diagnostics:
         row = fallback.setdefault(diagnostic.target, {"target": diagnostic.target, "count": 0, "nodes": [],
@@ -125,7 +137,7 @@ def build_compile_capability_report(capture: CompileCapture, output: Any, refere
                     "graph_fingerprint": report.fingerprint, "graphs": 1},
         "execution": {"target": "simulated:photonic", "fidelity": "simulated (compact model)", "physical": False,
                       "evidence_level": "L1", "seed": options.seed, "tile_k": options.photonic_tile_k,
-                      "seed_note": "torch-backend v1 passes the same seed to every lowered GEMM of a call"},
+                      "seed_policy": options.seed_policy, "seed_note": _SEED_NOTES[options.seed_policy]},
         "lowered": lowered,
         "fallback": sorted(fallback.values(), key=lambda row: (-row["count"], row["target"])),
         "counts": {"lowered_nodes": len(lowered), "fallback_nodes": len(report.fallback_nodes),
