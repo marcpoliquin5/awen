@@ -1,0 +1,879 @@
+{
+  "compile": {
+    "backend": {
+      "graph_fingerprint": "sha256:be73c00df743ac26c31eeece6177f0d640aebc4f728fc9b20058f4979e46db06",
+      "graphs": 1,
+      "torch_version": "2.14.1",
+      "version": "awen.torch-backend.v1"
+    },
+    "conversions": {
+      "adc": 45056,
+      "counting_rule": "simulator tiling: rows*inner input DAC, weights programmed once per call, rows*outputs*ceil(inner/tile_k) ADC reads; partial sums accumulate on the host",
+      "dac_input": 34816,
+      "dac_weight": 90112
+    },
+    "counts": {
+      "fallback_nodes": 187,
+      "host_fallback_macs": 262144,
+      "host_mac_rule": "contraction MACs only: scaled_dot_product_attention counts QK^T plus AV densely (batch*L*S*(E+Ev); causal masking is not subtracted), addmm/baddbmm count rows*inner*outputs; elementwise, normalisation, gather, index and layout nodes count 0 by definition (their adds, squares and reductions are not matrix MACs); RMS-norm (pow, mean, rsqrt), rotary (cos, sin, neg, cat), dtype casts (to, float) and nodes whose output is an integer or boolean tensor (index and mask construction) count 0; any other node is listed as uncounted",
+      "host_macs": "see host_fallback_macs (fallback nodes are shape-analysed since P2-3)",
+      "host_macs_uncounted_nodes": [],
+      "lowered_mac_fraction": 0.9166666666666666,
+      "lowered_macs": 2883584,
+      "lowered_nodes": 15,
+      "regions": 15
+    },
+    "deviation_vs_reference": {
+      "max_abs_diff": 2.086162567138672e-07,
+      "relative_l2": 2.813798793842721e-07,
+      "rms_diff": 4.525287504284969e-08,
+      "top1_agreement": 1.0
+    },
+    "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml",
+    "execution": {
+      "evidence_level": "L1",
+      "fidelity": "simulated (compact model)",
+      "physical": false,
+      "seed": 0,
+      "seed_note": "seed_policy 'per_gemm': lowered GEMM i (graph order) gets its own seed, derived by awen.torch-backend.gemm-seed.v1 (SHA-256 of 'awen.torch-backend.gemm-seed.v1:<seed>:<i>', first 8 bytes >> 2); each row lists its seed",
+      "seed_policy": "per_gemm",
+      "target": "simulated:photonic",
+      "tile_k": 64
+    },
+    "fallback": [
+      {
+        "count": 31,
+        "macs": 0,
+        "nodes": [
+          "freqs",
+          "cos_1",
+          "sin_1",
+          "hidden_states_1",
+          "hidden_states_2",
+          "hidden_states_4",
+          "mul_6",
+          "hidden_states_6",
+          "mul_8",
+          "mul_9",
+          "mul_10",
+          "mul_11",
+          "mul_12",
+          "hidden_states_11",
+          "hidden_states_12",
+          "mul_15",
+          "hidden_states_15",
+          "hidden_states_16",
+          "hidden_states_18",
+          "mul_19",
+          "hidden_states_20",
+          "mul_21",
+          "mul_22",
+          "mul_23",
+          "mul_24",
+          "mul_25",
+          "hidden_states_25",
+          "hidden_states_26",
+          "mul_28",
+          "hidden_states_29",
+          "hidden_states_30"
+        ],
+        "reason": "elementwise product; host electronics",
+        "target": "_operator.mul"
+      },
+      {
+        "count": 23,
+        "macs": 0,
+        "nodes": [
+          "to",
+          "to_1",
+          "to_2",
+          "cos_2",
+          "sin_2",
+          "hidden_states",
+          "to_6",
+          "hidden_states_3",
+          "to_8",
+          "hidden_states_5",
+          "to_10",
+          "hidden_states_10",
+          "to_12",
+          "hidden_states_14",
+          "to_14",
+          "hidden_states_17",
+          "to_16",
+          "hidden_states_19",
+          "to_18",
+          "hidden_states_24",
+          "to_20",
+          "hidden_states_28",
+          "to_22"
+        ],
+        "reason": "dtype or device cast; no arithmetic",
+        "target": "to"
+      },
+      {
+        "count": 20,
+        "macs": 0,
+        "nodes": [
+          "position_ids",
+          "q_arange",
+          "kv_arange",
+          "add_3",
+          "add_4",
+          "add_5",
+          "q_embed",
+          "k_embed",
+          "hidden_states_9",
+          "add_9",
+          "hidden_states_13",
+          "add_11",
+          "add_12",
+          "add_13",
+          "q_embed_1",
+          "k_embed_1",
+          "hidden_states_23",
+          "add_17",
+          "hidden_states_27",
+          "add_19"
+        ],
+        "reason": "elementwise add (residual or bias); host electronics",
+        "target": "_operator.add"
+      },
+      {
+        "count": 20,
+        "macs": 0,
+        "nodes": [
+          "getitem",
+          "batch_indices",
+          "q_indices",
+          "kv_indices",
+          "getitem_5",
+          "getitem_6",
+          "getitem_7",
+          "x1",
+          "x2",
+          "x1_1",
+          "x2_1",
+          "getitem_12",
+          "getitem_13",
+          "x1_2",
+          "x2_2",
+          "x1_3",
+          "x2_3",
+          "getitem_18",
+          "getitem_19",
+          "hidden_states_31"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "_operator.getitem"
+      },
+      {
+        "count": 9,
+        "macs": 0,
+        "nodes": [
+          "variance",
+          "variance_1",
+          "variance_2",
+          "variance_3",
+          "variance_4",
+          "variance_5",
+          "variance_6",
+          "variance_7",
+          "variance_8"
+        ],
+        "reason": "RMS normalisation step (square, mean, reciprocal square root); not a linear map",
+        "target": "mean"
+      },
+      {
+        "count": 9,
+        "macs": 0,
+        "nodes": [
+          "pow_1",
+          "pow_2",
+          "pow_3",
+          "pow_4",
+          "pow_5",
+          "pow_6",
+          "pow_7",
+          "pow_8",
+          "pow_9"
+        ],
+        "reason": "RMS normalisation step (square, mean, reciprocal square root); not a linear map",
+        "target": "pow"
+      },
+      {
+        "count": 9,
+        "macs": 0,
+        "nodes": [
+          "rsqrt",
+          "rsqrt_1",
+          "rsqrt_2",
+          "rsqrt_3",
+          "rsqrt_4",
+          "rsqrt_5",
+          "rsqrt_6",
+          "rsqrt_7",
+          "rsqrt_8"
+        ],
+        "reason": "RMS normalisation step (square, mean, reciprocal square root); not a linear map",
+        "target": "torch._variablefunctionsclass.rsqrt"
+      },
+      {
+        "count": 8,
+        "macs": 0,
+        "nodes": [
+          "query_states",
+          "key_states",
+          "value_states",
+          "transpose_3",
+          "query_states_1",
+          "key_states_1",
+          "value_states_1",
+          "transpose_7"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "transpose"
+      },
+      {
+        "count": 6,
+        "macs": 0,
+        "nodes": [
+          "key",
+          "value",
+          "reshape_2",
+          "key_1",
+          "value_1",
+          "reshape_5"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "reshape"
+      },
+      {
+        "count": 6,
+        "macs": 0,
+        "nodes": [
+          "view",
+          "view_1",
+          "view_2",
+          "view_3",
+          "view_4",
+          "view_5"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "view"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "attention_mask",
+          "hidden_states_7",
+          "hidden_states_8",
+          "hidden_states_21",
+          "hidden_states_22"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "expand"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "arange",
+          "batch_arange",
+          "head_arange",
+          "arange_3",
+          "arange_4"
+        ],
+        "reason": "index generation; host",
+        "target": "torch._variablefunctionsclass.arange"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "emb",
+          "cat_1",
+          "cat_2",
+          "cat_3",
+          "cat_4"
+        ],
+        "reason": "concatenation; layout, no arithmetic",
+        "target": "torch._variablefunctionsclass.cat"
+      },
+      {
+        "count": 5,
+        "macs": 0,
+        "nodes": [
+          "position_ids_1",
+          "cos_3",
+          "sin_3",
+          "cos_4",
+          "sin_4"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "unsqueeze"
+      },
+      {
+        "count": 4,
+        "macs": 0,
+        "nodes": [
+          "neg",
+          "neg_1",
+          "neg_2",
+          "neg_3"
+        ],
+        "reason": "elementwise negation (rotary half-rotation); host electronics",
+        "target": "_operator.neg"
+      },
+      {
+        "count": 4,
+        "macs": 0,
+        "nodes": [
+          "attn_output_1",
+          "attn_output_2",
+          "attn_output_5",
+          "attn_output_6"
+        ],
+        "reason": "view or layout change; no arithmetic",
+        "target": "contiguous"
+      },
+      {
+        "count": 2,
+        "macs": 0,
+        "nodes": [
+          "result_1",
+          "result_2"
+        ],
+        "reason": "comparison or logical op (mask construction); host",
+        "target": "_operator.and_"
+      },
+      {
+        "count": 2,
+        "macs": 262144,
+        "nodes": [
+          "attn_output",
+          "attn_output_4"
+        ],
+        "reason": "attention core (QK^T, softmax, AV): both operands are activations, so no weight stays programmed; torch-backend v1 lowers only matmul/mm/bmm and linear nodes",
+        "target": "torch._c._nn.scaled_dot_product_attention"
+      },
+      {
+        "count": 2,
+        "macs": 0,
+        "nodes": [
+          "silu",
+          "silu_1"
+        ],
+        "reason": "elementwise nonlinearity; stays in host electronics after detection",
+        "target": "torch.nn.functional.silu"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "eq"
+        ],
+        "reason": "comparison or logical op (mask construction); host",
+        "target": "_operator.eq"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "le"
+        ],
+        "reason": "comparison or logical op (mask construction); host",
+        "target": "_operator.le"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "ne"
+        ],
+        "reason": "comparison or logical op (mask construction); host",
+        "target": "_operator.ne"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "first_dummy_value"
+        ],
+        "reason": "no AWEN lowering for this operation in awen.torch-backend.v1",
+        "target": "_operator.sub"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "cos"
+        ],
+        "reason": "rotary position table (cosine, sine); host elementwise",
+        "target": "cos"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "packed_sequence_mask"
+        ],
+        "reason": "no AWEN lowering for this operation in awen.torch-backend.v1",
+        "target": "cumsum"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "float_1"
+        ],
+        "reason": "dtype or device cast; no arithmetic",
+        "target": "float"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "result"
+        ],
+        "reason": "no AWEN lowering for this operation in awen.torch-backend.v1",
+        "target": "new_ones"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "sin"
+        ],
+        "reason": "rotary position table (cosine, sine); host elementwise",
+        "target": "sin"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "_log_api_usage_once"
+        ],
+        "reason": "PyTorch API-usage logging call; no tensor operation",
+        "target": "torch._c._log_api_usage_once"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "position_diff"
+        ],
+        "reason": "no AWEN lowering for this operation in awen.torch-backend.v1",
+        "target": "torch._variablefunctionsclass.diff"
+      },
+      {
+        "count": 1,
+        "macs": 0,
+        "nodes": [
+          "inputs_embeds"
+        ],
+        "reason": "table gather, not a matrix product",
+        "target": "torch.nn.functional.embedding"
+      }
+    ],
+    "lowered": [
+      {
+        "adc_conversions": 2048,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 4096,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            64
+          ]
+        ],
+        "macs": 131072,
+        "node": "linear",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 1818377883733754752,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 1024,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 2048,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            32
+          ]
+        ],
+        "macs": 65536,
+        "node": "linear_1",
+        "operation": "linear",
+        "outputs": 32,
+        "rows": 32,
+        "seed": 1298061719794258382,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 1024,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 2048,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            32
+          ]
+        ],
+        "macs": 65536,
+        "node": "linear_2",
+        "operation": "linear",
+        "outputs": 32,
+        "rows": 32,
+        "seed": 3427456431846066725,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 2048,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 4096,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            64
+          ]
+        ],
+        "macs": 131072,
+        "node": "attn_output_3",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 1856594359011062085,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 8192,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            128
+          ]
+        ],
+        "macs": 262144,
+        "node": "linear_4",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 32,
+        "seed": 2530551114396322900,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 8192,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            128
+          ]
+        ],
+        "macs": 262144,
+        "node": "linear_5",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 32,
+        "seed": 374552697792988516,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 4096,
+        "dac_weight_conversions": 8192,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            32,
+            128
+          ],
+          [
+            128,
+            64
+          ]
+        ],
+        "macs": 262144,
+        "node": "down_proj",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 4155200921684009716,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 2048,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 4096,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            64
+          ]
+        ],
+        "macs": 131072,
+        "node": "linear_7",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 2807820346245799143,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 1024,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 2048,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            32
+          ]
+        ],
+        "macs": 65536,
+        "node": "linear_8",
+        "operation": "linear",
+        "outputs": 32,
+        "rows": 32,
+        "seed": 1683177943279194370,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 1024,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 2048,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            32
+          ]
+        ],
+        "macs": 65536,
+        "node": "linear_9",
+        "operation": "linear",
+        "outputs": 32,
+        "rows": 32,
+        "seed": 4605222240358957400,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 2048,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 4096,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            64
+          ]
+        ],
+        "macs": 131072,
+        "node": "attn_output_7",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 1790039570907311451,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 8192,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            128
+          ]
+        ],
+        "macs": 262144,
+        "node": "linear_11",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 32,
+        "seed": 466346731835729105,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 8192,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            128
+          ]
+        ],
+        "macs": 262144,
+        "node": "linear_12",
+        "operation": "linear",
+        "outputs": 128,
+        "rows": 32,
+        "seed": 2390634232450429976,
+        "tiles_per_output": 1
+      },
+      {
+        "adc_conversions": 4096,
+        "dac_input_conversions": 4096,
+        "dac_weight_conversions": 8192,
+        "inner": 128,
+        "input_shapes": [
+          [
+            1,
+            32,
+            128
+          ],
+          [
+            128,
+            64
+          ]
+        ],
+        "macs": 262144,
+        "node": "down_proj_1",
+        "operation": "linear",
+        "outputs": 64,
+        "rows": 32,
+        "seed": 4099835280032450735,
+        "tiles_per_output": 2
+      },
+      {
+        "adc_conversions": 8192,
+        "dac_input_conversions": 2048,
+        "dac_weight_conversions": 16384,
+        "inner": 64,
+        "input_shapes": [
+          [
+            1,
+            32,
+            64
+          ],
+          [
+            64,
+            256
+          ]
+        ],
+        "macs": 524288,
+        "node": "logits",
+        "operation": "linear",
+        "outputs": 256,
+        "rows": 32,
+        "seed": 3451720741025735704,
+        "tiles_per_output": 1
+      }
+    ],
+    "precision_and_calibration": {
+      "adc_bits": null,
+      "calibration": "assumed by the noise contract; no calibration was performed (simulation only)",
+      "contract_version": "awen.photonic-noise-contract.v1",
+      "dac_bits": null,
+      "drift_rad_per_sqrt_s": 0.0,
+      "phase_sigma_rad": 0.0,
+      "photons_per_mac": null,
+      "seconds_since_calibration": 0.0
+    },
+    "report": "awen.torch-compile-capability-report.v1"
+  },
+  "contract": "ideal",
+  "input": {
+    "positions": 32,
+    "token_ids": "torch.randint(0, 256) with torch.Generator().manual_seed(0)",
+    "use_cache": false
+  },
+  "model": {
+    "architecture": "Qwen3ForCausalLM",
+    "attn_implementation": "sdpa",
+    "config": {
+      "head_dim": 16,
+      "hidden_size": 64,
+      "intermediate_size": 128,
+      "max_position_embeddings": 128,
+      "num_attention_heads": 4,
+      "num_hidden_layers": 2,
+      "num_key_value_heads": 2,
+      "tie_word_embeddings": false,
+      "vocab_size": 256
+    },
+    "parameters": 106880,
+    "transformers_version": "5.21.0",
+    "weights": "random init, torch.manual_seed(0); built locally from transformers.Qwen3Config, nothing downloaded, no remote code"
+  },
+  "report": "awen.llama-compile-capability-report.v1"
+}

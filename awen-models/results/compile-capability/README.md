@@ -143,3 +143,43 @@ comparison/logical mask ops, the PyTorch API-usage logging call (all matched by 
 node whose output is an integer or boolean tensor (index and mask construction, e.g. `cumsum`, `diff`, `new_ones`
 here). A float `cumsum` stays uncounted. Rerunning the three AWEN-Mini commands above at `b605f1e` changes only the
 `counts.host_mac_rule` string in each record; the stored `run-a62abd9*.json` files are kept unchanged.
+
+## P2-5: a tiny random-init `transformers` Qwen3
+
+Source label: **measured by us** (simulator output, not hardware) for the deviations; MAC and conversion counts are
+**counted** by the report code from FX shape metadata. Evidence level L1. Same box and venv as above
+(torch 2.14.1+cpu, transformers 5.21.0). Commit `7466505` (branch `feat/p2-5-qwen3-compile`), 2026-11-01 ET.
+From `awen-models/`:
+
+```
+python -m awen.compile_llama --arch qwen3 --out results/compile-capability/qwen3-tiny-7466505.json
+python -m awen.compile_llama --arch qwen3 --ideal --out results/compile-capability/qwen3-tiny-7466505-ideal.json
+```
+
+Model: `Qwen3ForCausalLM` built locally from `Qwen3Config` (`awen.compile_llama.TINY_QWEN3`: vocab 256, hidden 64,
+MLP 128, 2 layers, 4 heads, 2 KV heads, head dim 16, untied head, SDPA attention), weights from `torch.manual_seed(0)`,
+106,880 parameters (the Llama record's 106,816 plus the per-head `q_norm` and `k_norm` weights, 2 x 2 x 16). Nothing
+is downloaded and no remote code runs. Input: 32 token ids from `torch.Generator().manual_seed(0)`, `use_cache=False`,
+noise seed 0, `per_gemm` seeds. This exercises the architecture of the recommended AWEN-Mini base; it does not choose
+the base model (D-007 is Marc's). Random weights: the run checks capture, lowering and the simulator path, not quality.
+
+| File | SHA-256 |
+| --- | --- |
+| `qwen3-tiny-7466505.json` | `4980c10f44a1b418dc6e471997e986eeed3f0f8fd1886b6fed9783ec51b7cb07` |
+| `qwen3-tiny-7466505-ideal.json` | `43e835380c9534604b238ce996b212623a4742b93f8eb6c4d2ed4e9260c5ea60` |
+
+| Contract | logits max abs diff | rms diff | rel. L2 | top-1 agreement |
+| --- | --- | --- | --- | --- |
+| default (1000 photons/MAC, 8-bit DAC/ADC) | 0.7093 | 0.1494 | 0.9288 | 0.1250 |
+| ideal | 2.09e-07 | 4.53e-08 | 2.8e-07 | 1.0000 |
+
+One seed, one input; no confidence interval. As with the Llama record, random-init logits are small, so the default
+contract's relative deviation says little about a trained model.
+
+Both records: one FX graph (fullgraph), 15 nodes lowered to the Rust photonic GEMM (q, k, v, o, gate, up, down in
+each of 2 layers, plus the head), 2,883,584 lowered MACs (same shapes as the Llama record); 187 host fallback nodes
+(32 more than Llama: the two extra RMS norms per layer, e.g. `rsqrt` and `pow` 9 each instead of 5), every one
+counted: 262,144 host MACs (dense attention, as for Llama), lowered MAC fraction 0.91667; 34,816 input DAC, 90,112
+weight DAC and 45,056 ADC conversions. A second default run gave the same SHA-256. No report-code change was needed:
+the P2-4 host rule already covers the q/k norms. Rerunning the two P2-4 Llama commands at `7466505` reproduced
+`llama-tiny-b605f1e.json` and `llama-tiny-b605f1e-ideal.json` byte for byte (same SHA-256).
