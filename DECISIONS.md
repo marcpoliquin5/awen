@@ -107,3 +107,12 @@ The cu129 index offers torch 2.13.0+cu129, which allows setuptools 84.2.1, so `r
 replaces the cu128 plan (#183). Rejected: overriding torch's setuptools metadata on cu128 (a pin that
 contradicts torch's declared requirement), and cu130 (torch 2.14.1, but needs a CUDA 13 driver). The laptop
 driver must support CUDA 12.9. Reversible: regenerate with another backend in `scripts/lock_cu129.sh`.
+
+## D-023 · AWEN-Photon sim-to-real control: model B definition (E-022)
+Decided by: agent, 2026-11-01 (registered before any run).
+The second, independent noise model for E-005 uses only sourced values from `hardware_assumptions.yaml` v0
+(system ENOB 7.61 and weight DAC 8 bits from hua2025, TFLN extinction ratio 30 dB from wang2018), a lumped
+output-referred Gaussian term instead of photon counting, per-tile weight scaling and NumPy's PCG64 RNG; see
+`research/experiments/awen-photon-sim2real/PREREGISTRATION.md`. Rejected: re-parameterizing the Rust model
+(shares code and noise structure with the training model), and using unsourced values such as RIN or MZI
+crosstalk. Reversible: a new registration.
