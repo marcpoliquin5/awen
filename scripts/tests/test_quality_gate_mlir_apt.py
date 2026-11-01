@@ -44,7 +44,7 @@ def test_cache_restored_before_install():
 
 def test_install_uses_list_cache_dir_and_retries():
     run = step("Install MLIR compiler dependencies")["run"]
-    assert "xargs -a .github/mlir-apt-packages.txt sudo apt-get install -y" in run
+    assert "xargs -a .github/mlir-apt-packages.txt sudo timeout 600 apt-get install -y" in run
     assert 'Dir::Cache::Archives="$HOME/mlir-apt-archives"' in run
     assert "Acquire::Retries=" in run
     # The cache action saves as the runner user, so apt's root-owned files must be handed back.
@@ -56,3 +56,23 @@ def test_install_uses_list_cache_dir_and_retries():
 def test_mlir_configure_still_follows_install():
     names = [s.get("name") for s in steps()]
     assert names.index("Configure AWEN MLIR compiler") == names.index("Install MLIR compiler dependencies") + 1
+
+
+def test_install_step_has_its_own_timeout():
+    # Run 41250602111 hung 44 min in this step and the whole 60-min gate was cancelled.
+    install = step("Install MLIR compiler dependencies")
+    assert 0 < install["timeout-minutes"] <= 15
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    (job,) = workflow["jobs"].values()
+    assert install["timeout-minutes"] < job["timeout-minutes"]
+
+
+def test_apt_update_is_bounded_and_retried():
+    run = step("Install MLIR compiler dependencies")["run"]
+    update_lines = [line for line in run.splitlines() if "apt-get update" in line and "echo" not in line]
+    assert len(update_lines) == 1
+    assert "timeout 180 apt-get update" in update_lines[0]
+    for option in ("Acquire::Retries=", "Acquire::http::Timeout=", "Acquire::https::Timeout="):
+        assert option in run.split("apt-get update", 1)[1].split("done", 1)[0]
+    assert "for attempt in 1 2 3" in run
+    assert "exit 1" in run

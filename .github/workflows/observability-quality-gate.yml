@@ -282,10 +282,26 @@ jobs:
             mlir-apt-v1-${{ runner.os }}-llvm20-
 
       - name: Install MLIR compiler dependencies
+        # A stalled mirror once hung this step for 44 min (no output) until the
+        # 60-min job limit cancelled the whole gate; fail this step fast instead.
+        timeout-minutes: 15
         run: |
           mkdir -p "$HOME/mlir-apt-archives/partial"
-          sudo apt-get update -qq
-          xargs -a .github/mlir-apt-packages.txt sudo apt-get install -y \
+          for attempt in 1 2 3; do
+            if sudo timeout 180 apt-get update -qq \
+                -o Acquire::Retries=5 \
+                -o Acquire::http::Timeout=60 \
+                -o Acquire::https::Timeout=60; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "apt-get update failed or stalled 3 times" >&2
+              exit 1
+            fi
+            echo "apt-get update attempt $attempt failed or stalled; retrying" >&2
+            sleep 10
+          done
+          xargs -a .github/mlir-apt-packages.txt sudo timeout 600 apt-get install -y \
             -o Acquire::Retries=5 \
             -o Acquire::http::Timeout=60 \
             -o Dir::Cache::Archives="$HOME/mlir-apt-archives"
