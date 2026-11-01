@@ -100,3 +100,46 @@ smaller). Deviations equal the P2-2 records of the same contract and seed policy
 `backend` (fingerprint included) in `run-a62abd9.json` equal `run-a6db2f4.json`. A second default run gave the same
 SHA-256. The host count equals the Runtime-path count in `awen.capability` (P1-5) minus its unrouted tied head
 (test `test_host_fallback_macs_match_the_runtime_path_count`). MAC counts are not time, energy or speedup.
+
+## P2-4: a tiny random-init `transformers` Llama
+
+Source label: **measured by us** (simulator output, not hardware) for the deviations; MAC and conversion counts are
+**counted** by the report code from FX shape metadata. Evidence level L1. Same box and venv as above
+(torch 2.14.1+cpu, transformers 5.21.0). Commit `b605f1e` (branch `work/p2-4-tiny-llama-compile`), 2026-11-01 ET.
+From `awen-models/`:
+
+```
+python -m awen.compile_llama --out results/compile-capability/llama-tiny-b605f1e.json
+python -m awen.compile_llama --ideal --out results/compile-capability/llama-tiny-b605f1e-ideal.json
+```
+
+Model: `LlamaForCausalLM` built locally from `LlamaConfig` (`awen.compile_llama.TINY_LLAMA`: vocab 256, hidden 64,
+MLP 128, 2 layers, 4 heads, 2 KV heads, untied head, SDPA attention), weights from `torch.manual_seed(0)`, 106,816
+parameters. Nothing is downloaded and no remote code runs. Input: 32 token ids from `torch.Generator().manual_seed(0)`,
+`use_cache=False`, noise seed 0, `per_gemm` seeds. Random weights: the run checks capture, lowering and the simulator
+path, not model quality.
+
+| File | SHA-256 |
+| --- | --- |
+| `llama-tiny-b605f1e.json` | `5136b8a7997b0f8d6cf254c569ad7549d499b04f74c2b1367c80e8229412f5bc` |
+| `llama-tiny-b605f1e-ideal.json` | `8bfc2db0606a2a86740c989570fb1ca2d3f3ae31d87a5240d86a928fb36c9b31` |
+
+| Contract | logits max abs diff | rms diff | rel. L2 | top-1 agreement |
+| --- | --- | --- | --- | --- |
+| default (1000 photons/MAC, 8-bit DAC/ADC) | 0.5783 | 0.1410 | 0.8760 | 0.2188 |
+| ideal | 2.09e-07 | 3.61e-08 | 2.2e-07 | 1.0000 |
+
+One seed, one input; no confidence interval. Random-init logits are small (initializer range 0.02), so the default
+contract's relative deviation says little about a trained model.
+
+Both records: one FX graph (fullgraph), 15 nodes lowered to the Rust photonic GEMM (q, k, v, o, gate, up, down in
+each of 2 layers, plus the head), 2,883,584 lowered MACs; 155 host fallback nodes, every one counted: 262,144 host
+MACs (2 attention cores x 4 heads x 32 x 32 x (16 + 16), dense), lowered MAC fraction 0.91667; 34,816 input DAC,
+90,112 weight DAC and 45,056 ADC conversions. A second default run gave the same SHA-256.
+
+Report change in this commit: Llama's host nodes needed classes the P2-3 rule did not cover, so `HOST_MAC_RULE` now
+also counts 0 for RMS norm (`pow`, `mean`, `rsqrt`), rotary (`cos`, `sin`, `neg`, `cat`), casts (`to`, `float`),
+comparison/logical mask ops, the PyTorch API-usage logging call (all matched by exact name, not substring) and any
+node whose output is an integer or boolean tensor (index and mask construction, e.g. `cumsum`, `diff`, `new_ones`
+here). A float `cumsum` stays uncounted. Rerunning the three AWEN-Mini commands above at `b605f1e` changes only the
+`counts.host_mac_rule` string in each record; the stored `run-a62abd9*.json` files are kept unchanged.
