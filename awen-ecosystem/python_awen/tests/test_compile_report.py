@@ -180,3 +180,40 @@ def test_host_macs_are_zero_for_elementwise_only_fallback():
     counts = build_compile_capability_report(capture, output, reference)["counts"]
     assert counts["host_fallback_macs"] == 0 and counts["host_macs_uncounted_nodes"] == []
     assert counts["lowered_mac_fraction"] == 1.0
+
+
+class LlamaStyleBlock(torch.nn.Module):
+    """RMS norm, a rotary-style half rotation, cos/sin tables, a boolean mask and an integer cumsum."""
+
+    def __init__(self):
+        super().__init__()
+        self.proj = torch.nn.Linear(8, 8, bias=False)
+
+    def forward(self, x):
+        h = x.to(torch.float32)
+        h = h * torch.rsqrt(h.pow(2).mean(-1, keepdim=True) + 1e-6)
+        positions = torch.arange(x.shape[1]).float()
+        h = h * positions.cos()[:, None] + torch.cat((-h[..., 4:], h[..., :4]), dim=-1) * positions.sin()[:, None]
+        index = torch.arange(x.shape[1])
+        mask = (index[None, :] <= index[:, None]) & (index.cumsum(0) >= 0)[None, :]
+        return self.proj(h) * mask.float()[:, :1]
+
+
+def test_llama_style_host_nodes_count_zero_macs_and_short_names_match_exactly():
+    torch._dynamo.reset()
+    torch.manual_seed(2)
+    model = LlamaStyleBlock().eval()
+    x = torch.randn(1, 6, 8)
+    capture = CompileCapture({"target": "photonic", "photonic_noise": awen_native.ideal_contract()})
+    compiled = torch.compile(model, backend=capture, fullgraph=True)
+    with torch.no_grad():
+        reference, output = model(x), compiled(x)
+    report = build_compile_capability_report(capture, output, reference)
+    counts = report["counts"]
+    assert counts["host_macs_uncounted_nodes"] == [] and counts["host_fallback_macs"] == 0
+    assert counts["lowered_mac_fraction"] == 1.0 and counts["lowered_macs"] == 6 * 8 * 8
+    reasons = {row["target"]: row["reason"] for row in report["fallback"]}
+    assert reasons["pow"].startswith("RMS normalisation") and reasons["to"].startswith("dtype or device cast")
+    assert any(name.endswith("cumsum") for name in reasons)  # integer output, so 0 MACs by the dtype rule
+    assert fallback_reason("torch.special.erfinv").startswith("no AWEN lowering")  # 'to' is not a substring match
+    assert fallback_reason("torch._variablefunctionsclass.rsqrt").startswith("RMS normalisation")
