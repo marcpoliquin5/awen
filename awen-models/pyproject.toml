@@ -17,7 +17,8 @@ hf = ["transformers>=4.50,<6"]
 qlora = ["transformers>=4.50,<6", "bitsandbytes>=0.45"]
 plot = ["matplotlib>=3.8,<4"]
 onnx = ["onnx>=1.17,<2"]
-test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6", "onnx>=1.17,<2"]
+assumptions = ["pyyaml>=6,<7"]
+test = ["pytest>=8,<10", "matplotlib>=3.8,<4", "transformers>=4.50,<6", "onnx>=1.17,<2", "pyyaml>=6,<7"]
 
 [project.urls]
 Repository = "https://github.com/marcpoliquin5/awen"
@@ -31,6 +32,7 @@ awen-mini-eval = "awen_models.evaluate:main"
 awen-finetune = "awen_models.finetune:main"
 awen-compute-plan = "awen_models.compute_plan:main"
 awen-photon-train = "awen_models.photon_training:main"
+awen-photon-sim2real = "awen_models.sim2real:main"
 awen-photonic-demo = "awen_models.photonic_demo:main"
 awen-efficiency = "awen_models.efficiency:main"
 awen-onnx-report = "awen_models.onnx_import:main"
