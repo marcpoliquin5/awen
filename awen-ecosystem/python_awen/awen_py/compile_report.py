@@ -47,10 +47,24 @@ FALLBACK_REASONS = (
 HOST_MAC_RULE = ("contraction MACs only: scaled_dot_product_attention counts QK^T plus AV densely "
                  "(batch*L*S*(E+Ev); causal masking is not subtracted), addmm/baddbmm count rows*inner*outputs; "
                  "elementwise, normalisation, gather, index and layout nodes count 0 by definition (their adds, "
-                 "squares and reductions are not matrix MACs); any other node is listed as uncounted")
+                 "squares and reductions are not matrix MACs); RMS-norm (pow, mean, rsqrt), rotary (cos, sin, neg, "
+                 "cat), dtype casts (to, float) and nodes whose output is an integer or boolean tensor (index and "
+                 "mask construction) count 0; any other node is listed as uncounted")
 # Fallback targets that perform no matrix contraction (substring of the target name).
 ZERO_MAC_TOKENS = ("embedding", "layer_norm", "gelu", "relu", "silu", "softmax", "dropout", "operator.add",
                    "operator.mul", "operator.sub", "operator.truediv", "arange")
+# Fallback targets matched by exact name (or a ``.name`` suffix), so short names such as ``to`` never match by
+# substring. Each counts 0 contraction MACs (seen in transformers' Llama: RMS norm, rotary embedding, casts).
+EXACT_REASONS = (
+    (("pow", "mean", "rsqrt"), "RMS normalisation step (square, mean, reciprocal square root); not a linear map"),
+    (("cos", "sin"), "rotary position table (cosine, sine); host elementwise"),
+    (("neg",), "elementwise negation (rotary half-rotation); host electronics"),
+    (("cat",), "concatenation; layout, no arithmetic"),
+    (("to", "float"), "dtype or device cast; no arithmetic"),
+    (("eq", "ne", "le", "lt", "ge", "gt", "and_", "or_"), "comparison or logical op (mask construction); host"),
+    (("_log_api_usage_once",), "PyTorch API-usage logging call; no tensor operation"),
+)
+INTEGER_DTYPES = ("torch.bool", "torch.int8", "torch.uint8", "torch.int16", "torch.int32", "torch.int64")
 LAYOUT_TARGETS = ("view", "reshape", "transpose", "permute", "contiguous", "split", "getitem", "size",
                   "unsqueeze", "squeeze", "expand", "flatten", "numpy_t")
 
@@ -77,12 +91,19 @@ _SEED_NOTES = {
 }
 
 
+def _exact(target: str, tokens: Sequence[str]) -> bool:
+    return any(target == token or target.endswith("." + token) for token in tokens)
+
+
 def fallback_reason(target: str) -> str:
     for token, reason in FALLBACK_REASONS:
         if token in target:
             return reason
-    if any(target == token or target.endswith("." + token) for token in LAYOUT_TARGETS):
+    if _exact(target, LAYOUT_TARGETS):
         return "view or layout change; no arithmetic"
+    for tokens, reason in EXACT_REASONS:
+        if _exact(target, tokens):
+            return reason
     return "no AWEN lowering for this operation in " + TORCH_BACKEND_VERSION
 
 
@@ -95,6 +116,12 @@ def _shape(value: Any) -> Optional[List[int]]:
         tensor = meta.get("tensor_meta")
     shape = getattr(tensor, "shape", None)
     return None if shape is None else [int(size) for size in shape]
+
+
+def _integer_output(node: Any) -> bool:
+    meta = getattr(node, "meta", None)
+    tensor = meta.get("example_value") if isinstance(meta, dict) else None
+    return str(getattr(tensor, "dtype", "")) in INTEGER_DTYPES
 
 
 def _argument(node: Any, index: int, name: str) -> Any:
@@ -118,6 +145,8 @@ def host_macs(node: Any, target: str) -> Optional[int]:
             return None
         return prod(lhs[:-1]) * lhs[-1] * rhs[-1]
     if any(token in target for token in ZERO_MAC_TOKENS) or fallback_reason(target).startswith("view or layout"):
+        return 0
+    if any(_exact(target, tokens) for tokens, _ in EXACT_REASONS) or _integer_output(node):
         return 0
     return None
 
