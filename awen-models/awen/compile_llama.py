@@ -2,6 +2,7 @@
 
     python -m awen.compile_llama --out report.json          # default noise contract
     python -m awen.compile_llama --ideal --out ideal.json   # noise-free contract
+    python -m awen.compile_llama --arch qwen3 --out q.json  # Qwen3 architecture (per-head q/k RMS norm)
 
 This is the first external open-model architecture through the AWEN torch.compile
 backend. The model is built locally from a ``transformers`` ``LlamaConfig``
@@ -14,6 +15,11 @@ and host contraction MACs (``awen_py.compile_report.HOST_MAC_RULE``). The logits
 compared with the eager CPU model. Random weights say nothing about model quality:
 the run checks graph capture, lowering coverage and the simulator path only.
 Simulated (L1); no energy, latency or speedup figure.
+
+``--arch qwen3`` builds ``Qwen3ForCausalLM`` from a ``Qwen3Config`` (``TINY_QWEN3``) the same
+way. Qwen3 differs from Llama mainly by an RMS norm over each attention head's queries and
+keys (``q_norm``/``k_norm``) before rotary; those norms stay on the host and count 0 MACs.
+Building this architecture does not choose the AWEN-Mini base model (a decision for Marc).
 """
 
 from __future__ import annotations
@@ -29,33 +35,51 @@ REPORT_VERSION = "awen.llama-compile-capability-report.v1"
 TINY_LLAMA = {"vocab_size": 256, "hidden_size": 64, "intermediate_size": 128, "num_hidden_layers": 2,
               "num_attention_heads": 4, "num_key_value_heads": 2, "max_position_embeddings": 128,
               "tie_word_embeddings": False}
+TINY_QWEN3 = {"vocab_size": 256, "hidden_size": 64, "intermediate_size": 128, "num_hidden_layers": 2,
+              "num_attention_heads": 4, "num_key_value_heads": 2, "head_dim": 16, "max_position_embeddings": 128,
+              "tie_word_embeddings": False}
+# name -> (transformers config class, model class, config overrides)
+ARCHITECTURES = {"llama": ("LlamaConfig", "LlamaForCausalLM", TINY_LLAMA),
+                 "qwen3": ("Qwen3Config", "Qwen3ForCausalLM", TINY_QWEN3)}
+
+
+def tiny_model(arch: str = "llama", init_seed: int = 0) -> Any:
+    """The ``ARCHITECTURES[arch]`` model with weights drawn from ``init_seed`` (built locally, no download)."""
+    import transformers
+
+    if arch not in ARCHITECTURES:
+        raise ValueError(f"arch must be one of {sorted(ARCHITECTURES)}")
+    config_name, model_name, overrides = ARCHITECTURES[arch]
+    config = getattr(transformers, config_name)(**overrides, attn_implementation="sdpa")
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(init_seed)
+        model = getattr(transformers, model_name)(config)
+    return model.eval()
 
 
 def tiny_llama(init_seed: int = 0) -> Any:
     """``LlamaForCausalLM`` at ``TINY_LLAMA`` with weights drawn from ``init_seed`` (no download)."""
-    from transformers import LlamaConfig, LlamaForCausalLM
-
-    config = LlamaConfig(**TINY_LLAMA, attn_implementation="sdpa")
-    with torch.random.fork_rng(devices=[]):
-        torch.manual_seed(init_seed)
-        model = LlamaForCausalLM(config)
-    return model.eval()
+    return tiny_model("llama", init_seed)
 
 
 @torch.no_grad()
 def build(positions: int = 32, seed: int = 0, init_seed: int = 0, input_seed: int = 0,
-          noise: Optional[dict[str, Any]] = None, seed_policy: str = "per_gemm") -> dict[str, Any]:
+          noise: Optional[dict[str, Any]] = None, seed_policy: str = "per_gemm",
+          arch: str = "llama") -> dict[str, Any]:
     try:
         import transformers
         from awen_py.compile_report import CompileCapture, build_compile_capability_report
     except ImportError as error:  # pragma: no cover - exercised when an optional dependency is absent
         raise RuntimeError("needs transformers (pip install './awen-models[hf]') and the AWEN Python "
                            "integrations (pip install ./awen-ecosystem/python_awen)") from error
-    if not 1 <= positions <= TINY_LLAMA["max_position_embeddings"]:
-        raise ValueError(f"positions must be in 1..{TINY_LLAMA['max_position_embeddings']}")
-    model = tiny_llama(init_seed)
+    if arch not in ARCHITECTURES:
+        raise ValueError(f"arch must be one of {sorted(ARCHITECTURES)}")
+    config_name, model_name, overrides = ARCHITECTURES[arch]
+    if not 1 <= positions <= overrides["max_position_embeddings"]:
+        raise ValueError(f"positions must be in 1..{overrides['max_position_embeddings']}")
+    model = tiny_model(arch, init_seed)
     generator = torch.Generator().manual_seed(input_seed)
-    ids = torch.randint(0, TINY_LLAMA["vocab_size"], (1, positions), generator=generator)
+    ids = torch.randint(0, overrides["vocab_size"], (1, positions), generator=generator)
     reference = model(input_ids=ids, use_cache=False).logits
     torch._dynamo.reset()  # a fresh capture, so the report covers exactly one compiled graph
     capture = CompileCapture({"target": "photonic", "photonic_noise": noise, "seed": seed, "seed_policy": seed_policy})
@@ -64,12 +88,12 @@ def build(positions: int = 32, seed: int = 0, init_seed: int = 0, input_seed: in
     report = build_compile_capability_report(capture, logits, reference)
     return {
         "report": REPORT_VERSION,
-        "model": {"architecture": "LlamaForCausalLM", "config": dict(TINY_LLAMA),
+        "model": {"architecture": model_name, "config": dict(overrides),
                   "attn_implementation": "sdpa", "weights": f"random init, torch.manual_seed({init_seed}); "
-                  "built locally from transformers.LlamaConfig, nothing downloaded, no remote code",
+                  f"built locally from transformers.{config_name}, nothing downloaded, no remote code",
                   "transformers_version": transformers.__version__,
                   "parameters": sum(parameter.numel() for parameter in model.parameters())},
-        "input": {"positions": positions, "token_ids": f"torch.randint(0, {TINY_LLAMA['vocab_size']}) with "
+        "input": {"positions": positions, "token_ids": f"torch.randint(0, {overrides['vocab_size']}) with "
                   f"torch.Generator().manual_seed({input_seed})", "use_cache": False},
         "contract": "ideal" if noise is not None else "default",
         "compile": report,
@@ -78,6 +102,8 @@ def build(positions: int = 32, seed: int = 0, init_seed: int = 0, input_seed: in
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--arch", choices=sorted(ARCHITECTURES), default="llama",
+                        help="tiny architecture to build (default llama)")
     parser.add_argument("--positions", type=int, default=32)
     parser.add_argument("--seed", type=int, default=0, help="noise seed")
     parser.add_argument("--init-seed", type=int, default=0, help="weight initialisation seed")
@@ -92,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         import awen_native
 
         noise = awen_native.ideal_contract()
-    payload = build(args.positions, args.seed, args.init_seed, args.input_seed, noise, args.seed_policy)
+    payload = build(args.positions, args.seed, args.init_seed, args.input_seed, noise, args.seed_policy, args.arch)
     text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
