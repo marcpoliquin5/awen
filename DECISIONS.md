@@ -116,3 +116,13 @@ output-referred Gaussian term instead of photon counting, per-tile weight scalin
 `research/experiments/awen-photon-sim2real/PREREGISTRATION.md`. Rejected: re-parameterizing the Rust model
 (shares code and noise structure with the training model), and using unsourced values such as RIN or MZI
 crosstalk. Reversible: a new registration.
+
+## D-024 · AWEN-Photon recalibration-interval curve: drift model (E-023)
+Decided by: agent, 2026-11-02 (registered before any run).
+Weight drift between calibrations is an independent Gaussian random walk on the programmed weights in normalized
+units, reset by each recalibration, with the rms offset per interval (drift budget) swept as a free parameter;
+results are reported against the budget, not hours, because the assumption set has no sourced drift rate. Evaluated
+under model B (D-023) at its sourced point; see `research/experiments/awen-photon-recalibration/PREREGISTRATION.md`.
+Rejected: picking a drift rate in rad/h without a source (would make the hours axis an invented number), and drifting
+model A (it is the training model, so the result would not be independent). Reversible: a new registration.
+

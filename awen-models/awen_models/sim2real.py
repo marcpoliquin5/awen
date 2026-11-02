@@ -108,8 +108,14 @@ def _quantize_uniform(w: np.ndarray, bits: int) -> np.ndarray:
     return np.clip(np.round((w + 1.0) / step) * step - 1.0, -1.0, 1.0)
 
 
-def gemm_b(x: np.ndarray, w: np.ndarray, model: NoiseModelB, rng: np.random.Generator, tile: int = 64) -> np.ndarray:
-    """``x @ w.T`` (x: rows x inner, w: out x inner) under model B."""
+def gemm_b(x: np.ndarray, w: np.ndarray, model: NoiseModelB, rng: np.random.Generator, tile: int = 64,
+           drift: Optional[np.ndarray] = None) -> np.ndarray:
+    """``x @ w.T`` (x: rows x inner, w: out x inner) under model B.
+
+    ``drift`` (optional, same shape as ``w``) is an offset in normalized weight units added to the programmed
+    (quantized) weights and clipped to [-1, 1]; it models weights drifting after calibration (E-023). ``None``
+    (default) leaves the model exactly as registered for E-022.
+    """
     x, w = np.asarray(x, dtype=np.float64), np.asarray(w, dtype=np.float64)
     eps, sigma = model.leakage, model.output_sigma
     out = np.zeros((x.shape[0], w.shape[0]))
@@ -118,6 +124,8 @@ def gemm_b(x: np.ndarray, w: np.ndarray, model: NoiseModelB, rng: np.random.Gene
         k = xt.shape[1]
         sw = float(np.abs(wt).max())
         wn = _quantize_uniform(wt / sw, model.weight_dac_bits) if sw > 0 else np.zeros_like(wt)
+        if drift is not None:
+            wn = np.clip(wn + np.asarray(drift, dtype=np.float64)[:, k0 : k0 + tile], -1.0, 1.0)
         sx = np.abs(xt).max(axis=1, keepdims=True)
         xn = np.divide(xt, sx, out=np.zeros_like(xt), where=sx > 0)
         pos, neg = np.maximum(xn, 0.0), np.maximum(-xn, 0.0)
