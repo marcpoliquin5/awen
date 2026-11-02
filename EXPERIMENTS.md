@@ -38,6 +38,7 @@ Intel Xeon 8 vCPU, 15 GiB, no GPU (measured on CPU unless labeled simulated).
 
 Session 2026-11-01-04 registered E-022 (#213) without running it; session 2026-11-02-01 ran it with the registered command, unchanged (negative result at the primary point).
 Session 2026-11-02-02 registered E-023 (#217) without running it; session 2026-11-02-03 ran it unchanged (#219).
+Session 2026-11-02-04 registered E-024 (#221) without running it; the run is the next slice.
 
 Gaps against v2: E-003, E-005 and E-008 have 2 seeds, not 3; E-005 does not yet evaluate under
 an independently parameterized noise model (sim-to-real control; model B registered as E-022 and run 2026-11-02: the advantage reverses at the sourced primary point); `awen-spec/hardware_assumptions.yaml`
