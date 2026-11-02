@@ -65,7 +65,7 @@ def tiny_llama(init_seed: int = 0) -> Any:
 @torch.no_grad()
 def build(positions: int = 32, seed: int = 0, init_seed: int = 0, input_seed: int = 0,
           noise: Optional[dict[str, Any]] = None, seed_policy: str = "per_gemm",
-          arch: str = "llama") -> dict[str, Any]:
+          arch: str = "llama", tile_k: Optional[int] = None) -> dict[str, Any]:
     try:
         import transformers
         from awen_py.compile_report import CompileCapture, build_compile_capability_report
@@ -82,7 +82,10 @@ def build(positions: int = 32, seed: int = 0, init_seed: int = 0, input_seed: in
     ids = torch.randint(0, overrides["vocab_size"], (1, positions), generator=generator)
     reference = model(input_ids=ids, use_cache=False).logits
     torch._dynamo.reset()  # a fresh capture, so the report covers exactly one compiled graph
-    capture = CompileCapture({"target": "photonic", "photonic_noise": noise, "seed": seed, "seed_policy": seed_policy})
+    options = {"target": "photonic", "photonic_noise": noise, "seed": seed, "seed_policy": seed_policy}
+    if tile_k is not None:  # None keeps the backend's own default tile size
+        options["photonic_tile_k"] = tile_k
+    capture = CompileCapture(options)
     compiled = torch.compile(model, backend=capture, fullgraph=True)
     logits = compiled(input_ids=ids, use_cache=False).logits
     report = build_compile_capability_report(capture, logits, reference)
