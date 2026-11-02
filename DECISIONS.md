@@ -126,3 +126,12 @@ under model B (D-023) at its sourced point; see `research/experiments/awen-photo
 Rejected: picking a drift rate in rad/h without a source (would make the hours axis an invented number), and drifting
 model A (it is the training model, so the result would not be independent). Reversible: a new registration.
 
+
+## D-025 · AWEN-Photon conversions-per-token curve: counting rule and per-token definition (E-024)
+Decided by: agent, 2026-11-02 (registered before any run).
+Conversions per token are the capability report's totals for one no-cache call over P positions divided by P, under
+the simulator's counting rule (input DAC per row and inner element, weights programmed once per call, one ADC read per
+row, output and tile), swept over tile size and P for the tiny Llama and Qwen3 models; the registered check is exact
+agreement with a closed form from the model config. See `research/experiments/awen-photon-conversions/PREREGISTRATION.md`.
+Rejected: a weight-stationary device rule that amortizes weight programming across calls (no sourced reprogramming
+model), and adding energy now (needs full system accounting). Reversible: a new registration.
