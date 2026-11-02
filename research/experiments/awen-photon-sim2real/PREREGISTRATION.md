@@ -1,7 +1,7 @@
 # AWEN-Photon sim-to-real noise control (E-022): pre-registration
 
 Registered 2026-11-01 (commit of this file) under AWEN Master Prompt v2, section 7 ("evaluate under a different,
-independently parameterized noise model from the one used in training"). Status: **registered, not run**. A change
+independently parameterized noise model from the one used in training"). Status: **registered 2026-11-01; run 2026-11-02 at `0fe7495` without change** (result: `awen-models/results/photon-sim2real/`, verdict at the primary point: reverses for both noise-aware regimes). A change
 after the run starts is a new registration with its own date, and the change and its reason go in this file.
 
 ## Disclosure
