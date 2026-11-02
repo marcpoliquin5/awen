@@ -36,7 +36,7 @@ from .sim2real import EVAL_SEED_OFFSET, REGISTERED_SEEDS, T_975, NoiseModelB, fi
 REGISTERED_BUDGETS = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2]  # rms drift per interval, normalized weight units (free)
 REGISTERED_TIMES = 4  # midpoint-rule evaluation times per interval
 TOLERANCE = 0.01  # registered: one percentage point of test accuracy
-DRIFT_SEED_OFFSET = 30_000
+WALK_SEED_OFFSET = 30_000
 
 
 def interval_for_budget(budget: float, rate: float) -> float:
@@ -79,7 +79,7 @@ def interval_accuracy(mlp: Any, x: torch.Tensor, y: torch.Tensor, model: NoiseMo
     if budget == 0.0:
         acc = accuracy_with_drift(mlp, x, y, model, [None, None], noise_seed, tile)
         return {"budget": budget, "accuracy_at_times": [acc] * times, "accuracy": acc}
-    rng = np.random.default_rng(DRIFT_SEED_OFFSET + 100 * seed + budget_index)
+    rng = np.random.default_rng(WALK_SEED_OFFSET + 100 * seed + budget_index)
     paths = [drift_path(tuple(lin.weight.shape), budget, times, rng) for lin in (mlp.fc1, mlp.fc2)]
     accs = [accuracy_with_drift(mlp, x, y, model, [paths[0][j], paths[1][j]], noise_seed, tile) for j in range(times)]
     return {"budget": budget, "accuracy_at_times": accs, "accuracy": float(np.mean(accs))}
