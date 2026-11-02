@@ -1,0 +1,452 @@
+{
+  "version": "awen.photon-sim2real.v1",
+  "fidelity": "simulated",
+  "model_a_contract": {
+    "version": "awen.photonic-noise-contract.v1",
+    "photons_per_mac": 1000.0,
+    "quantum_efficiency": 0.8,
+    "insertion_loss_db": 6.0,
+    "phase_sigma_rad": 0.002,
+    "drift_rad_per_sqrt_s": 0.0,
+    "seconds_since_calibration": 0.0,
+    "rin_db_per_hz": -150.0,
+    "detection_bandwidth_hz": 10000000000.0,
+    "thermal_noise_electrons": 100.0,
+    "crosstalk_db": -35.0,
+    "dac_bits": 8,
+    "adc_bits": 8
+  },
+  "model_b_points": [
+    {
+      "system_enob": 3.0,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ],
+        [
+          "system_enob",
+          "free parameter (registered sweep)"
+        ]
+      ],
+      "output_sigma": 0.07216878364870323
+    },
+    {
+      "system_enob": 4.0,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ],
+        [
+          "system_enob",
+          "free parameter (registered sweep)"
+        ]
+      ],
+      "output_sigma": 0.036084391824351615
+    },
+    {
+      "system_enob": 5.0,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ],
+        [
+          "system_enob",
+          "free parameter (registered sweep)"
+        ]
+      ],
+      "output_sigma": 0.018042195912175808
+    },
+    {
+      "system_enob": 6.0,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ],
+        [
+          "system_enob",
+          "free parameter (registered sweep)"
+        ]
+      ],
+      "output_sigma": 0.009021097956087904
+    },
+    {
+      "system_enob": 7.61,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ]
+      ],
+      "output_sigma": 0.002955296814304437
+    },
+    {
+      "system_enob": 10.0,
+      "weight_dac_bits": 8,
+      "extinction_ratio_db": 30.0,
+      "provenance": [
+        [
+          "system_enob",
+          "system.pace_enob.typical=7.61 bits (hua2025, measured)"
+        ],
+        [
+          "weight_dac_bits",
+          "dac.weight_dac_bits.typical=8 bits (hua2025, measured)"
+        ],
+        [
+          "extinction_ratio_db",
+          "modulator.tfln_extinction_ratio.typical=30.0 dB (wang2018, measured)"
+        ],
+        [
+          "assumption_set",
+          "awen.hardware-assumptions.v0"
+        ],
+        [
+          "system_enob",
+          "free parameter (registered sweep)"
+        ]
+      ],
+      "output_sigma": 0.000563818622255494
+    }
+  ],
+  "primary_point_index": 4,
+  "settings": {
+    "hidden": 128,
+    "epochs": 3,
+    "batch_size": 128,
+    "lr": 0.002,
+    "tile_k": 64,
+    "train_limit": null,
+    "test_limit": null
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "test_examples": 10000,
+  "runs": [
+    {
+      "regime": "standard",
+      "seed": 1,
+      "train_seconds": 0.9045437230088282,
+      "final_train_loss": 0.1021889379620552,
+      "accuracy_model_a": 0.8133,
+      "accuracy_model_b": [
+        0.1146,
+        0.1729,
+        0.371,
+        0.7601,
+        0.9572,
+        0.9695
+      ]
+    },
+    {
+      "regime": "standard",
+      "seed": 2,
+      "train_seconds": 1.0083224609843455,
+      "final_train_loss": 0.09315545178949833,
+      "accuracy_model_a": 0.8348,
+      "accuracy_model_b": [
+        0.1167,
+        0.1745,
+        0.4069,
+        0.7965,
+        0.9621,
+        0.9714
+      ]
+    },
+    {
+      "regime": "standard",
+      "seed": 3,
+      "train_seconds": 1.0166068999969866,
+      "final_train_loss": 0.09680060699582099,
+      "accuracy_model_a": 0.8122,
+      "accuracy_model_b": [
+        0.1151,
+        0.1678,
+        0.3664,
+        0.7553,
+        0.9609,
+        0.9697
+      ]
+    },
+    {
+      "regime": "noise-aware-100",
+      "seed": 1,
+      "train_seconds": 21.316892818984343,
+      "final_train_loss": 1286.3925952148438,
+      "accuracy_model_a": 0.8632,
+      "accuracy_model_b": [
+        0.4605,
+        0.7427,
+        0.8384,
+        0.8613,
+        0.8707,
+        0.8705
+      ]
+    },
+    {
+      "regime": "noise-aware-100",
+      "seed": 2,
+      "train_seconds": 15.516303817013977,
+      "final_train_loss": 1258.494599609375,
+      "accuracy_model_a": 0.8554,
+      "accuracy_model_b": [
+        0.4392,
+        0.7383,
+        0.8318,
+        0.8585,
+        0.8676,
+        0.869
+      ]
+    },
+    {
+      "regime": "noise-aware-100",
+      "seed": 3,
+      "train_seconds": 11.624337146000471,
+      "final_train_loss": 1343.4196313476561,
+      "accuracy_model_a": 0.8599,
+      "accuracy_model_b": [
+        0.4532,
+        0.7457,
+        0.8385,
+        0.8634,
+        0.8708,
+        0.8717
+      ]
+    },
+    {
+      "regime": "noise-aware-1000",
+      "seed": 1,
+      "train_seconds": 11.67112586699659,
+      "final_train_loss": 0.6167522051930427,
+      "accuracy_model_a": 0.9036,
+      "accuracy_model_b": [
+        0.1517,
+        0.3128,
+        0.6825,
+        0.9002,
+        0.9486,
+        0.9519
+      ]
+    },
+    {
+      "regime": "noise-aware-1000",
+      "seed": 2,
+      "train_seconds": 12.292718175973278,
+      "final_train_loss": 0.6977770841121673,
+      "accuracy_model_a": 0.9151,
+      "accuracy_model_b": [
+        0.1351,
+        0.2624,
+        0.6389,
+        0.9032,
+        0.9536,
+        0.958
+      ]
+    },
+    {
+      "regime": "noise-aware-1000",
+      "seed": 3,
+      "train_seconds": 11.655225662980229,
+      "final_train_loss": 0.9108893674612045,
+      "accuracy_model_a": 0.9148,
+      "accuracy_model_b": [
+        0.1381,
+        0.2741,
+        0.6467,
+        0.9088,
+        0.9537,
+        0.9577
+      ]
+    }
+  ],
+  "verdicts_model_b": {
+    "noise-aware-100 - standard": [
+      {
+        "mean": 0.3355000000000001,
+        "ci95": [
+          0.3058998634820716,
+          0.36510013651792855
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.5705,
+        "ci95": [
+          0.552920783515469,
+          0.588079216484531
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.45480000000000004,
+        "ci95": [
+          0.3902057733274611,
+          0.519394226672539
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.09043333333333332,
+        "ci95": [
+          0.028661507297177514,
+          0.15220515936948914
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": -0.09036666666666664,
+        "ci95": [
+          -0.10032056797575689,
+          -0.08041276535757638
+        ],
+        "n": 3,
+        "verdict": "reverses"
+      },
+      {
+        "mean": -0.0998,
+        "ci95": [
+          -0.10553015717876346,
+          -0.09406984282123654
+        ],
+        "n": 3,
+        "verdict": "reverses"
+      }
+    ],
+    "noise-aware-1000 - standard": [
+      {
+        "mean": 0.02616666666666667,
+        "ci95": [
+          0.0019595559632436324,
+          0.05037377737008971
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.11136666666666668,
+        "ci95": [
+          0.04586048902767517,
+          0.1768728443056582
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.2746,
+        "ci95": [
+          0.1750889965315896,
+          0.3741110034684104
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": 0.13343333333333338,
+        "ci95": [
+          0.07355648747626506,
+          0.1933101791904017
+        ],
+        "n": 3,
+        "verdict": "transfers"
+      },
+      {
+        "mean": -0.008099999999999996,
+        "ci95": [
+          -0.01004033016863972,
+          -0.006159669831360272
+        ],
+        "n": 3,
+        "verdict": "reverses"
+      },
+      {
+        "mean": -0.014333333333333384,
+        "ci95": [
+          -0.021573520664550146,
+          -0.00709314600211662
+        ],
+        "n": 3,
+        "verdict": "reverses"
+      }
+    ]
+  }
+}
