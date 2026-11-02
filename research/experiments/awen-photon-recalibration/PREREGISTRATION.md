@@ -1,6 +1,6 @@
 # AWEN-Photon accuracy versus recalibration interval (E-023): pre-registration
 
-Registered 2026-11-02 (commit of this file) under AWEN Master Prompt v2. Status: **registered, not run**. A change
+Registered 2026-11-02 (commit of this file) under AWEN Master Prompt v2. Status: **registered 2026-11-02; run 2026-11-02 at `82b6adc` without change** (result: `awen-models/results/photon-recalibration/`; tolerable budget: standard 0.05, noise-aware-100 0.1, noise-aware-1000 0.05). A change
 after the run starts is a new registration with its own date, and the change and its reason go in this file.
 
 ## Question
@@ -40,7 +40,7 @@ independent noise model B (E-022, `awen_models/sim2real.py`, sourced primary poi
 - Budget grid `s`: 0, 0.01, 0.02, 0.05, 0.1, 0.2 (for scale, one 8-bit weight step is 2/255 = 0.0078, analytic).
 - Seeds: model-B noise `20000 + seed`; drift `30000 + 100 * seed + budget index` (NumPy PCG64).
 - Command (from `awen-models/`, CPU): `python -m awen_models.recalibration --seeds 1 2 3 --out results/photon-recalibration`
-  (not run). Output: `results/photon-recalibration/results.json`, stored with its SHA-256, commit and environment.
+  Output: `results/photon-recalibration/results.json`, stored with its SHA-256, commit and environment.
 
 ## Verdict rule
 
