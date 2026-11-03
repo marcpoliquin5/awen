@@ -262,8 +262,10 @@ impl DeviceCapabilities {
             modulation_rate_gbaud: 20.0,
             coherence_mode: CoherenceMode::Both,
             adc_bits: 10,
-            dac_bits: 10,
-            effective_bits: 8,
+            // PACE weight DAC is 8-bit (hua2025, measured; `dac.weight_dac_bits`).
+            dac_bits: 8,
+            // PACE system ENOB is 7.61 (hua2025, `system.pace_enob`); the field holds whole bits, so 7.
+            effective_bits: 7,
             bit_slicing_modes: vec![BitSlicingMode::None, BitSlicingMode::TwosComplement],
             saturation_mode: SaturationMode::Clamp,
             input_dynamic_range: DynamicRange {
@@ -297,7 +299,9 @@ impl DeviceCapabilities {
             laser_power_mw: 500.0,
             total_power_budget_mw: 2_000.0,
             dac_energy_pj_per_sample: 2.0,
-            adc_energy_pj_per_sample: 4.0,
+            // Lowest published ADC point in `adc.published_designs` (6.35 pJ at 10.0 ENOB, 0.5 GS/s);
+            // a floor, not a 20 GS/s value. The other point is 31.7 pJ (9.4 ENOB, 5 GS/s).
+            adc_energy_pj_per_sample: 6.35,
         };
         capabilities.calibration_profile = Some(CalibrationProfile {
             snapshot_version: CALIBRATION_SNAPSHOT_VERSION.to_string(),

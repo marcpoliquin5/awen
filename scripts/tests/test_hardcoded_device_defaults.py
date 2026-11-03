@@ -44,8 +44,8 @@ def test_inventory_summary():
         "unsourced": 88,
         "numeric_guard": 21,
         "definitional": 20,
-        "differs_from_assumption": 3,
-        "matches_assumption": 1,
+        "differs_from_assumption": 1,
+        "matches_assumption": 3,
     }
     assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38
 
@@ -73,8 +73,8 @@ def test_removed_literal_is_reported_stale(tmp_path):
 def test_status_must_agree_with_assumption_values(tmp_path):
     root = copy_tree(tmp_path)
     inv = root / "awen-spec/hardcoded_device_defaults.yaml"
-    edit(inv, "field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: matches_assumption",
-         "field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: unsourced")
+    edit(inv, "noise_contract_default, field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: matches_assumption",
+         "noise_contract_default, field: dac_bits, value: 8, unit: bits, assumption: dac.weight_dac_bits, status: unsourced")
     assert any("marked unsourced" in p for p in hd.check(root))
 
 

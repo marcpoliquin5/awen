@@ -2129,7 +2129,8 @@ mod tests {
             .expect("objective tune")
         });
 
-        assert_eq!(results[2].selected.plan.bit_slices, 2);
+        // 7 effective bits (PACE ENOB 7.61, whole bits) need 3 slices for F16 accuracy; 8 needed 2.
+        assert_eq!(results[2].selected.plan.bit_slices, 3);
         assert_eq!(results[0].selected.plan.bit_slices, 1);
         assert_eq!(results[3].selected.plan.bit_slices, 1);
         assert!(results.iter().all(|result| !result.alternatives.is_empty()));
