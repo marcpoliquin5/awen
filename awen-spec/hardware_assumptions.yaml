@@ -41,6 +41,21 @@ sources:
     citation: "J. Lagos et al., A 10.0 ENOB, 6.2 fJ/conv.-step, 500 MS/s ringamp-based pipelined-SAR ADC with background calibration and dynamic reference regulation in 16nm CMOS, Symposium on VLSI Circuits (2021)"
     doi: 10.23919/vlsicircuits52068.2021.9492354
     type: measured
+  sedighi2012:
+    citation: "B. Sedighi, M. Khafaji, J. C. Scheytt, Low-power 8-bit 5-GS/s digital-to-analog converter for multi-gigabit wireless transceivers, International Journal of Microwave and Wireless Technologies 4(3), 275-282 (2012)"
+    doi: 10.1017/s175907871200013x
+    type: measured
+    note: "checked 2026-11-03 on Crossref; 26 mW at 5 GS/s read from the published abstract (prototype chip, 0.13 um SiGe BiCMOS)"
+  palmers2010:
+    citation: "P. Palmers, M. S. J. Steyaert, A 10-bit 1.6-GS/s 27-mW current-steering D/A converter with 550-MHz 54-dB SFDR bandwidth in 130-nm CMOS, IEEE TCAS-I 57(11), 2870-2879 (2010)"
+    doi: 10.1109/tcsi.2010.2052491
+    type: measured
+    note: "checked 2026-11-03 on Crossref; 27 mW at 1.6 GS/s (near-Nyquist output) read from the title and abstract"
+  kim2016:
+    citation: "S.-N. Kim et al., A SUC-based full-binary 6-bit 3.1-GS/s 17.7-mW current-steering DAC in 0.038 mm2, IEEE TVLSI 24(2), 794-798 (2016)"
+    doi: 10.1109/tvlsi.2015.2412657
+    type: measured
+    note: "checked 2026-11-03 on Crossref; 17.7 mW at 3.1 GS/s read from the title and abstract (prototype, 90-nm CMOS)"
   harris2014:
     citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487 (2014)"
     doi: 10.1364/OE.22.010487
@@ -116,7 +131,26 @@ parameters:
       notes: "standalone CMOS ADCs; their ENOBs are ADC specs, not a photonic-system ENOB (see system.pace_enob)"
   dac:
     weight_dac_bits: {low: null, typical: 8, high: null, unit: bits, source: hua2025, notes: "weight DAC resolution of the PACE system"}
-    energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null, notes: "no checked source yet"}
+    energy_per_conversion: {low: null, typical: null, high: null, unit: pJ, source: null,
+                            notes: "no single checked value; separate published designs are in dac.published_designs"}
+    # Three published designs, NOT a curve of energy per conversion vs bits: energy also depends on
+    # sample rate, process, output swing and architecture, so do not interpolate between them.
+    published_designs:
+      kind: points
+      unit: pJ
+      source: [sedighi2012, palmers2010, kim2016]
+      source_type: estimate
+      points:
+        - {source: sedighi2012, resolution_bits: 8, sample_rate_GSps: 5.0, process: "0.13 um SiGe BiCMOS",
+           power_mW: 26.0, energy_per_conversion_pJ: 5.2, derivation: "power / sample rate = 26 mW / 5 GS/s"}
+        - {source: palmers2010, resolution_bits: 10, sample_rate_GSps: 1.6, process: "130 nm CMOS",
+           power_mW: 27.0, energy_per_conversion_pJ: 16.875, derivation: "power / sample rate = 27 mW / 1.6 GS/s"}
+        - {source: kim2016, resolution_bits: 6, sample_rate_GSps: 3.1, process: "90 nm CMOS",
+           power_mW: 17.7, energy_per_conversion_pJ: 5.71, derivation: "power / sample rate = 17.7 mW / 3.1 GS/s"}
+      notes: >-
+        Standalone high-speed DACs (measured chips; power and rate from each paper's title or abstract).
+        Nominal resolution, not effective bits; output swing and load differ from a modulator or phase-shifter
+        driver, so these are per-design estimates for a DAC conversion, not a photonic driver energy.
   shot_noise:
     # A keyed sweep by bit depth, NOT an uncertainty range: each entry is the shot-noise floor
     # for one target precision.

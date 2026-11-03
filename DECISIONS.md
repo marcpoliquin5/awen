@@ -145,3 +145,13 @@ See `research/experiments/awen-photon-energy-accounting/PREREGISTRATION.md`.
 Rejected: deriving per-MAC energy from the PACE whole-system TOPS/W (another device, not composable with these
 counts), and interpolating ADC energy between designs (the assumption set forbids it). Reversible: a new registration.
 
+## D-027 · AWEN-Photon energy-per-token accounting with published DAC designs (E-026)
+Decided by: agent, 2026-11-03 (registered before any run).
+`dac.energy_per_conversion` stays null; three measured standalone DACs (sedighi2012, palmers2010, kim2016) are added as
+separate points in `dac.published_designs` (power / sample rate from the title or abstract), and E-026 reads them for
+the input and weight DAC terms, one contribution per design. E-025 stays reproducible as the default registration.
+See `research/experiments/awen-photon-energy-accounting-dac/PREREGISTRATION.md`.
+Rejected: a single low/typical/high DAC value (the designs differ in bits, rate, process and load, so a range would
+imply an interpolation the data does not support), and DAC figures from vendor datasheets (vendor claims, lower
+evidence than measured peer-reviewed chips). Reversible: a new registration.
+

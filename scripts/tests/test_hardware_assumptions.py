@@ -78,6 +78,19 @@ def test_adc_designs_are_separate_points_matching_formulas():
         assert {"enob_bits", "sample_rate_GSps", "energy_per_conversion_pJ"} <= set(pt)
 
 
+def test_dac_designs_are_separate_points_matching_formulas():
+    dac = DATA["parameters"]["dac"]
+    assert dac["energy_per_conversion"]["typical"] is None, "no single DAC value; designs stay separate"
+    p = dac["published_designs"]
+    assert p["kind"] == "points" and not {"low", "typical", "high"} & set(p)
+    assert p["source_type"] == "estimate" and set(p["source"]) == {pt["source"] for pt in p["points"]}
+    for pt in p["points"]:
+        assert DATA["sources"][pt["source"]]["type"] == "measured"
+        assert "enob_bits" not in pt, "nominal DAC resolution is not an effective-bits figure"
+        assert pt["energy_per_conversion_pJ"] == pytest.approx(pt["power_mW"] / pt["sample_rate_GSps"], rel=1e-3)
+        assert f"{pt['power_mW']:g} mW / {pt['sample_rate_GSps']:g} GS/s" in pt["derivation"]
+
+
 @pytest.mark.parametrize("name,p", ALL_PARAMS, ids=[n for n, _ in ALL_PARAMS])
 def test_every_parameter_has_unit_source_and_notes(name, p):
     assert p.get("unit") and "source" in p, name
@@ -89,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 35
+    assert len(ALL_PARAMS) == 36
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
