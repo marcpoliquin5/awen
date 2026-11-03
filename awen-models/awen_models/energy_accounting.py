@@ -1,0 +1,164 @@
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025).
+
+    python -m awen_models.energy_accounting \
+        --counts results/conversions-per-token/results.json \
+        --out results/energy-per-token/results.json
+
+Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
+term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
+ADC, control electronics, memory movement, host overhead, plus weight hold, thermal
+stabilization and the optical detection floor), reports either a per-token contribution
+(per-token count times a sourced per-event energy, with the parameter path, value, unit,
+source and source type) or the status ``not sourced`` with the reason. Nothing is filled with a
+guess. While any term is not sourced there is no total and no speedup or savings figure.
+
+Power terms (W or mW) need a time model, which is not registered, so they are never converted to
+energy here. Whole-system efficiency figures of other devices (``system.*_efficiency_*``) are
+listed as excluded: they cannot be composed with per-term counts. Simulated counts (L1); see
+``research/experiments/awen-photon-energy-accounting/PREREGISTRATION.md``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Mapping, Optional
+
+ACCOUNTING_VERSION = "awen.energy-per-token-accounting.v1"
+_J_PER_UNIT = {"J": 1.0, "pJ": 1e-12, "fJ": 1e-15}  # unit definitions, not device values
+NOT_SOURCED = "not sourced"
+
+# term -> (per-token count key or None, assumption parameter path or None, rule)
+TERMS: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    "laser": (None, "laser.wall_plug_efficiency", "power"),
+    "modulator": ("dac_input", "modulator.energy_per_symbol", "per_event"),
+    "dac_input": ("dac_input", "dac.energy_per_conversion", "per_event"),
+    "dac_weight": ("dac_weight", "dac.energy_per_conversion", "per_event"),
+    "weight_hold": (None, "phase_shifter.thermo_optic_power_per_pi", "power"),
+    "adc": ("adc", "adc.published_designs", "points"),
+    "optical_detection_floor": ("adc", "shot_noise.shot_noise_energy_per_detection_J", "sweep"),
+    "control_electronics": (None, "system.control_electronics_power", "power"),
+    "thermal_stabilization": (None, "system.thermal_stabilization_power", "power"),
+    "memory_movement": (None, None, "absent"),
+    "host_transfer": (None, "system.host_transfer_energy", "per_byte"),
+}
+EXCLUDED = ("system.efficiency_including_lasers", "system.on_chip_efficiency_reported")
+REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
+            "memory_movement", "host_transfer")
+
+
+def find_assumptions(start: Optional[Path] = None) -> Path:
+    for parent in [(start or Path.cwd()).resolve(), *(start or Path.cwd()).resolve().parents]:
+        candidate = parent / "awen-spec" / "hardware_assumptions.yaml"
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError("awen-spec/hardware_assumptions.yaml not found; pass --assumptions")
+
+
+def _entry(doc: Mapping[str, Any], path: str) -> Mapping[str, Any]:
+    group, name = path.split(".")
+    return doc["parameters"][group][name]
+
+
+def _label(doc: Mapping[str, Any], entry: Mapping[str, Any], source: str) -> str:
+    return entry.get("source_type") or doc["sources"][source]["type"]
+
+
+def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float]) -> dict[str, Any]:
+    """One accounting row: a sourced per-token contribution in J, or ``not sourced`` with the reason."""
+    count_key, path, rule = TERMS[term]
+    row: dict[str, Any] = {"term": term, "parameter": path, "count": count_key,
+                           "count_per_token": per_token[count_key] if count_key else None}
+    if rule == "absent":
+        return {**row, "status": NOT_SOURCED, "reason": "no parameter in the assumption set"}
+    entry = _entry(doc, path)
+    if rule == "power":
+        return {**row, "status": NOT_SOURCED,
+                "reason": "power term needs a time model (none registered)"
+                + ("" if entry.get("typical") is not None else "; value is null")}
+    if rule == "per_byte":
+        return {**row, "status": NOT_SOURCED,
+                "reason": "bytes moved per token are not counted"
+                + ("" if entry.get("typical") is not None else "; value is null")}
+    if rule == "per_event":
+        value, source = entry.get("typical"), entry.get("source")
+        if value is None or not source:
+            return {**row, "status": NOT_SOURCED, "reason": "value is null (no checked source)"}
+        return {**row, "status": "sourced", "value": value, "unit": entry["unit"], "source": source,
+                "source_type": _label(doc, entry, source),
+                "per_token_J": per_token[count_key] * value * _J_PER_UNIT[entry["unit"]]}
+    if rule == "points":
+        designs = [{"source": p["source"], "enob_bits": p["enob_bits"], "value": p["energy_per_conversion_pJ"],
+                    "unit": "pJ", "derivation": p["derivation"],
+                    "per_token_J": per_token[count_key] * p["energy_per_conversion_pJ"] * _J_PER_UNIT["pJ"]}
+                   for p in entry["points"]]
+        return {**row, "status": "sourced (per published design, not interpolated)",
+                "source_type": entry["source_type"], "designs": designs,
+                "caveat": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract"}
+    values = {str(bits): {"value": v, "unit": entry["unit"], "per_token_J": per_token[count_key] * v}
+              for bits, v in entry["values"].items()}
+    return {**row, "status": "sourced (sweep by effective bits)", "source_type": entry["source_type"],
+            "sweep_over": entry["sweep_over"], "values": values,
+            "caveat": "optics only, one detection per ADC read; a lower bound on optical energy, not a system energy"}
+
+
+def account(doc: Mapping[str, Any], point: Mapping[str, Any]) -> dict[str, Any]:
+    rows = [term_row(doc, term, point["per_token"]) for term in TERMS]
+    missing = [row["term"] for row in rows if row["status"] == NOT_SOURCED]
+    return {"arch": point["arch"], "tile_k": point["tile_k"], "positions": point["positions"],
+            "per_token_counts": dict(point["per_token"]), "terms": rows, "not_sourced": missing,
+            "total_J": None if missing else "not defined by this registration",
+            "total_reason": f"no total: {len(missing)} terms not sourced" if missing else "all terms sourced; total needs a new registration"}
+
+
+def check(point: Mapping[str, Any]) -> list[str]:
+    """Registered checks for one point; returns the failures (empty means pass)."""
+    failures, names = [], [row["term"] for row in point["terms"]]
+    failures += [f"missing term {term}" for term in REQUIRED if term not in names]
+    for row in point["terms"]:
+        count = row["count_per_token"]
+        contributions = ([(row["value"], row["unit"], row["per_token_J"])] if "per_token_J" in row else []) + [
+            (d["value"], d["unit"], d["per_token_J"]) for d in row.get("designs", [])] + [
+            (v["value"], v["unit"], v["per_token_J"]) for v in row.get("values", {}).values()]
+        for value, unit, joules in contributions:
+            if abs(count * value * _J_PER_UNIT[unit] - joules) > 1e-12 * abs(joules):
+                failures.append(f"{row['term']}: contribution does not recompute")
+        if row["status"] == NOT_SOURCED and contributions:
+            failures.append(f"{row['term']}: not sourced but has a contribution")
+    if point["not_sourced"] and point["total_J"] is not None:
+        failures.append("total emitted while terms are not sourced")
+    return failures
+
+
+def run(counts: Mapping[str, Any], doc: Mapping[str, Any]) -> dict[str, Any]:
+    points = [account(doc, point) for point in counts["points"]]
+    failures = {f"{p['arch']}/tile{p['tile_k']}/P{p['positions']}": f for p in points if (f := check(p))}
+    return {"accounting": ACCOUNTING_VERSION, "evidence_level": "L1", "assumption_set": doc["version"],
+            "counts_source": counts["curve"], "excluded": {path: "whole-system figure of another device; not composable"
+                                                           for path in EXCLUDED},
+            "claims": "none: partial table, no total, no speedup or savings figure",
+            "verdict": "fail" if failures else "pass", "failures": failures, "points": points}
+
+
+def main(argv: list[str] | None = None) -> int:
+    import yaml  # pyyaml, see the `test` / `assumptions` extras
+
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--counts", required=True, help="stored E-024 results.json")
+    parser.add_argument("--assumptions", default=None, help="path to awen-spec/hardware_assumptions.yaml")
+    parser.add_argument("--out", help="write the JSON result here (default: stdout)")
+    args = parser.parse_args(argv)
+    doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
+    counts = json.loads(Path(args.counts).read_text())
+    text = json.dumps(run(counts, doc), indent=2, sort_keys=True) + "\n"
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(text, encoding="utf-8")
+    else:
+        print(text, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
