@@ -135,3 +135,13 @@ row, output and tile), swept over tile size and P for the tiny Llama and Qwen3 m
 agreement with a closed form from the model config. See `research/experiments/awen-photon-conversions/PREREGISTRATION.md`.
 Rejected: a weight-stationary device rule that amortizes weight programming across calls (no sourced reprogramming
 model), and adding energy now (needs full system accounting). Reversible: a new registration.
+
+## D-026 · AWEN-Photon energy-per-token accounting: terms and rules (E-025)
+Decided by: agent, 2026-11-03 (registered before any run).
+The E-024 per-token counts are paired only with sourced per-event values from `awen-spec/hardware_assumptions.yaml`;
+null or unsourced values, power terms (no time model) and terms with no parameter stay "not sourced", and no total is
+emitted while any term is not sourced. ADC uses each published design separately; the shot-noise floor is optics only.
+See `research/experiments/awen-photon-energy-accounting/PREREGISTRATION.md`.
+Rejected: deriving per-MAC energy from the PACE whole-system TOPS/W (another device, not composable with these
+counts), and interpolating ADC energy between designs (the assumption set forbids it). Reversible: a new registration.
+
