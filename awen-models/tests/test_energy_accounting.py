@@ -12,6 +12,7 @@ from awen_models.energy_accounting import (  # noqa: E402
     NOT_SOURCED,
     REQUIRED,
     TERMS,
+    TERMS_E026,
     account,
     check,
     find_assumptions,
@@ -97,3 +98,39 @@ def test_cli_writes_json(tmp_path):
     assert main(["--counts", str(counts), "--assumptions", str(ASSUMPTIONS), "--out", str(out)]) == 0
     assert json.loads(out.read_text())["verdict"] == "pass"
     assert find_assumptions(Path(__file__).parent) == ASSUMPTIONS.resolve()
+
+
+def test_e026_dac_terms_use_each_published_design(doc):
+    result = run(COUNTS, doc, "e026")
+    assert result["accounting"] == "awen.energy-per-token-accounting.v2" and result["verdict"] == "pass"
+    point = result["points"][0]
+    r = rows(point)
+    designs = doc["parameters"]["dac"]["published_designs"]["points"]
+    for term, count in (("dac_input", 10.0), ("dac_weight", 100.0)):
+        assert r[term]["parameter"] == "dac.published_designs" and r[term]["source_type"] == "estimate"
+        assert [d["source"] for d in r[term]["designs"]] == [p["source"] for p in designs]
+        for d, p in zip(r[term]["designs"], designs):
+            assert d["resolution_bits"] == p["resolution_bits"] and "enob_bits" not in d
+            assert d["per_token_J"] == pytest.approx(count * p["energy_per_conversion_pJ"] * 1e-12)
+        assert "not those of a photonic driver" in r[term]["caveat"]
+    assert "dac_input" not in point["not_sourced"] and "dac_weight" not in point["not_sourced"]
+    assert point["total_J"] is None and "modulator" in point["not_sourced"]
+
+
+def test_e026_changes_only_the_dac_terms_and_e025_is_the_default(doc):
+    assert {t for t in TERMS if TERMS[t] != TERMS_E026[t]} == {"dac_input", "dac_weight"}
+    e025, e026 = run(COUNTS, doc), run(COUNTS, doc, "e026")
+    assert e025["accounting"] == "awen.energy-per-token-accounting.v1"
+    assert rows(e025["points"][0])["dac_weight"]["status"] == NOT_SOURCED
+    for term in set(TERMS) - {"dac_input", "dac_weight"}:
+        assert rows(e025["points"][0])[term] == rows(e026["points"][0])[term], term
+    assert len(e025["points"][0]["not_sourced"]) - len(e026["points"][0]["not_sourced"]) == 2
+
+
+def test_cli_registration_flag(tmp_path):
+    counts = tmp_path / "counts.json"
+    counts.write_text(json.dumps(COUNTS))
+    out = tmp_path / "r.json"
+    assert main(["--counts", str(counts), "--assumptions", str(ASSUMPTIONS), "--registration", "e026",
+                 "--out", str(out)]) == 0
+    assert json.loads(out.read_text())["accounting"] == "awen.energy-per-token-accounting.v2"

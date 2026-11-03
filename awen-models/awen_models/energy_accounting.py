@@ -1,8 +1,12 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025, E-026).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
         --out results/energy-per-token/results.json
+
+``--registration e026`` selects the E-026 terms: the same as E-025 except that the input and weight DAC
+terms read ``dac.published_designs`` (each published design separately, never interpolated). The
+default, ``e025``, is unchanged, so the stored E-025 run still reproduces.
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -44,6 +48,18 @@ TERMS: dict[str, tuple[Optional[str], Optional[str], str]] = {
     "host_transfer": (None, "system.host_transfer_energy", "per_byte"),
 }
 EXCLUDED = ("system.efficiency_including_lasers", "system.on_chip_efficiency_reported")
+# E-026: DAC terms read the separate published DAC designs (D-027).
+TERMS_E026: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS,
+    "dac_input": ("dac_input", "dac.published_designs", "points"),
+    "dac_weight": ("dac_weight", "dac.published_designs", "points"),
+}
+REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2")}
+CAVEATS = {
+    "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
+    "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
+    "dac_weight": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
+}
 REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
             "memory_movement", "host_transfer")
 
@@ -65,9 +81,17 @@ def _label(doc: Mapping[str, Any], entry: Mapping[str, Any], source: str) -> str
     return entry.get("source_type") or doc["sources"][source]["type"]
 
 
-def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float]) -> dict[str, Any]:
+def _design(point: Mapping[str, Any], count: float) -> dict[str, Any]:
+    bits = {k: point[k] for k in ("enob_bits", "resolution_bits") if k in point}
+    return {"source": point["source"], **bits, "value": point["energy_per_conversion_pJ"], "unit": "pJ",
+            "derivation": point["derivation"],
+            "per_token_J": count * point["energy_per_conversion_pJ"] * _J_PER_UNIT["pJ"]}
+
+
+def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
+             terms: Mapping[str, tuple[Optional[str], Optional[str], str]] = TERMS) -> dict[str, Any]:
     """One accounting row: a sourced per-token contribution in J, or ``not sourced`` with the reason."""
-    count_key, path, rule = TERMS[term]
+    count_key, path, rule = terms[term]
     row: dict[str, Any] = {"term": term, "parameter": path, "count": count_key,
                            "count_per_token": per_token[count_key] if count_key else None}
     if rule == "absent":
@@ -89,13 +113,9 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float]) 
                 "source_type": _label(doc, entry, source),
                 "per_token_J": per_token[count_key] * value * _J_PER_UNIT[entry["unit"]]}
     if rule == "points":
-        designs = [{"source": p["source"], "enob_bits": p["enob_bits"], "value": p["energy_per_conversion_pJ"],
-                    "unit": "pJ", "derivation": p["derivation"],
-                    "per_token_J": per_token[count_key] * p["energy_per_conversion_pJ"] * _J_PER_UNIT["pJ"]}
-                   for p in entry["points"]]
+        designs = [_design(p, per_token[count_key]) for p in entry["points"]]
         return {**row, "status": "sourced (per published design, not interpolated)",
-                "source_type": entry["source_type"], "designs": designs,
-                "caveat": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract"}
+                "source_type": entry["source_type"], "designs": designs, "caveat": CAVEATS[term]}
     values = {str(bits): {"value": v, "unit": entry["unit"], "per_token_J": per_token[count_key] * v}
               for bits, v in entry["values"].items()}
     return {**row, "status": "sourced (sweep by effective bits)", "source_type": entry["source_type"],
@@ -103,8 +123,9 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float]) 
             "caveat": "optics only, one detection per ADC read; a lower bound on optical energy, not a system energy"}
 
 
-def account(doc: Mapping[str, Any], point: Mapping[str, Any]) -> dict[str, Any]:
-    rows = [term_row(doc, term, point["per_token"]) for term in TERMS]
+def account(doc: Mapping[str, Any], point: Mapping[str, Any],
+            terms: Mapping[str, tuple[Optional[str], Optional[str], str]] = TERMS) -> dict[str, Any]:
+    rows = [term_row(doc, term, point["per_token"], terms) for term in terms]
     missing = [row["term"] for row in rows if row["status"] == NOT_SOURCED]
     return {"arch": point["arch"], "tile_k": point["tile_k"], "positions": point["positions"],
             "per_token_counts": dict(point["per_token"]), "terms": rows, "not_sourced": missing,
@@ -131,10 +152,11 @@ def check(point: Mapping[str, Any]) -> list[str]:
     return failures
 
 
-def run(counts: Mapping[str, Any], doc: Mapping[str, Any]) -> dict[str, Any]:
-    points = [account(doc, point) for point in counts["points"]]
+def run(counts: Mapping[str, Any], doc: Mapping[str, Any], registration: str = "e025") -> dict[str, Any]:
+    terms, version = REGISTRATIONS[registration]
+    points = [account(doc, point, terms) for point in counts["points"]]
     failures = {f"{p['arch']}/tile{p['tile_k']}/P{p['positions']}": f for p in points if (f := check(p))}
-    return {"accounting": ACCOUNTING_VERSION, "evidence_level": "L1", "assumption_set": doc["version"],
+    return {"accounting": version, "evidence_level": "L1", "assumption_set": doc["version"],
             "counts_source": counts["curve"], "excluded": {path: "whole-system figure of another device; not composable"
                                                            for path in EXCLUDED},
             "claims": "none: partial table, no total, no speedup or savings figure",
@@ -147,11 +169,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--counts", required=True, help="stored E-024 results.json")
     parser.add_argument("--assumptions", default=None, help="path to awen-spec/hardware_assumptions.yaml")
+    parser.add_argument("--registration", choices=sorted(REGISTRATIONS), default="e025",
+                        help="term set: e025 (default, unchanged) or e026 (DAC from published designs)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
     counts = json.loads(Path(args.counts).read_text())
-    text = json.dumps(run(counts, doc), indent=2, sort_keys=True) + "\n"
+    text = json.dumps(run(counts, doc, args.registration), indent=2, sort_keys=True) + "\n"
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(text, encoding="utf-8")
