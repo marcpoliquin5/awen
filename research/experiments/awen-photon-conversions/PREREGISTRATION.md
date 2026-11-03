@@ -1,6 +1,6 @@
 # AWEN-Photon conversions per token (E-024): pre-registration
 
-Registered 2026-11-02 (commit of this file) under AWEN Master Prompt v2. Status: **registered 2026-11-02, not run**.
+Registered 2026-11-02 (commit of this file) under AWEN Master Prompt v2. Status: **registered 2026-11-02; run 2026-11-03 at `d6dfa80` without change** (result: `awen-models/results/conversions-per-token/`; verdict: pass, all 40 points equal the closed form).
 A change after the run starts is a new registration with its own date, and the change and its reason go in this file.
 
 ## Question

@@ -1,0 +1,1111 @@
+{
+  "contract": "ideal (counts do not depend on noise)",
+  "curve": "awen.conversions-per-token-curve.v1",
+  "energy": "not estimated: needs the full system accounting in awen-spec/hardware_assumptions.yaml",
+  "evidence_level": "L1",
+  "grid": {
+    "archs": [
+      "llama",
+      "qwen3"
+    ],
+    "positions": [
+      1,
+      8,
+      32,
+      128
+    ],
+    "tile_ks": [
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  },
+  "per_token_rule": "report totals for one call over P positions, divided by P (prefill, no KV cache)",
+  "points": [
+    {
+      "arch": "llama",
+      "conversions_per_mac": 1.1370738636363635,
+      "counts": {
+        "adc": 11264,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 11264,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:2b81899aeaf5928d78aa329b391a9b73cbdecd1d789e08e1852463a2e818997a",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 102464.0
+      },
+      "positions": 1,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.26207386363636365,
+      "counts": {
+        "adc": 90112,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 90112,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:7b3bb702d6cf587bde70197360a66aa4a3c3269062f6576530841a1ae3398c82",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 23616.0
+      },
+      "positions": 8,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.16832386363636365,
+      "counts": {
+        "adc": 360448,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 360448,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:dc7cf2b45d927b7155588eb94d0a1be343fa05a01ea6c81e4e45dd654b6beea0",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 15168.0
+      },
+      "positions": 32,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.14488636363636365,
+      "counts": {
+        "adc": 1441792,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 1441792,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:ec1d8597a74492a45b74bcfc274951768ba350090e29815c79be6fe47a5bf684",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 13056.0
+      },
+      "positions": 128,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 1.0745738636363635,
+      "counts": {
+        "adc": 5632,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 5632,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:cb4ad6b2b127f436790802eb15f3048046c8bcfd562b7c116a05170f68f6b452",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 96832.0
+      },
+      "positions": 1,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.19957386363636365,
+      "counts": {
+        "adc": 45056,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 45056,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:010999f97b3b180df8ef3d2c8856333bb03e17d7ee208d280f3a490b7435d1e1",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 17984.0
+      },
+      "positions": 8,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.10582386363636363,
+      "counts": {
+        "adc": 180224,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 180224,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:53216c7a4822329e316194d6c7550d67dd05995ced700b47c101413263371543",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 9536.0
+      },
+      "positions": 32,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.08238636363636363,
+      "counts": {
+        "adc": 720896,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 720896,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:c03cc54cd7b18ec5b1f6122d8ec35d0738c5eef8a459dc069aef129f4136a188",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 7424.0
+      },
+      "positions": 128,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 1.0433238636363635,
+      "counts": {
+        "adc": 2816,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 2816,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:5a33509b2551bd33db4fe636ee0ad458065c7a216ea8177d0af6b2f35da2170c",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 94016.0
+      },
+      "positions": 1,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.16832386363636365,
+      "counts": {
+        "adc": 22528,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 22528,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:77955f4bc2dd0380b29795ac95fa8390b021809ce3b73cda42b66e239bd3ec48",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 15168.0
+      },
+      "positions": 8,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.07457386363636363,
+      "counts": {
+        "adc": 90112,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 90112,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:b55902bee124bb74d9e1b34048a782707316c32eb285ba431eccbac50d132ba4",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 6720.0
+      },
+      "positions": 32,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.05113636363636364,
+      "counts": {
+        "adc": 360448,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 360448,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:7a568789930712f353f53dbc3bf11516c6dfca4afb2db6e456c47dc5cf45b8ad",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 4608.0
+      },
+      "positions": 128,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 1.0276988636363635,
+      "counts": {
+        "adc": 1408,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 1408,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:50ab7266868d8b9347f591e2d51e6247ce2213dd588f69c3db60d68d75633193",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 92608.0
+      },
+      "positions": 1,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.15269886363636365,
+      "counts": {
+        "adc": 11264,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 11264,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:15ca41d0295786f03faccb65cd124e9a59c27e7cdb2e2d815ff9f5561dc89b61",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 13760.0
+      },
+      "positions": 8,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.05894886363636364,
+      "counts": {
+        "adc": 45056,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 45056,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:8eb8f81b8ae04a896a5e9ea44dd2e50c9f3055abb7a2fca6a2e71e174a25c86e",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 5312.0
+      },
+      "positions": 32,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.03551136363636364,
+      "counts": {
+        "adc": 180224,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 180224,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:38d77d89b42a8efa0be5c2fd0fa86d1a55965135c777e7e973a321b05c1ec4b5",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 3200.0
+      },
+      "positions": 128,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 1.0262784090909092,
+      "counts": {
+        "adc": 1280,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 1280,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:59b9051f10e59ad0f3331300b32ff6e4ee766caad9cebcef3164c74c136b3b34",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 92480.0
+      },
+      "positions": 1,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.1512784090909091,
+      "counts": {
+        "adc": 10240,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 10240,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:ab0712435c04c8724615ee4540fa641a33da5637e6b8a2cebc3cf2898e512bd7",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 13632.0
+      },
+      "positions": 8,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.05752840909090909,
+      "counts": {
+        "adc": 40960,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 40960,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:fe46e44ef7fab1c1c5cf3a6f70931a7d62961181ce8a29c7f494efb035f3188e",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 5184.0
+      },
+      "positions": 32,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "llama",
+      "conversions_per_mac": 0.03409090909090909,
+      "counts": {
+        "adc": 163840,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 163840,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:ef2eae030da53f42e5655c175135a4cb8553d404a2ad81bdfdb3abc3251b2482",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 3072.0
+      },
+      "positions": 128,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 1.1370738636363635,
+      "counts": {
+        "adc": 11264,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 11264,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:73f9651dfac0f591d51d09df95cfdb4868b16e54795a5bb29e44e0b1fd16dd3e",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 102464.0
+      },
+      "positions": 1,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.26207386363636365,
+      "counts": {
+        "adc": 90112,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 90112,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:f308ca9c7f08062b24ed4842b0d20702394db7095c90d9f9040f6e9e06d8b453",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 23616.0
+      },
+      "positions": 8,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.16832386363636365,
+      "counts": {
+        "adc": 360448,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 360448,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:44341d731b25a57cc592b7267fc8f166fdf40288bd76a7a0ad13ac6ec866743a",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 15168.0
+      },
+      "positions": 32,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.14488636363636365,
+      "counts": {
+        "adc": 1441792,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 1441792,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:b005a2cf92bc6035fd114806121527a665da045b38814dcb9f327e214715fcbc",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 11264.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 13056.0
+      },
+      "positions": 128,
+      "report_tile_k": 8,
+      "tile_k": 8
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 1.0745738636363635,
+      "counts": {
+        "adc": 5632,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 5632,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:0c22d8d9a680e2814a74d2108e0658ed43c9fa292e980c9769297e80099d39b1",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 96832.0
+      },
+      "positions": 1,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.19957386363636365,
+      "counts": {
+        "adc": 45056,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 45056,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:dbb44f0f17783624a02a51a41294a8afeb29b16ac25f74df976cfdde5c850967",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 17984.0
+      },
+      "positions": 8,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.10582386363636363,
+      "counts": {
+        "adc": 180224,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 180224,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:364dc1499cddc8dfc176b25f45d05e95fa3e2435deb8e151ae765abb9b314597",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 9536.0
+      },
+      "positions": 32,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.08238636363636363,
+      "counts": {
+        "adc": 720896,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 720896,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:47a639900e3451cfa14a1a3a473a7ad04426cf872719c8895e5f5296543f8a05",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 5632.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 7424.0
+      },
+      "positions": 128,
+      "report_tile_k": 16,
+      "tile_k": 16
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 1.0433238636363635,
+      "counts": {
+        "adc": 2816,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 2816,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:2e07a2d4e0b320ef1ce3015fda8a4814d332ec0e89277c0150ca8f9c85ac1f46",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 94016.0
+      },
+      "positions": 1,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.16832386363636365,
+      "counts": {
+        "adc": 22528,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 22528,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:fdb420dc391266f9c906eb769e5cf639711c918d5f297b4bf8228669916bcab6",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 15168.0
+      },
+      "positions": 8,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.07457386363636363,
+      "counts": {
+        "adc": 90112,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 90112,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:3fd01d75786f064359e2b4c58c7f114ef2f8f47384fd950e67600176a2bdd514",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 6720.0
+      },
+      "positions": 32,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.05113636363636364,
+      "counts": {
+        "adc": 360448,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 360448,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:03b7ba0de710f7ca09299521f3a9d20c1dda943f5469787a201bfd0c13ed9f94",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 2816.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 4608.0
+      },
+      "positions": 128,
+      "report_tile_k": 32,
+      "tile_k": 32
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 1.0276988636363635,
+      "counts": {
+        "adc": 1408,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 1408,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:f1d269d492410181969264b54852e5b704011e23ab39f4ca074201073a3a09af",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 92608.0
+      },
+      "positions": 1,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.15269886363636365,
+      "counts": {
+        "adc": 11264,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 11264,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:701c7ffeb28ca66d584edc385bd165c61f632c3d3ea1eb4d24983563a1642c1b",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 13760.0
+      },
+      "positions": 8,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.05894886363636364,
+      "counts": {
+        "adc": 45056,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 45056,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:87cde8b8c7b649b5edf83dd785ff77ce46ded511a5eaf624448e26feb9929791",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 5312.0
+      },
+      "positions": 32,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.03551136363636364,
+      "counts": {
+        "adc": 180224,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 180224,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:fa14c433e04e42bde0e1cd8661dbec54aed63a0862e9d19a760b6a93bd2f0944",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1408.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 3200.0
+      },
+      "positions": 128,
+      "report_tile_k": 64,
+      "tile_k": 64
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 1.0262784090909092,
+      "counts": {
+        "adc": 1280,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "expected": {
+        "adc": 1280,
+        "dac_input": 1088,
+        "dac_weight": 90112,
+        "lowered_macs": 90112
+      },
+      "graph_fingerprint": "sha256:7e1948da2740a34f596bcfa60d375be84dc653bbcd1dd9970dabd7f4d4a0733b",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 90112.0,
+        "total": 92480.0
+      },
+      "positions": 1,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.1512784090909091,
+      "counts": {
+        "adc": 10240,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "expected": {
+        "adc": 10240,
+        "dac_input": 8704,
+        "dac_weight": 90112,
+        "lowered_macs": 720896
+      },
+      "graph_fingerprint": "sha256:d5c4f525dc9c6dcc260e54a8bcd0d92bc92cb1be3203df7c0da28915ad42f427",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 11264.0,
+        "total": 13632.0
+      },
+      "positions": 8,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.05752840909090909,
+      "counts": {
+        "adc": 40960,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "expected": {
+        "adc": 40960,
+        "dac_input": 34816,
+        "dac_weight": 90112,
+        "lowered_macs": 2883584
+      },
+      "graph_fingerprint": "sha256:9b38b7507febeacf0ba9e0007acdcfc44fdbc037ecb35fe02a05831f8526a7e9",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 2816.0,
+        "total": 5184.0
+      },
+      "positions": 32,
+      "report_tile_k": 128,
+      "tile_k": 128
+    },
+    {
+      "arch": "qwen3",
+      "conversions_per_mac": 0.03409090909090909,
+      "counts": {
+        "adc": 163840,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "expected": {
+        "adc": 163840,
+        "dac_input": 139264,
+        "dac_weight": 90112,
+        "lowered_macs": 11534336
+      },
+      "graph_fingerprint": "sha256:b076b9fbf3fffce7691388bd17c9f1c423e5e69e5ed651fe84372f2b154320f8",
+      "matches_closed_form": true,
+      "per_token": {
+        "adc": 1280.0,
+        "dac_input": 1088.0,
+        "dac_weight": 704.0,
+        "total": 3072.0
+      },
+      "positions": 128,
+      "report_tile_k": 128,
+      "tile_k": 128
+    }
+  ],
+  "source": "measured by us (counted by the report code)",
+  "use_cache": false,
+  "verdict": "pass"
+}
