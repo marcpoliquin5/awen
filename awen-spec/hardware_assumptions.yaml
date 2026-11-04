@@ -56,6 +56,11 @@ sources:
     doi: 10.1109/tvlsi.2015.2412657
     type: measured
     note: "checked 2026-11-03 on Crossref; 17.7 mW at 3.1 GS/s read from the title and abstract (prototype, 90-nm CMOS)"
+  timurdogan2014:
+    citation: "E. Timurdogan et al., An ultralow power athermal silicon modulator, Nature Communications 5, 4008 (2014)"
+    doi: 10.1038/ncomms5008
+    type: measured
+    note: "checked 2026-11-04 on Crossref and the open-access article; 3.65 fJ switching energy and 0.91 fJ per bit measured by time-domain reflectometry (Methods), 25 Gb/s NRZ-OOK, 0.5 Vpp, 4.8-um silicon microdisk"
   harris2014:
     citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487 (2014)"
     doi: 10.1364/OE.22.010487
@@ -99,6 +104,24 @@ parameters:
     silicon_weight_modulator_rate: {type: silicon_unspecified, low: null, typical: 0.01, high: null, unit: GHz, source: hua2025,
                                     notes: "10 MHz weight update with 8-bit design accuracy"}
     energy_per_symbol: {type: unspecified, low: null, typical: null, high: null, unit: fJ, source: null, notes: "no checked source yet"}
+    published_designs:
+      kind: points
+      type: silicon_ring
+      unit: fJ
+      source: [timurdogan2014]
+      source_type: measured
+      points:
+        - {source: timurdogan2014, basis: per_bit_nrz_ook, modulation: NRZ-OOK, data_rate_Gbps: 25.0, drive_Vpp: 0.5,
+           energy_per_symbol_fJ: 0.91,
+           derivation: "measured switching energy / 4 = 3.65 fJ / 4 (equiprobable NRZ transitions; only 0-to-1 draws energy)"}
+        - {source: timurdogan2014, basis: per_full_swing_transition, modulation: NRZ-OOK, data_rate_Gbps: 25.0, drive_Vpp: 0.5,
+           energy_per_symbol_fJ: 3.65,
+           derivation: "measured switching energy of one 0-to-1 transition (TDR, Methods)"}
+      notes: >-
+        One measured resonant silicon microdisk modulator, modulator only (no driver, bias-lock or monitor circuitry;
+        the paper's athermal tuning adds 0.24 to 2 fJ per bit and is not included). Binary on-off keying, not an analog
+        multi-level symbol, so neither basis is the energy of a photonic MAC input symbol; the two bases bracket
+        binary operation only. `energy_per_symbol` stays null.
   phase_shifter:
     thermo_optic_power_per_pi: {low: null, typical: null, high: null, unit: mW, source: harris2014, notes: "citation checked; value not yet read from the paper"}
     thermo_optic_reconfiguration_time: {low: null, typical: null, high: null, unit: us, source: harris2014, notes: "citation checked; value not yet read from the paper"}

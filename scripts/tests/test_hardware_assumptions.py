@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 36
+    assert len(ALL_PARAMS) == 37
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -115,3 +115,16 @@ def test_modulator_entries_have_device_type_and_separate_bandwidth():
     vpi = mod["tfln_half_wave_voltage"]
     assert vpi["kind"] == "by_device_length_mm" and vpi["values"] == {5: 4.4, 10: 2.3, 20: 1.4}
     assert mod["tfln_data_rate"]["unit"] == "Gbit/s"  # a data rate is not a bandwidth
+
+
+def test_modulator_points_are_measured_and_energy_per_symbol_stays_null():
+    mod = DATA["parameters"]["modulator"]
+    assert mod["energy_per_symbol"]["typical"] is None, "no single modulator value; points stay separate"
+    p = mod["published_designs"]
+    assert p["kind"] == "points" and not {"low", "typical", "high"} & set(p) and p["unit"] == "fJ"
+    assert set(p["source"]) == {pt["source"] for pt in p["points"]} == {"timurdogan2014"}
+    by = {pt["basis"]: pt for pt in p["points"]}
+    assert by["per_full_swing_transition"]["energy_per_symbol_fJ"] == 3.65
+    # The paper's per-bit figure is switching energy / 4 (equiprobable NRZ transitions).
+    assert by["per_bit_nrz_ook"]["energy_per_symbol_fJ"] == pytest.approx(3.65 / 4, abs=0.005)
+    assert "not an analog" in p["notes"]

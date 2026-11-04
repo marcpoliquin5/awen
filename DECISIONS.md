@@ -155,3 +155,14 @@ Rejected: a single low/typical/high DAC value (the designs differ in bits, rate,
 imply an interpolation the data does not support), and DAC figures from vendor datasheets (vendor claims, lower
 evidence than measured peer-reviewed chips). Reversible: a new registration.
 
+## D-028 · AWEN-Photon energy-per-token accounting with a published measured modulator (E-027)
+Decided by: agent, 2026-11-04 (registered before any run).
+`modulator.energy_per_symbol` stays null; one measured peer-reviewed silicon microdisk modulator (timurdogan2014) is
+added as two separate points in `modulator.published_designs` (0.91 fJ per NRZ bit and 3.65 fJ per full-swing
+transition, both from the paper's TDR measurement), and E-027 reads them for the modulator term, driven once per input
+DAC conversion, one contribution per point. E-025 and E-026 stay reproducible as their registrations.
+See `research/experiments/awen-photon-energy-accounting-modulator/PREREGISTRATION.md`.
+Rejected: a thin-film lithium niobate MZM figure from the existing `wang2018` source (it reports drive voltage and
+bandwidth, not a measured energy per symbol, so an energy would be an AWEN derivation with an assumed load), a single
+low/typical/high modulator value (one device, two bases, binary only), and including driver energy from other papers
+(a different device and setup). Reversible: a new registration.

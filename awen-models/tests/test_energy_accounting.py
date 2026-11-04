@@ -13,6 +13,7 @@ from awen_models.energy_accounting import (  # noqa: E402
     REQUIRED,
     TERMS,
     TERMS_E026,
+    TERMS_E027,
     account,
     check,
     find_assumptions,
@@ -134,3 +135,32 @@ def test_cli_registration_flag(tmp_path):
     assert main(["--counts", str(counts), "--assumptions", str(ASSUMPTIONS), "--registration", "e026",
                  "--out", str(out)]) == 0
     assert json.loads(out.read_text())["accounting"] == "awen.energy-per-token-accounting.v2"
+
+
+def test_e027_modulator_term_uses_each_published_point(doc):
+    result = run(COUNTS, doc, "e027")
+    assert result["accounting"] == "awen.energy-per-token-accounting.v3" and result["verdict"] == "pass"
+    point = result["points"][0]
+    mod = rows(point)["modulator"]
+    pts = doc["parameters"]["modulator"]["published_designs"]["points"]
+    assert mod["parameter"] == "modulator.published_designs" and mod["count"] == "dac_input"
+    assert mod["source_type"] == "measured" and "not the energy of an analog" in mod["caveat"]
+    assert [(d["source"], d["basis"]) for d in mod["designs"]] == [(p["source"], p["basis"]) for p in pts]
+    for d, p in zip(mod["designs"], pts):
+        assert d["unit"] == "fJ" and d["per_token_J"] == pytest.approx(10.0 * p["energy_per_symbol_fJ"] * 1e-15)
+    assert "modulator" not in point["not_sourced"] and len(point["not_sourced"]) == 6
+    assert point["total_J"] is None
+
+
+def test_e027_changes_only_the_modulator_term_from_e026(doc):
+    assert {t for t in TERMS if TERMS_E026[t] != TERMS_E027[t]} == {"modulator"}
+    e026, e027 = run(COUNTS, doc, "e026"), run(COUNTS, doc, "e027")
+    for term in set(TERMS) - {"modulator"}:
+        assert rows(e026["points"][0])[term] == rows(e027["points"][0])[term], term
+    assert rows(e026["points"][0])["modulator"]["status"] == NOT_SOURCED
+
+
+def test_e027_check_catches_a_tampered_modulator_point(doc):
+    point = account(doc, POINT, TERMS_E027)
+    rows(point)["modulator"]["designs"][1]["per_token_J"] *= 3
+    assert any(f.startswith("modulator") for f in check(point))
