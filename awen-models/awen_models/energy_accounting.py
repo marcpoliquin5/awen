@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025, E-026, E-027).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-028).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -8,6 +8,9 @@
 terms read ``dac.published_designs`` (each published design separately, never interpolated). The
 default, ``e025``, is unchanged, so the stored E-025 run still reproduces. ``--registration e027`` is E-026
 plus the modulator term read from ``modulator.published_designs`` (one contribution per published point).
+``--registration e028`` is E-027 plus a counted host-transfer byte figure: every input DAC code, weight DAC code
+and ADC read crosses the host boundary once (the simulator accumulates partial sums on the host), packed at 1 or
+2 bytes per code. The energy per byte stays "not sourced" while ``system.host_transfer_energy`` is null.
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -60,8 +63,19 @@ TERMS_E027: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E026,
     "modulator": ("dac_input", "modulator.published_designs", "points"),
 }
+# E-028: host transfer counts bytes per token from the conversion counts (D-029); energy per byte still needed.
+TERMS_E028: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E027,
+    "host_transfer": ("total", "system.host_transfer_energy", "per_byte_counted"),
+}
+# Bytes per code crossing the host boundary: 1 for codes of up to 8 bits, 2 for 9 to 16 bits (packing, not a device).
+HOST_CODE_BYTES = (1, 2)
+HOST_BYTE_RULE = ("one code per input DAC conversion, weight DAC conversion and ADC read crosses the host boundary "
+                  "once (weights programmed once per call, partial sums accumulated on the host), packed at "
+                  "1 or 2 bytes per code; no headers, framing, compression or protocol overhead")
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
-                 "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3")}
+                 "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
+                 "e028": (TERMS_E028, "awen.energy-per-token-accounting.v4")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -115,6 +129,19 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
         return {**row, "status": NOT_SOURCED,
                 "reason": "bytes moved per token are not counted"
                 + ("" if entry.get("typical") is not None else "; value is null")}
+    if rule == "per_byte_counted":
+        codes = sum(per_token[key] for key in ("dac_input", "dac_weight", "adc"))
+        counted = {**row, "count_per_token": codes, "byte_rule": HOST_BYTE_RULE,
+                   "bytes_per_token": {str(width): codes * width for width in HOST_CODE_BYTES}}
+        value, source = entry.get("typical"), entry.get("source")
+        if value is None or not source:
+            return {**counted, "status": NOT_SOURCED,
+                    "reason": "bytes per token counted; energy per byte is null (no checked source)"}
+        unit = entry["unit"].removesuffix("/byte")
+        values = {str(width): {"bytes_per_token": codes * width, "value": value, "unit": unit,
+                               "per_token_J": codes * width * value * _J_PER_UNIT[unit]} for width in HOST_CODE_BYTES}
+        return {**counted, "status": "sourced (per packing width)", "source": source,
+                "source_type": _label(doc, entry, source), "values": values}
     if rule == "per_event":
         value, source = entry.get("typical"), entry.get("source")
         if value is None or not source:
@@ -152,10 +179,17 @@ def check(point: Mapping[str, Any]) -> list[str]:
         contributions = ([(row["value"], row["unit"], row["per_token_J"])] if "per_token_J" in row else []) + [
             (d["value"], d["unit"], d["per_token_J"]) for d in row.get("designs", [])] + [
             (v["value"], v["unit"], v["per_token_J"]) for v in row.get("values", {}).values()]
+        if "bytes_per_token" in row:
+            if any(row["bytes_per_token"][str(w)] != count * w for w in HOST_CODE_BYTES):
+                failures.append(f"{row['term']}: bytes do not equal codes x bytes per code")
+            contributions = []  # host-transfer values are per byte; checked here
+            for v in row.get("values", {}).values():
+                if abs(v["bytes_per_token"] * v["value"] * _J_PER_UNIT[v["unit"]] - v["per_token_J"]) > 1e-12 * abs(v["per_token_J"]):
+                    failures.append(f"{row['term']}: contribution does not recompute")
         for value, unit, joules in contributions:
             if abs(count * value * _J_PER_UNIT[unit] - joules) > 1e-12 * abs(joules):
                 failures.append(f"{row['term']}: contribution does not recompute")
-        if row["status"] == NOT_SOURCED and contributions:
+        if row["status"] == NOT_SOURCED and (contributions or row.get("values")):
             failures.append(f"{row['term']}: not sourced but has a contribution")
     if point["not_sourced"] and point["total_J"] is not None:
         failures.append("total emitted while terms are not sourced")
@@ -181,7 +215,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--assumptions", default=None, help="path to awen-spec/hardware_assumptions.yaml")
     parser.add_argument("--registration", choices=sorted(REGISTRATIONS), default="e025",
                         help="term set: e025 (default, unchanged), e026 (DAC from published designs) "
-                             "or e027 (e026 plus the modulator from published points)")
+                             "e027 (e026 plus the modulator from published points) "
+                             "or e028 (e027 plus host-transfer bytes counted per token)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
