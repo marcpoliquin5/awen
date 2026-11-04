@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025, E-026).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025, E-026, E-027).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -6,7 +6,8 @@
 
 ``--registration e026`` selects the E-026 terms: the same as E-025 except that the input and weight DAC
 terms read ``dac.published_designs`` (each published design separately, never interpolated). The
-default, ``e025``, is unchanged, so the stored E-025 run still reproduces.
+default, ``e025``, is unchanged, so the stored E-025 run still reproduces. ``--registration e027`` is E-026
+plus the modulator term read from ``modulator.published_designs`` (one contribution per published point).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -54,12 +55,20 @@ TERMS_E026: dict[str, tuple[Optional[str], Optional[str], str]] = {
     "dac_input": ("dac_input", "dac.published_designs", "points"),
     "dac_weight": ("dac_weight", "dac.published_designs", "points"),
 }
-REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2")}
+# E-027: the modulator term reads the measured published modulator points (D-028).
+TERMS_E027: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E026,
+    "modulator": ("dac_input", "modulator.published_designs", "points"),
+}
+REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
+                 "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
     "dac_weight": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
+    "modulator": "one binary on-off-keyed modulator without its driver; not the energy of an analog photonic input symbol",
 }
+_POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"))
 REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
             "memory_movement", "host_transfer")
 
@@ -82,10 +91,11 @@ def _label(doc: Mapping[str, Any], entry: Mapping[str, Any], source: str) -> str
 
 
 def _design(point: Mapping[str, Any], count: float) -> dict[str, Any]:
-    bits = {k: point[k] for k in ("enob_bits", "resolution_bits") if k in point}
-    return {"source": point["source"], **bits, "value": point["energy_per_conversion_pJ"], "unit": "pJ",
+    extra = {k: point[k] for k in ("enob_bits", "resolution_bits", "basis") if k in point}
+    key, unit = next((k, u) for k, u in _POINT_VALUE_KEYS if k in point)
+    return {"source": point["source"], **extra, "value": point[key], "unit": unit,
             "derivation": point["derivation"],
-            "per_token_J": count * point["energy_per_conversion_pJ"] * _J_PER_UNIT["pJ"]}
+            "per_token_J": count * point[key] * _J_PER_UNIT[unit]}
 
 
 def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
@@ -170,7 +180,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--counts", required=True, help="stored E-024 results.json")
     parser.add_argument("--assumptions", default=None, help="path to awen-spec/hardware_assumptions.yaml")
     parser.add_argument("--registration", choices=sorted(REGISTRATIONS), default="e025",
-                        help="term set: e025 (default, unchanged) or e026 (DAC from published designs)")
+                        help="term set: e025 (default, unchanged), e026 (DAC from published designs) "
+                             "or e027 (e026 plus the modulator from published points)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
