@@ -166,3 +166,14 @@ Rejected: a thin-film lithium niobate MZM figure from the existing `wang2018` so
 bandwidth, not a measured energy per symbol, so an energy would be an AWEN derivation with an assumed load), a single
 low/typical/high modulator value (one device, two bases, binary only), and including driver energy from other papers
 (a different device and setup). Reversible: a new registration.
+
+## D-029 · Host-transfer bytes per token counted from the conversion counts (E-028)
+Decided by: agent, 2026-11-04 (registered before any run).
+The host-transfer term now counts bytes per token: one code per input DAC conversion, weight DAC conversion and ADC
+read crosses the host boundary once, packed at 1 or 2 bytes per code, reported separately. `system.host_transfer_energy`
+stays null, so the term stays "not sourced" for energy and there is still no total. E-025 to E-027 stay reproducible
+as their registrations. See `research/experiments/awen-photon-host-transfer-bytes/PREREGISTRATION.md`.
+Rejected: filling a host-link energy per byte without a checked source; counting the simulator's float64 NumPy
+buffers (an artifact of the simulator, not a device interface); counting memory movement in the same step (needs a
+memory model of where weights and activations live, a separate concern). Reversible: a new registration.
+

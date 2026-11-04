@@ -164,3 +164,48 @@ def test_e027_check_catches_a_tampered_modulator_point(doc):
     point = account(doc, POINT, TERMS_E027)
     rows(point)["modulator"]["designs"][1]["per_token_J"] *= 3
     assert any(f.startswith("modulator") for f in check(point))
+
+
+def test_e028_counts_host_transfer_bytes_and_keeps_energy_not_sourced(doc):
+    from awen_models.energy_accounting import HOST_CODE_BYTES, TERMS_E028
+
+    host = rows(account(doc, POINT, TERMS_E028))["host_transfer"]
+    assert host["count_per_token"] == 114.0  # 10 input + 100 weight + 4 ADC codes per token
+    assert host["bytes_per_token"] == {str(w): 114.0 * w for w in HOST_CODE_BYTES} == {"1": 114.0, "2": 228.0}
+    assert host["status"] == NOT_SOURCED and "values" not in host and "per_token_J" not in host
+    assert check(account(doc, POINT, TERMS_E028)) == []
+
+
+def test_e028_changes_only_the_host_transfer_term_from_e027(doc):
+    from awen_models.energy_accounting import TERMS_E028
+
+    a, b = rows(account(doc, POINT, TERMS_E027)), rows(account(doc, POINT, TERMS_E028))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["host_transfer"]
+    assert run(COUNTS, doc, "e028")["verdict"] == "pass"
+    assert run(COUNTS, doc, "e028")["accounting"] == "awen.energy-per-token-accounting.v4"
+
+
+def test_e028_uses_a_sourced_energy_per_byte_per_packing_width(doc):
+    from awen_models.energy_accounting import TERMS_E028
+
+    sourced = copy.deepcopy(doc)
+    sourced["parameters"]["system"]["host_transfer_energy"].update(typical=5.0, source="hua2025")
+    host = rows(account(sourced, POINT, TERMS_E028))["host_transfer"]
+    assert host["status"].startswith("sourced")
+    assert host["values"]["1"]["per_token_J"] == pytest.approx(114.0 * 5.0e-12)
+    assert host["values"]["2"]["per_token_J"] == pytest.approx(228.0 * 5.0e-12)
+    assert check(account(sourced, POINT, TERMS_E028)) == []
+
+
+def test_e028_check_catches_tampered_bytes_and_hidden_values(doc):
+    from awen_models.energy_accounting import TERMS_E028
+
+    point = account(doc, POINT, TERMS_E028)
+    bad = copy.deepcopy(point)
+    rows(bad)["host_transfer"]["bytes_per_token"]["2"] = 200.0
+    assert any("bytes do not equal" in f for f in check(bad))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["host_transfer"]["values"] = {"1": {"bytes_per_token": 114.0, "value": 1.0, "unit": "pJ",
+                                                     "per_token_J": 114.0e-12}}
+    assert any("not sourced but has a contribution" in f for f in check(hidden))
