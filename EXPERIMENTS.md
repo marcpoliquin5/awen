@@ -51,3 +51,4 @@ exists (merged in #126 and #130) and `awen-compiler` can apply it opt-in (#134, 
 still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml` (213 entries: 145 in `awen-compiler`, 66 in `awen-runtime`, 2 in awen-mlir, none in `awen-native`, checked in CI;
 the Python packages not yet).
 Session 2026-11-03-02 registered E-025 without running it.
+Session 2026-11-04-04 registered E-028 (#237) without running it.
