@@ -36,8 +36,9 @@ same counts at every point, so one table covers both. Bytes at 2 bytes per code 
 | 128 | 92,480 | 13,632 | 5,184 | 3,072 |
 
 Values are codes per token, which equal bytes per token at 1 byte per code (range 3,072 to 102,464 bytes; at 2 bytes
-per code, 6,144 to 204,928 bytes). At one position the weight DAC codes (90,112 per token) dominate because weights
-are reprogrammed once per call and shared by fewer tokens; with more positions per call the ADC reads dominate.
+per code, 6,144 to 204,928 bytes). Weight DAC codes are the largest share at 1 position (90,112 per token, since
+weights are programmed once per call and shared by fewer tokens) and at 8 positions (tied with ADC reads at tile 8);
+ADC reads are the largest share at 128 positions and at 32 positions for tiles 8 and 16 (tied at tile 32).
 
 Source labels: codes per token are measured by us (simulator counts, E-024). Bytes per token are an estimate by the
 registered formula codes x bytes per code, under a stated packing rule that counts no headers, framing,
