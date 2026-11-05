@@ -177,3 +177,14 @@ Rejected: filling a host-link energy per byte without a checked source; counting
 buffers (an artifact of the simulator, not a device interface); counting memory movement in the same step (needs a
 memory model of where weights and activations live, a separate concern). Reversible: a new registration.
 
+## D-030 · Memory-movement bytes per token counted under two placements (E-029)
+Decided by: agent, 2026-11-05 (registered before any run).
+The memory-movement term now counts host-memory bytes per token for the lowered GEMMs under two placements reported
+side by side: weights streamed from host memory every compiled call, and weights resident on the device after
+programming. Inputs are read once and ADC reads written once in both, at 1 or 2 bytes per element. The assumption
+set gets no memory parameter, so the term stays "not sourced" for energy and there is still no total. E-025 to E-028
+stay reproducible as their registrations. See `research/experiments/awen-photon-memory-movement-bytes/PREREGISTRATION.md`.
+Rejected: picking one placement as the default (a design choice with hardware consequences, not settled by the
+simulator); counting host-side ops, KV cache or accumulator re-reads (needs a model of the host graph, a separate
+concern); filling a DRAM energy per byte without a checked source. Reversible: a new registration.
+

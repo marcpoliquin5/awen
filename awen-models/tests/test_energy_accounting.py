@@ -209,3 +209,48 @@ def test_e028_check_catches_tampered_bytes_and_hidden_values(doc):
     rows(hidden)["host_transfer"]["values"] = {"1": {"bytes_per_token": 114.0, "value": 1.0, "unit": "pJ",
                                                      "per_token_J": 114.0e-12}}
     assert any("not sourced but has a contribution" in f for f in check(hidden))
+
+
+def test_e029_counts_memory_bytes_per_placement_and_keeps_energy_not_sourced(doc):
+    from awen_models.energy_accounting import TERMS_E029
+
+    mem = rows(account(doc, POINT, TERMS_E029))["memory_movement"]
+    assert mem["status"] == NOT_SOURCED and mem["parameter"] is None and "per_token_J" not in mem
+    streamed, resident = mem["placements"]["weights_streamed"], mem["placements"]["weights_resident"]
+    assert (streamed["read_elements"], streamed["write_elements"]) == (110.0, 4.0)  # 10 input + 100 weight, 4 ADC
+    assert streamed["bytes_per_token"] == {"1": 114.0, "2": 228.0}
+    assert (resident["read_elements"], resident["write_elements"]) == (10.0, 4.0)  # weights never re-read
+    assert resident["bytes_per_token"] == {"1": 14.0, "2": 28.0}
+    assert check(account(doc, POINT, TERMS_E029)) == []
+
+
+def test_e029_changes_only_the_memory_term_from_e028_and_old_registrations_are_unchanged(doc):
+    from awen_models.energy_accounting import TERMS_E028, TERMS_E029
+
+    a, b = rows(account(doc, POINT, TERMS_E028)), rows(account(doc, POINT, TERMS_E029))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["memory_movement"]
+    assert a["memory_movement"]["reason"] == "no parameter in the assumption set"
+    result = run(COUNTS, doc, "e029")
+    assert result["verdict"] == "pass" and result["accounting"] == "awen.energy-per-token-accounting.v5"
+    assert result["points"][0]["total_J"] is None
+    assert run(COUNTS, doc, "e028")["accounting"] == "awen.energy-per-token-accounting.v4"
+
+
+def test_e029_check_catches_tampered_counts_bytes_and_hidden_energy(doc):
+    from awen_models.energy_accounting import TERMS_E029
+
+    point = account(doc, POINT, TERMS_E029)
+    elements = copy.deepcopy(point)
+    rows(elements)["memory_movement"]["placements"]["weights_resident"]["read_elements"] = 110.0
+    assert any("elements do not recompute" in f for f in check(elements))
+    size = copy.deepcopy(point)
+    rows(size)["memory_movement"]["placements"]["weights_streamed"]["bytes_per_token"]["2"] = 200.0
+    assert any("bytes do not equal" in f for f in check(size))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["memory_movement"]["placements"]["weights_streamed"]["per_token_J"] = 1e-9
+    assert any("unregistered field" in f for f in check(hidden))
+    dropped = copy.deepcopy(point)
+    del rows(dropped)["memory_movement"]["placements"]["weights_resident"]
+    assert any("elements do not recompute" in f for f in check(dropped))
+    assert any("registered two" in f for f in check(dropped))
