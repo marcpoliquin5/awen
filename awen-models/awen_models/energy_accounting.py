@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-028).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-029).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -11,6 +11,9 @@ plus the modulator term read from ``modulator.published_designs`` (one contribut
 ``--registration e028`` is E-027 plus a counted host-transfer byte figure: every input DAC code, weight DAC code
 and ADC read crosses the host boundary once (the simulator accumulates partial sums on the host), packed at 1 or
 2 bytes per code. The energy per byte stays "not sourced" while ``system.host_transfer_energy`` is null.
+``--registration e029`` is E-028 plus a counted memory-movement figure for the lowered GEMMs under two stated
+placements, reported separately: weights streamed from host memory every compiled call, and weights resident on
+the device after programming. The term stays "not sourced": the assumption set has no memory energy per byte.
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -73,9 +76,24 @@ HOST_CODE_BYTES = (1, 2)
 HOST_BYTE_RULE = ("one code per input DAC conversion, weight DAC conversion and ADC read crosses the host boundary "
                   "once (weights programmed once per call, partial sums accumulated on the host), packed at "
                   "1 or 2 bytes per code; no headers, framing, compression or protocol overhead")
+# E-029: memory movement counts host-memory bytes per token under two placements (D-030); no energy parameter.
+TERMS_E029: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E028,
+    "memory_movement": ("total", None, "memory_counted"),
+}
+# placement -> per-token count keys read from host memory, and written to host memory (lowered GEMMs only).
+MEMORY_PLACEMENTS = {
+    "weights_streamed": (("dac_input", "dac_weight"), ("adc",)),
+    "weights_resident": (("dac_input",), ("adc",)),
+}
+MEMORY_RULE = ("lowered GEMMs only: every input element sent to an input DAC is read from host memory once and every "
+               "ADC read is written to host memory once; weights are either read once per compiled call "
+               "(weights_streamed) or held on the device after programming and never re-read (weights_resident); "
+               "1 or 2 bytes per element; host-side ops, accumulator re-reads, KV cache and caches are not counted")
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
-                 "e028": (TERMS_E028, "awen.energy-per-token-accounting.v4")}
+                 "e028": (TERMS_E028, "awen.energy-per-token-accounting.v4"),
+                 "e029": (TERMS_E029, "awen.energy-per-token-accounting.v5")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -118,6 +136,14 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
     count_key, path, rule = terms[term]
     row: dict[str, Any] = {"term": term, "parameter": path, "count": count_key,
                            "count_per_token": per_token[count_key] if count_key else None}
+    if rule == "memory_counted":
+        placements = {}
+        for name, (reads, writes) in MEMORY_PLACEMENTS.items():
+            read, write = sum(per_token[k] for k in reads), sum(per_token[k] for k in writes)
+            placements[name] = {"read_elements": read, "write_elements": write,
+                                "bytes_per_token": {str(w): (read + write) * w for w in HOST_CODE_BYTES}}
+        return {**row, "memory_rule": MEMORY_RULE, "placements": placements, "status": NOT_SOURCED,
+                "reason": "bytes per token counted per placement; no memory energy-per-byte parameter in the assumption set"}
     if rule == "absent":
         return {**row, "status": NOT_SOURCED, "reason": "no parameter in the assumption set"}
     entry = _entry(doc, path)
@@ -186,6 +212,19 @@ def check(point: Mapping[str, Any]) -> list[str]:
             for v in row.get("values", {}).values():
                 if abs(v["bytes_per_token"] * v["value"] * _J_PER_UNIT[v["unit"]] - v["per_token_J"]) > 1e-12 * abs(v["per_token_J"]):
                     failures.append(f"{row['term']}: contribution does not recompute")
+        if "placements" in row:
+            counts = point["per_token_counts"]
+            for name, (reads, writes) in MEMORY_PLACEMENTS.items():
+                got = row["placements"].get(name, {})
+                read, write = sum(counts[k] for k in reads), sum(counts[k] for k in writes)
+                if (got.get("read_elements"), got.get("write_elements")) != (read, write):
+                    failures.append(f"{row['term']}: {name} elements do not recompute")
+                elif got.get("bytes_per_token") != {str(w): (read + write) * w for w in HOST_CODE_BYTES}:
+                    failures.append(f"{row['term']}: {name} bytes do not equal elements x bytes per element")
+                if any(k for k in got if k not in ("read_elements", "write_elements", "bytes_per_token")):
+                    failures.append(f"{row['term']}: {name} carries an unregistered field")
+            if set(row["placements"]) != set(MEMORY_PLACEMENTS):
+                failures.append(f"{row['term']}: placements are not the registered two")
         for value, unit, joules in contributions:
             if abs(count * value * _J_PER_UNIT[unit] - joules) > 1e-12 * abs(joules):
                 failures.append(f"{row['term']}: contribution does not recompute")
@@ -216,7 +255,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--registration", choices=sorted(REGISTRATIONS), default="e025",
                         help="term set: e025 (default, unchanged), e026 (DAC from published designs) "
                              "e027 (e026 plus the modulator from published points) "
-                             "or e028 (e027 plus host-transfer bytes counted per token)")
+                             "e028 (e027 plus host-transfer bytes counted per token) "
+                             "or e029 (e028 plus memory-movement bytes counted per placement)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
