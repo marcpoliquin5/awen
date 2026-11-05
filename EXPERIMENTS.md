@@ -52,3 +52,4 @@ still hard-codes instead are listed in `awen-spec/hardcoded_device_defaults.yaml
 the Python packages not yet).
 Session 2026-11-03-02 registered E-025 without running it.
 Session 2026-11-04-04 registered E-028 (#237) without running it.
+Session 2026-11-05-01 ran E-028 (#239): pass, host-transfer energy still not sourced.
