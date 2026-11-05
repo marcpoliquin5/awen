@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-029).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-030).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -13,7 +13,9 @@ and ADC read crosses the host boundary once (the simulator accumulates partial s
 2 bytes per code. The energy per byte stays "not sourced" while ``system.host_transfer_energy`` is null.
 ``--registration e029`` is E-028 plus a counted memory-movement figure for the lowered GEMMs under two stated
 placements, reported separately: weights streamed from host memory every compiled call, and weights resident on
-the device after programming. The term stays "not sourced": the assumption set has no memory energy per byte.
+the device after programming. Under e029 the energy stays "not sourced" (no memory energy applied).
+``--registration e030`` is E-029 plus the memory-movement energy read from ``memory.published_designs`` (one
+contribution per published point, per placement and byte width; bits-per-byte conversion is 8).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -90,16 +92,25 @@ MEMORY_RULE = ("lowered GEMMs only: every input element sent to an input DAC is 
                "ADC read is written to host memory once; weights are either read once per compiled call "
                "(weights_streamed) or held on the device after programming and never re-read (weights_resident); "
                "1 or 2 bytes per element; host-side ops, accumulator re-reads, KV cache and caches are not counted")
+# E-030: memory movement energy from published designs (D-031); E-029 stays reproducible without energy.
+TERMS_E030: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E029,
+    "memory_movement": ("total", "memory.published_designs", "memory_points"),
+}
+BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
                  "e028": (TERMS_E028, "awen.energy-per-token-accounting.v4"),
-                 "e029": (TERMS_E029, "awen.energy-per-token-accounting.v5")}
+                 "e029": (TERMS_E029, "awen.energy-per-token-accounting.v5"),
+                 "e030": (TERMS_E030, "awen.energy-per-token-accounting.v6")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
     "dac_weight": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
     "modulator": "one binary on-off-keyed modulator without its driver; not the energy of an analog photonic input symbol",
+    "memory_movement": "HBM2 access energy (reads); approximate; not a host-link figure; write energy not separately reported",
 }
+_BIT_VALUE_KEYS = (("energy_per_bit_pJ", "pJ"),)
 _POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"))
 REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
             "memory_movement", "host_transfer")
@@ -136,14 +147,31 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
     count_key, path, rule = terms[term]
     row: dict[str, Any] = {"term": term, "parameter": path, "count": count_key,
                            "count_per_token": per_token[count_key] if count_key else None}
-    if rule == "memory_counted":
+    if rule in ("memory_counted", "memory_points"):
         placements = {}
         for name, (reads, writes) in MEMORY_PLACEMENTS.items():
             read, write = sum(per_token[k] for k in reads), sum(per_token[k] for k in writes)
             placements[name] = {"read_elements": read, "write_elements": write,
                                 "bytes_per_token": {str(w): (read + write) * w for w in HOST_CODE_BYTES}}
-        return {**row, "memory_rule": MEMORY_RULE, "placements": placements, "status": NOT_SOURCED,
-                "reason": "bytes per token counted per placement; no memory energy-per-byte parameter in the assumption set"}
+        counted = {**row, "memory_rule": MEMORY_RULE, "placements": placements}
+        if rule == "memory_counted":
+            return {**counted, "status": NOT_SOURCED,
+                    "reason": "bytes per token counted per placement; energy not applied under this registration"}
+        entry = _entry(doc, path)
+        designs = []
+        for point in entry["points"]:
+            key, unit = next((k, u) for k, u in _BIT_VALUE_KEYS if k in point)
+            by_placement = {
+                name: {str(w): placements[name]["bytes_per_token"][str(w)] * BITS_PER_BYTE
+                       * point[key] * _J_PER_UNIT[unit] for w in HOST_CODE_BYTES}
+                for name in placements
+            }
+            extra = {k: point[k] for k in ("technology", "basis") if k in point}
+            designs.append({"source": point["source"], **extra, "value": point[key], "unit": unit,
+                            "derivation": point["derivation"], "bits_per_byte": BITS_PER_BYTE,
+                            "per_token_J_by_placement": by_placement})
+        return {**counted, "parameter": path, "status": "sourced (per published design and placement, not interpolated)",
+                "source_type": entry["source_type"], "designs": designs, "caveat": CAVEATS[term]}
     if rule == "absent":
         return {**row, "status": NOT_SOURCED, "reason": "no parameter in the assumption set"}
     entry = _entry(doc, path)
@@ -203,7 +231,8 @@ def check(point: Mapping[str, Any]) -> list[str]:
     for row in point["terms"]:
         count = row["count_per_token"]
         contributions = ([(row["value"], row["unit"], row["per_token_J"])] if "per_token_J" in row else []) + [
-            (d["value"], d["unit"], d["per_token_J"]) for d in row.get("designs", [])] + [
+            (d["value"], d["unit"], d["per_token_J"]) for d in row.get("designs", [])
+            if "per_token_J" in d] + [
             (v["value"], v["unit"], v["per_token_J"]) for v in row.get("values", {}).values()]
         if "bytes_per_token" in row:
             if any(row["bytes_per_token"][str(w)] != count * w for w in HOST_CODE_BYTES):
@@ -225,10 +254,23 @@ def check(point: Mapping[str, Any]) -> list[str]:
                     failures.append(f"{row['term']}: {name} carries an unregistered field")
             if set(row["placements"]) != set(MEMORY_PLACEMENTS):
                 failures.append(f"{row['term']}: placements are not the registered two")
+            for design in row.get("designs", []):
+                by = design.get("per_token_J_by_placement", {})
+                if set(by) != set(MEMORY_PLACEMENTS):
+                    failures.append(f"{row['term']}: design placements are not the registered two")
+                bits = design.get("bits_per_byte", BITS_PER_BYTE)
+                for name, widths in by.items():
+                    for w, joules in widths.items():
+                        expected = row["placements"][name]["bytes_per_token"][w] * bits * design["value"] * _J_PER_UNIT[design["unit"]]
+                        if abs(expected - joules) > 1e-12 * abs(joules or expected or 1.0):
+                            failures.append(f"{row['term']}: {name}@{w} contribution does not recompute")
+            # memory designs are checked above; drop them from the generic count*value check
+            if row.get("designs") and any("per_token_J_by_placement" in d for d in row["designs"]):
+                contributions = []
         for value, unit, joules in contributions:
             if abs(count * value * _J_PER_UNIT[unit] - joules) > 1e-12 * abs(joules):
                 failures.append(f"{row['term']}: contribution does not recompute")
-        if row["status"] == NOT_SOURCED and (contributions or row.get("values")):
+        if row["status"] == NOT_SOURCED and (contributions or row.get("values") or row.get("designs")):
             failures.append(f"{row['term']}: not sourced but has a contribution")
     if point["not_sourced"] and point["total_J"] is not None:
         failures.append("total emitted while terms are not sourced")
@@ -256,7 +298,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="term set: e025 (default, unchanged), e026 (DAC from published designs) "
                              "e027 (e026 plus the modulator from published points) "
                              "e028 (e027 plus host-transfer bytes counted per token) "
-                             "or e029 (e028 plus memory-movement bytes counted per placement)")
+                             "e029 (e028 plus memory-movement bytes counted per placement) "
+                             "or e030 (e029 plus memory energy from published designs)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())

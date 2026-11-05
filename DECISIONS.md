@@ -188,3 +188,15 @@ Rejected: picking one placement as the default (a design choice with hardware co
 simulator); counting host-side ops, KV cache or accumulator re-reads (needs a model of the host graph, a separate
 concern); filling a DRAM energy per byte without a checked source. Reversible: a new registration.
 
+
+## D-031 · Memory-movement energy from a published HBM2 access point (E-030)
+Decided by: agent, 2026-11-05 (registered before any run).
+`memory.published_designs` adds one peer-reviewed HBM2 access-energy point (O'Connor et al., MICRO-50 2017,
+doi:10.1145/3123939.3124545: approximately 3.97 pJ/bit, Section 1 / Fig. 1b), and E-030 reads it for the
+memory-movement term on top of the E-029 byte counts: energy = bytes x 8 bits/byte x energy_per_bit, reported per
+published point, per placement and per byte width. `system.host_transfer_energy` stays null (no fitted host-link-only
+source). E-025 to E-029 stay reproducible as their registrations; e029 still does not apply memory energy. See
+`research/experiments/awen-photon-memory-energy/PREREGISTRATION.md`.
+Rejected: filling host-transfer energy from a PCIe PHY-only or mixed host+device figure; treating the HBM2 number as
+a host-link or photonic-memory claim; inventing low/typical/high without a source; running E-030 in the same slice as
+registration. Reversible: a new registration.

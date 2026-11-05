@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 37
+    assert len(ALL_PARAMS) == 39
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -128,3 +128,17 @@ def test_modulator_points_are_measured_and_energy_per_symbol_stays_null():
     # The paper's per-bit figure is switching energy / 4 (equiprobable NRZ transitions).
     assert by["per_bit_nrz_ook"]["energy_per_symbol_fJ"] == pytest.approx(3.65 / 4, abs=0.005)
     assert "not an analog" in p["notes"]
+
+
+def test_memory_hbm2_point_matches_oconnor2017_quote():
+    mem = DATA["parameters"]["memory"]
+    assert mem["access_energy_per_bit"]["typical"] is None, "no single memory value; points stay separate"
+    p = mem["published_designs"]
+    assert p["kind"] == "points" and not {"low", "typical", "high"} & set(p) and p["unit"] == "pJ/bit"
+    assert p["source_type"] == "measured" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"oconnor2017"}
+    pt = p["points"][0]
+    assert pt["technology"] == "HBM2" and pt["basis"] == "access_per_bit"
+    assert pt["energy_per_bit_pJ"] == 3.97
+    assert "3.97 pJ/bit" in pt["derivation"]
+    assert DATA["sources"]["oconnor2017"]["doi"] == "10.1145/3123939.3124545"
+    assert DATA["parameters"]["system"]["host_transfer_energy"]["typical"] is None
