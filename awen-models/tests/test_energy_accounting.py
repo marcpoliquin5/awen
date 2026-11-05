@@ -254,3 +254,55 @@ def test_e029_check_catches_tampered_counts_bytes_and_hidden_energy(doc):
     del rows(dropped)["memory_movement"]["placements"]["weights_resident"]
     assert any("elements do not recompute" in f for f in check(dropped))
     assert any("registered two" in f for f in check(dropped))
+
+
+def test_e030_applies_published_memory_energy_per_placement(doc):
+    from awen_models.energy_accounting import BITS_PER_BYTE, TERMS_E030
+
+    mem = rows(account(doc, POINT, TERMS_E030))["memory_movement"]
+    assert mem["status"].startswith("sourced") and mem["parameter"] == "memory.published_designs"
+    assert mem["source_type"] == "measured"
+    pts = doc["parameters"]["memory"]["published_designs"]["points"]
+    assert len(mem["designs"]) == len(pts) == 1
+    design = mem["designs"][0]
+    assert design["source"] == "oconnor2017" and design["value"] == 3.97 and design["unit"] == "pJ"
+    assert design["bits_per_byte"] == BITS_PER_BYTE == 8
+    streamed = mem["placements"]["weights_streamed"]["bytes_per_token"]
+    resident = mem["placements"]["weights_resident"]["bytes_per_token"]
+    assert design["per_token_J_by_placement"]["weights_streamed"]["1"] == pytest.approx(
+        streamed["1"] * 8 * 3.97e-12)
+    assert design["per_token_J_by_placement"]["weights_resident"]["2"] == pytest.approx(
+        resident["2"] * 8 * 3.97e-12)
+    assert check(account(doc, POINT, TERMS_E030)) == []
+
+
+def test_e030_changes_only_the_memory_term_from_e029_and_old_registrations_are_unchanged(doc):
+    from awen_models.energy_accounting import TERMS_E029, TERMS_E030
+
+    a, b = rows(account(doc, POINT, TERMS_E029)), rows(account(doc, POINT, TERMS_E030))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["memory_movement"]
+    assert a["memory_movement"]["status"] == NOT_SOURCED
+    assert "designs" not in a["memory_movement"]
+    result = run(COUNTS, doc, "e030")
+    assert result["verdict"] == "pass" and result["accounting"] == "awen.energy-per-token-accounting.v6"
+    assert result["points"][0]["total_J"] is None
+    assert set(result["points"][0]["not_sourced"]) == {
+        "laser", "weight_hold", "control_electronics", "thermal_stabilization", "host_transfer"}
+    assert run(COUNTS, doc, "e029")["accounting"] == "awen.energy-per-token-accounting.v5"
+
+
+def test_e030_check_catches_tampered_energy_and_rejects_hidden_total(doc):
+    from awen_models.energy_accounting import TERMS_E030
+
+    point = account(doc, POINT, TERMS_E030)
+    bad = copy.deepcopy(point)
+    rows(bad)["memory_movement"]["designs"][0]["per_token_J_by_placement"]["weights_streamed"]["1"] = 1e-6
+    assert any("contribution does not recompute" in f for f in check(bad))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["memory_movement"]["status"] = NOT_SOURCED
+    assert any("not sourced but has a contribution" in f for f in check(hidden))
+    total = copy.deepcopy(point)
+    total["not_sourced"] = ["laser"]
+    total["total_J"] = 1e-9
+    assert any("total emitted" in f for f in check(total))

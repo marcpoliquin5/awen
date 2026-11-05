@@ -61,6 +61,12 @@ sources:
     doi: 10.1038/ncomms5008
     type: measured
     note: "checked 2026-11-04 on Crossref and the open-access article; 3.65 fJ switching energy and 0.91 fJ per bit measured by time-domain reflectometry (Methods), 25 Gb/s NRZ-OOK, 0.5 Vpp, 4.8-um silicon microdisk"
+  oconnor2017:
+    citation: "M. O'Connor, N. Chatterjee, D. Lee, J. Wilson, A. Agrawal, S. W. Keckler, W. J. Dally, Fine-Grained DRAM: Energy-Efficient DRAM for Extreme Bandwidth Systems, Proc. MICRO-50 (2017)"
+    doi: 10.1145/3123939.3124545
+    type: measured
+    note: "checked 2026-11-05 on the NVIDIA open PDF (doi 10.1145/3123939.3124545); Section 1 quote verified: 'The energy to access a bit in HBM2 is approximately 3.97 pJ/bit' (Fig. 1b breakdown: on-die data movement, activation, I/O). Already cited in awen-systems memory baseline."
+
   harris2014:
     citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487 (2014)"
     doi: 10.1364/OE.22.010487
@@ -196,6 +202,25 @@ parameters:
     modes: null
     polarizations: null
     inter_channel_crosstalk: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
+  memory:
+    access_energy_per_bit: {low: null, typical: null, high: null, unit: pJ/bit, source: null,
+                            notes: "no single checked typical; separate published points are in memory.published_designs"}
+    # One published HBM2 access-energy point, NOT a host-link figure and NOT interpolated to other DRAMs.
+    published_designs:
+      kind: points
+      unit: pJ/bit
+      source: [oconnor2017]
+      source_type: measured
+      points:
+        - {source: oconnor2017, technology: HBM2, basis: access_per_bit,
+           energy_per_bit_pJ: 3.97,
+           derivation: "Section 1 quote: 'The energy to access a bit in HBM2 is approximately 3.97 pJ/bit' (Fig. 1b: on-die data movement + activation + I/O)"}
+      notes: >-
+        Off-chip stacked DRAM (HBM2) access energy as reported for the paper's HBM2 baseline. Includes on-die data
+        movement (~2.24 pJ/bit), row activation (~1.21 pJ/bit) and I/O (~0.3 pJ/bit) per the paper's breakdown
+        (summing near 3.75 to 3.92 before the stated approximate 3.97). Used for access (reads); write energy is not
+        separately reported. Not a host-link (PCIe/CXL) figure, not GDDR, and not a claim about photonic memory.
+        Approximate. Convert to energy per byte only as bytes x 8 bits/byte x this value.
   system:
     pace_enob:
       {low: null, typical: 7.61, high: null, unit: bits, source: hua2025,
@@ -207,5 +232,6 @@ parameters:
       {low: null, typical: 160.0, high: null, unit: TOPS/W, source: xu2024,
        notes: "on-chip figure; not comparable to system figures"}
     control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}
-    host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null, notes: "no checked source yet"}
+    host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null,
+      notes: "no checked source yet; 2026-11-05 search found PCIe PHY TX-only (~1.93 pJ/bit) and SerDes (~11.4 pJ/bit) figures that omit the host path, and a system measurement (~167.9 pJ/bit) that mixes host and device, so none fitted a host-link-only per-byte term"}
     thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}
