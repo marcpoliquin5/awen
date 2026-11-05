@@ -56,3 +56,5 @@ Session 2026-11-03-02 registered E-025 without running it.
 Session 2026-11-04-04 registered E-028 (#237) without running it.
 Session 2026-11-05-01 ran E-028 (#239): pass, host-transfer energy still not sourced.
 Session 2026-11-05-02 registered E-029 (#241) without running it.
+Off-schedule 2026-11-05 ~08:55 ET ran E-029 (#243): pass; energy still not sourced under e029.
+Session 2026-11-05-03 registered E-030 (#244) without running it.
