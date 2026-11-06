@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-032).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-033).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -20,6 +20,8 @@ contribution per published point, per placement and byte width; bits-per-byte co
 π-reconfiguration energy per weight DAC conversion, per published point).
 ``--registration e032`` is E-031 plus the laser term read from ``laser.published_designs`` (one DC energy-per-bit
 contribution per input DAC conversion, per published point; DML interconnect-style, RF driver excluded).
+``--registration e033`` is E-032 plus the thermal-stabilization term read from ``thermal.published_designs`` (one
+heater energy-per-bit contribution per input DAC conversion, per published point; heater only, no control ASIC).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -111,6 +113,11 @@ TERMS_E032: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E031,
     "laser": ("dac_input", "laser.published_designs", "points"),
 }
+# E-033: thermal stabilization from published heater energy-per-bit points (D-034); E-032 stays reproducible.
+TERMS_E033: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E032,
+    "thermal_stabilization": ("dac_input", "thermal.published_designs", "points"),
+}
 BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
@@ -118,7 +125,8 @@ REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen
                  "e029": (TERMS_E029, "awen.energy-per-token-accounting.v5"),
                  "e030": (TERMS_E030, "awen.energy-per-token-accounting.v6"),
                  "e031": (TERMS_E031, "awen.energy-per-token-accounting.v7"),
-                 "e032": (TERMS_E032, "awen.energy-per-token-accounting.v8")}
+                 "e032": (TERMS_E032, "awen.energy-per-token-accounting.v8"),
+                 "e033": (TERMS_E033, "awen.energy-per-token-accounting.v9")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -127,10 +135,11 @@ CAVEATS = {
     "memory_movement": "HBM2 access energy (reads); approximate; not a host-link figure; write energy not separately reported",
     "weight_hold": "one π thermal reconfiguration (Pπ×τ) per weight DAC conversion; continuous hold during compute not included; actual phase deltas vary",
     "laser": "membrane III-V-on-Si DML DC energy per net bit (laser bias only, RF driver excluded); one bit per input DAC conversion under a binary optical-input proxy; not a CW external-laser power model; do not sum with modulator.published_designs in one architecture total",
+    "thermal_stabilization": "silicon microdisk heater energy per bit for resonant trim/thermal (heater only, no control ASIC or package TEC); one bit per input DAC conversion under a binary optical-input proxy; paper estimate for a stated manufacturing+thermal budget at 10 Gbps; do not sum with modulator.published_designs athermal EO compensation in one architecture total",
 }
 _BIT_VALUE_KEYS = (("energy_per_bit_pJ", "pJ"),)
 _POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"),
-                     ("energy_per_pi_pJ", "pJ"), ("energy_per_bit_pJ", "pJ"))
+                     ("energy_per_pi_pJ", "pJ"), ("energy_per_bit_pJ", "pJ"), ("energy_per_bit_fJ", "fJ"))
 REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
             "memory_movement", "host_transfer")
 
@@ -320,7 +329,8 @@ def main(argv: list[str] | None = None) -> int:
                              "e029 (e028 plus memory-movement bytes counted per placement) "
                              "e030 (e029 plus memory energy from published designs) "
                              "e031 (e030 plus weight-hold from phase-shifter published designs) "
-                             "or e032 (e031 plus laser from DML published energy-per-bit points)")
+                             "e032 (e031 plus laser from DML published energy-per-bit points) "
+                             "or e033 (e032 plus thermal from heater published energy-per-bit points)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())

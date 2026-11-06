@@ -412,3 +412,54 @@ def test_e032_check_catches_tampered_energy_and_rejects_hidden_total(doc):
     total["not_sourced"] = ["control_electronics"]
     total["total_J"] = 1e-9
     assert any("total emitted" in f for f in check(total))
+
+
+def test_e033_applies_published_thermal_energy_per_input_dac(doc):
+    from awen_models.energy_accounting import TERMS_E033
+
+    thermal = rows(account(doc, POINT, TERMS_E033))["thermal_stabilization"]
+    assert thermal["status"].startswith("sourced") and thermal["parameter"] == "thermal.published_designs"
+    assert thermal["source_type"] == "estimate"
+    assert thermal["count"] == "dac_input"
+    assert thermal["count_per_token"] == POINT["per_token"]["dac_input"]
+    pts = doc["parameters"]["thermal"]["published_designs"]["points"]
+    assert len(thermal["designs"]) == len(pts) == 1
+    design = thermal["designs"][0]
+    assert design["source"] == "zortman2012" and design["basis"] == "realistic_trim_plus_thermal_10Gbps"
+    assert design["value"] == 180.0 and design["unit"] == "fJ"
+    assert design["per_token_J"] == pytest.approx(POINT["per_token"]["dac_input"] * 180.0e-15)
+    assert check(account(doc, POINT, TERMS_E033)) == []
+
+
+def test_e033_changes_only_the_thermal_term_from_e032_and_old_registrations_are_unchanged(doc):
+    from awen_models.energy_accounting import TERMS_E032, TERMS_E033
+
+    a, b = rows(account(doc, POINT, TERMS_E032)), rows(account(doc, POINT, TERMS_E033))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["thermal_stabilization"]
+    assert a["thermal_stabilization"]["status"] == NOT_SOURCED
+    assert "designs" not in a["thermal_stabilization"]
+    # Filling thermal.published_designs does not source e032 thermal (still a power term).
+    assert "time model" in a["thermal_stabilization"]["reason"]
+    result = run(COUNTS, doc, "e033")
+    assert result["verdict"] == "pass" and result["accounting"] == "awen.energy-per-token-accounting.v9"
+    assert result["points"][0]["total_J"] is None
+    assert set(result["points"][0]["not_sourced"]) == {"control_electronics", "host_transfer"}
+    assert run(COUNTS, doc, "e032")["accounting"] == "awen.energy-per-token-accounting.v8"
+    assert run(COUNTS, doc, "e025")["verdict"] == "pass"
+
+
+def test_e033_check_catches_tampered_energy_and_rejects_hidden_total(doc):
+    from awen_models.energy_accounting import TERMS_E033
+
+    point = account(doc, POINT, TERMS_E033)
+    bad = copy.deepcopy(point)
+    rows(bad)["thermal_stabilization"]["designs"][0]["per_token_J"] = 1e-6
+    assert any("contribution does not recompute" in f for f in check(bad))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["thermal_stabilization"]["status"] = NOT_SOURCED
+    assert any("not sourced but has a contribution" in f for f in check(hidden))
+    total = copy.deepcopy(point)
+    total["not_sourced"] = ["control_electronics"]
+    total["total_J"] = 1e-9
+    assert any("total emitted" in f for f in check(total))

@@ -77,6 +77,11 @@ sources:
     doi: 10.3390/photonics8020031
     type: measured
     note: "checked 2026-11-06 on Crossref and the MDPI open-access PDF. At 25 °C / 9.1 mA: DC power 19.565 mW, wall-plug efficiency 6.44% (wide-apparatus photodetection without fiber), net 113.42 Gbps under KP4-FEC; paper estimates DC energy/bit 0.17 pJ/bit (= P_DC / net rate). At 50 °C: DC 38.656 mW, 0.34 pJ/bit. RF driver energy excluded."
+  zortman2012:
+    citation: "W. A. Zortman, A. L. Lentine, D. C. Trotter, M. R. Watts, Integrated CMOS Compatible Low Power 10Gbps Silicon Photonic Heater-Modulator, Optical Fiber Communication Conference (OFC/NFOEC) 2012, paper OW4I.5"
+    doi: 10.1364/ofc.2012.ow4i.5
+    type: measured
+    note: "checked 2026-11-06 on Crossref and the Sandia open PDF. Measured heater efficiency 7 µW/GHz (stable across ~5–6 nm tuning; <1 V). Paper estimates 180 fJ/bit for realistic operation at 10 Gbps assuming 80 GHz manufacturing variation and 40 °C environmental swing (~10 GHz/°C), noting Gaussian half-mean; Fig. 3 mid column 535 mV × 3.4 mA ≈ 1.82 mW ≈ 182 fJ/bit at 10 Gbps. Heater only (no closed-loop control ASIC); modulator switching energy separate."
 
 parameters:
   laser:
@@ -183,7 +188,8 @@ parameters:
     crosstalk: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
   microring:
     quality_factor: {low: null, typical: null, high: null, unit: dimensionless, source: null, notes: "no checked source yet"}
-    thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null, notes: "no checked source yet"}
+    thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null,
+      notes: "no continuous mW source yet; heater efficiency and energy-per-bit are in thermal.* (zortman2012)"}
     locking_overhead: {low: null, typical: null, high: null, unit: mW, source: null, notes: "no checked source yet"}
   photodetector:
     responsivity: {low: null, typical: 1.0, high: null, unit: A/W, source: hua2025,
@@ -280,4 +286,31 @@ parameters:
     control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}
     host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null,
       notes: "no checked source yet; 2026-11-05 search found PCIe PHY TX-only (~1.93 pJ/bit) and SerDes (~11.4 pJ/bit) figures that omit the host path, and a system measurement (~167.9 pJ/bit) that mixes host and device, so none fitted a host-link-only per-byte term"}
-    thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null, notes: "no checked source yet"}
+    thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null,
+      notes: "no continuous Watt source yet; energy-per-bit points are in thermal.published_designs (zortman2012)"}
+  # On-chip resonant-device thermal stabilization (heater), NOT a package TEC and NOT control-ASIC logic.
+  thermal:
+    heater_efficiency:
+      {low: null, typical: 7.0, high: null, unit: uW/GHz, source: zortman2012,
+       notes: "measured 7 µW/GHz heater efficiency for a 2 µm-radius silicon microdisk heater-modulator (stable across ~5–6 nm); CMOS-compatible heater voltage <1 V"}
+    # One published heater energy-per-bit point (paper estimate from measured efficiency + stated variation budget).
+    # Never interpolate; not a continuous package-TEC power.
+    published_designs:
+      kind: points
+      type: silicon_microdisk_heater
+      unit: fJ/bit
+      source: [zortman2012]
+      source_type: estimate
+      points:
+        - {source: zortman2012, basis: realistic_trim_plus_thermal_10Gbps, data_rate_Gbps: 10.0,
+           heater_efficiency_uW_per_GHz: 7.0, manufacturing_GHz: 80.0, temperature_swing_C: 40.0,
+           thermo_optic_shift_GHz_per_C: 10.0, heater_mV: 535.0, energy_per_bit_fJ: 180.0,
+           derivation: "paper: estimate 180 fJ/bit at 10 Gbps for 80 GHz manufacturing + 40 °C (~10 GHz/°C) with Gaussian half-mean note; from measured 7 µW/GHz (Fig. 2); Fig. 3 mid point 535 mV × 3.4 mA ≈ 1.82 mW ≈ 182 fJ/bit at 10 Gbps"}
+      notes: >-
+        Integrated silicon microdisk heater energy per bit for resonant-device thermal/process trimming
+        (Zortman et al. OFC 2012). Heater only; closed-loop control ASIC, package TEC, and modulator
+        switching energy are not included. The 180 fJ/bit figure is the paper's estimate for a stated
+        manufacturing-plus-thermal budget at 10 Gbps, not a calorimetry measurement of continuous hold.
+        Do not add these joules to modulator.published_designs athermal EO compensation (timurdogan2014)
+        in one architecture total without choosing one stabilization model. Convert to per-token energy
+        only as conversions × energy_per_bit under a registered bit-per-conversion rule.
