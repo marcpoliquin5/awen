@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 39
+    assert len(ALL_PARAMS) == 40
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -142,3 +142,22 @@ def test_memory_hbm2_point_matches_oconnor2017_quote():
     assert "3.97 pJ/bit" in pt["derivation"]
     assert DATA["sources"]["oconnor2017"]["doi"] == "10.1145/3123939.3124545"
     assert DATA["parameters"]["system"]["host_transfer_energy"]["typical"] is None
+
+
+def test_phase_shifter_harris2014_values_and_published_pi_energy():
+    ps = DATA["parameters"]["phase_shifter"]
+    power = ps["thermo_optic_power_per_pi"]
+    assert power["typical"] == 24.77 and power["low"] == 24.34 and power["high"] == 25.20
+    assert power["source"] == "harris2014" and power["unit"] == "mW"
+    time = ps["thermo_optic_reconfiguration_time"]
+    assert time["typical"] == 2.69 and time["source"] == "harris2014" and time["unit"] == "us"
+    p = ps["published_designs"]
+    assert p["kind"] == "points" and not {"low", "typical", "high"} & set(p) and p["unit"] == "pJ"
+    assert p["source_type"] == "estimate" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"harris2014"}
+    pt = p["points"][0]
+    assert pt["basis"] == "pi_reconfiguration_P_times_tau"
+    assert pt["power_per_pi_mW"] == 24.77 and pt["reconfiguration_time_us"] == 2.69
+    assert pt["energy_per_pi_pJ"] == 66.9
+    assert "Table I" in pt["derivation"] and "66.9" in pt["derivation"]
+    assert DATA["sources"]["harris2014"]["doi"] == "10.1364/OE.22.010487"
+    assert "24.77" in DATA["sources"]["harris2014"]["note"]
