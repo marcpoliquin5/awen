@@ -306,3 +306,53 @@ def test_e030_check_catches_tampered_energy_and_rejects_hidden_total(doc):
     total["not_sourced"] = ["laser"]
     total["total_J"] = 1e-9
     assert any("total emitted" in f for f in check(total))
+
+
+def test_e031_applies_published_weight_hold_energy_per_weight_dac(doc):
+    from awen_models.energy_accounting import TERMS_E031
+
+    hold = rows(account(doc, POINT, TERMS_E031))["weight_hold"]
+    assert hold["status"].startswith("sourced") and hold["parameter"] == "phase_shifter.published_designs"
+    assert hold["source_type"] == "estimate"
+    assert hold["count_per_token"] == POINT["per_token"]["dac_weight"]
+    pts = doc["parameters"]["phase_shifter"]["published_designs"]["points"]
+    assert len(hold["designs"]) == len(pts) == 1
+    design = hold["designs"][0]
+    assert design["source"] == "harris2014" and design["value"] == 66.9 and design["unit"] == "pJ"
+    assert design["per_token_J"] == pytest.approx(POINT["per_token"]["dac_weight"] * 66.9e-12)
+    assert check(account(doc, POINT, TERMS_E031)) == []
+
+
+def test_e031_changes_only_the_weight_hold_term_from_e030_and_old_registrations_are_unchanged(doc):
+    from awen_models.energy_accounting import TERMS_E030, TERMS_E031
+
+    a, b = rows(account(doc, POINT, TERMS_E030)), rows(account(doc, POINT, TERMS_E031))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["weight_hold"]
+    assert a["weight_hold"]["status"] == NOT_SOURCED
+    assert "designs" not in a["weight_hold"]
+    # Filling thermo_optic_power_per_pi does not source e030 weight_hold (still a power term).
+    assert "time model" in a["weight_hold"]["reason"]
+    result = run(COUNTS, doc, "e031")
+    assert result["verdict"] == "pass" and result["accounting"] == "awen.energy-per-token-accounting.v7"
+    assert result["points"][0]["total_J"] is None
+    assert set(result["points"][0]["not_sourced"]) == {
+        "laser", "control_electronics", "thermal_stabilization", "host_transfer"}
+    assert run(COUNTS, doc, "e030")["accounting"] == "awen.energy-per-token-accounting.v6"
+    assert run(COUNTS, doc, "e025")["verdict"] == "pass"
+
+
+def test_e031_check_catches_tampered_energy_and_rejects_hidden_total(doc):
+    from awen_models.energy_accounting import TERMS_E031
+
+    point = account(doc, POINT, TERMS_E031)
+    bad = copy.deepcopy(point)
+    rows(bad)["weight_hold"]["designs"][0]["per_token_J"] = 1e-6
+    assert any("contribution does not recompute" in f for f in check(bad))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["weight_hold"]["status"] = NOT_SOURCED
+    assert any("not sourced but has a contribution" in f for f in check(hidden))
+    total = copy.deepcopy(point)
+    total["not_sourced"] = ["laser"]
+    total["total_J"] = 1e-9
+    assert any("total emitted" in f for f in check(total))

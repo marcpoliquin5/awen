@@ -200,3 +200,16 @@ source). E-025 to E-029 stay reproducible as their registrations; e029 still doe
 Rejected: filling host-transfer energy from a PCIe PHY-only or mixed host+device figure; treating the HBM2 number as
 a host-link or photonic-memory claim; inventing low/typical/high without a source; running E-030 in the same slice as
 registration. Reversible: a new registration.
+
+## D-032 · Weight-hold energy from harris2014 Pπ·τ (E-031)
+Decided by: agent, 2026-11-06 (registered before any run).
+`phase_shifter.thermo_optic_power_per_pi` and `thermo_optic_reconfiguration_time` are filled from Harris et al.,
+Optics Express 22, 10487 (2014) / arXiv:1410.3616 (Pπ 24.77 ± 0.43 mW measured; τ 2.69 µs from measured
+130.0 kHz bandwidth via the paper's τ = 0.35/f_3dB). `phase_shifter.published_designs` adds one estimate point
+(Table I Pπ·τ = 66.9 pJ), and E-031 reads it for the weight-hold term: energy = weight DAC conversions ×
+energy_per_pi, one contribution per published point. Continuous hold during compute is not included. E-025 to
+E-030 stay reproducible as their registrations; e030 still reports weight_hold as not sourced (power term). See
+`research/experiments/awen-photon-weight-hold-energy/PREREGISTRATION.md`.
+Rejected: inventing a hold-duration per token without a source; treating Pπ alone as composable energy; filling
+low/typical/high for a single energy without the published-designs separation used for DAC/modulator/memory;
+running E-031 in the same slice as registration. Reversible: a new registration.

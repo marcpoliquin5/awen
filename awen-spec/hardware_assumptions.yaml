@@ -68,10 +68,10 @@ sources:
     note: "checked 2026-11-05 on the NVIDIA open PDF (doi 10.1145/3123939.3124545); Section 1 quote verified: 'The energy to access a bit in HBM2 is approximately 3.97 pJ/bit' (Fig. 1b breakdown: on-die data movement, activation, I/O). Already cited in awen-systems memory baseline."
 
   harris2014:
-    citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487 (2014)"
+    citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487-10493 (2014); arXiv:1410.3616 (OSA electronic reprint)"
     doi: 10.1364/OE.22.010487
     type: measured
-    note: "citation checked on Crossref; values not yet read from the paper, so none are used"
+    note: "checked 2026-11-06 on Crossref and the arXiv:1410.3616 PDF (Optics Express electronic reprint). Measured Pπ 24.77 ± 0.43 mW (abstract, Table I, body text from MZI phase-vs-power). Measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, body text, lock-in). Table I τ 2.69 µs via the paper's single-pole τ = 0.35/f_3dB; Table I Pπ·τ product 66.9 mW·µs."
 
 parameters:
   laser:
@@ -129,8 +129,28 @@ parameters:
         multi-level symbol, so neither basis is the energy of a photonic MAC input symbol; the two bases bracket
         binary operation only. `energy_per_symbol` stays null.
   phase_shifter:
-    thermo_optic_power_per_pi: {low: null, typical: null, high: null, unit: mW, source: harris2014, notes: "citation checked; value not yet read from the paper"}
-    thermo_optic_reconfiguration_time: {low: null, typical: null, high: null, unit: us, source: harris2014, notes: "citation checked; value not yet read from the paper"}
+    thermo_optic_power_per_pi: {low: 24.34, typical: 24.77, high: 25.20, unit: mW, source: harris2014,
+      notes: "measured Pπ (power for π rad phase shift) 24.77 ± 0.43 mW; low/high = mean ± reported uncertainty; abstract, Table I, body text (MZI phase vs dissipated power; Fig. 3(b) per caption)"}
+    thermo_optic_reconfiguration_time: {low: null, typical: 2.69, high: null, unit: us, source: harris2014,
+      notes: "Table I τ = 2.69 µs from the paper's single-pole approximation τ = 0.35/f_3dB applied to the measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, lock-in body text; Fig. 3(c) per caption). Not a direct time-domain rise/fall measurement."}
+    # One published thermo-optic point: continuous Pπ and a π-reconfiguration energy from the paper's Pπ·τ product.
+    # Never interpolate; energy is an estimate (Pπ × τ), not a separately measured switching joule.
+    published_designs:
+      kind: points
+      type: silicon_thermo_optic
+      unit: pJ
+      source: [harris2014]
+      source_type: estimate
+      points:
+        - {source: harris2014, basis: pi_reconfiguration_P_times_tau, length_um: 61.6,
+           power_per_pi_mW: 24.77, reconfiguration_time_us: 2.69, energy_per_pi_pJ: 66.9,
+           derivation: "Table I Pπ·τ product 66.9 mW·µs (= 66.9 pJ); Pπ 24.77 mW measured (Fig. 3(b)/body), τ 2.69 µs = 0.35/f_3dB from measured 130.0 kHz bandwidth (Fig. 3(c)/body)"}
+      notes: >-
+        One measured CMOS SOI thermo-optic phase shifter (harris2014). Continuous hold power is Pπ when holding π;
+        the published_designs energy is the paper's Pπ·τ figure of merit for one thermal π transient under the
+        single-pole model, not a calorimetry measurement and not continuous hold energy during compute.
+        Driver electronics and thermal crosstalk isolation are not included. `thermo_optic_power_per_pi` and
+        `thermo_optic_reconfiguration_time` hold the same paper values for power-term readers.
   mzi:
     insertion_loss: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
     splitter_imbalance: {low: null, typical: null, high: null, unit: fraction, source: null, notes: "no checked source yet"}

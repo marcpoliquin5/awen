@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-030).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-031).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -16,6 +16,8 @@ placements, reported separately: weights streamed from host memory every compile
 the device after programming. Under e029 the energy stays "not sourced" (no memory energy applied).
 ``--registration e030`` is E-029 plus the memory-movement energy read from ``memory.published_designs`` (one
 contribution per published point, per placement and byte width; bits-per-byte conversion is 8).
+``--registration e031`` is E-030 plus the weight-hold term read from ``phase_shifter.published_designs`` (one
+π-reconfiguration energy per weight DAC conversion, per published point).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -97,21 +99,29 @@ TERMS_E030: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E029,
     "memory_movement": ("total", "memory.published_designs", "memory_points"),
 }
+# E-031: weight hold from published thermo-optic π-reconfiguration energy (D-032); E-030 stays reproducible.
+TERMS_E031: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E030,
+    "weight_hold": ("dac_weight", "phase_shifter.published_designs", "points"),
+}
 BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
                  "e028": (TERMS_E028, "awen.energy-per-token-accounting.v4"),
                  "e029": (TERMS_E029, "awen.energy-per-token-accounting.v5"),
-                 "e030": (TERMS_E030, "awen.energy-per-token-accounting.v6")}
+                 "e030": (TERMS_E030, "awen.energy-per-token-accounting.v6"),
+                 "e031": (TERMS_E031, "awen.energy-per-token-accounting.v7")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
     "dac_weight": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
     "modulator": "one binary on-off-keyed modulator without its driver; not the energy of an analog photonic input symbol",
     "memory_movement": "HBM2 access energy (reads); approximate; not a host-link figure; write energy not separately reported",
+    "weight_hold": "one π thermal reconfiguration (Pπ×τ) per weight DAC conversion; continuous hold during compute not included; actual phase deltas vary",
 }
 _BIT_VALUE_KEYS = (("energy_per_bit_pJ", "pJ"),)
-_POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"))
+_POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"),
+                     ("energy_per_pi_pJ", "pJ"))
 REQUIRED = ("laser", "modulator", "dac_input", "dac_weight", "adc", "control_electronics",
             "memory_movement", "host_transfer")
 
@@ -299,7 +309,8 @@ def main(argv: list[str] | None = None) -> int:
                              "e027 (e026 plus the modulator from published points) "
                              "e028 (e027 plus host-transfer bytes counted per token) "
                              "e029 (e028 plus memory-movement bytes counted per placement) "
-                             "or e030 (e029 plus memory energy from published designs)")
+                             "e030 (e029 plus memory energy from published designs) "
+                             "or e031 (e030 plus weight-hold from phase-shifter published designs)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
