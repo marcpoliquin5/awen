@@ -64,4 +64,5 @@ Session 2026-11-05-04 ran E-030 (#246): pass; memory energy sourced from oconnor
 Session 2026-11-06-01 registered E-031 (D-032) without running it.
 Session 2026-11-06-02 ran E-031 (#250): pass; weight-hold sourced from harris2014; 4 of 11 terms still not sourced, no total.
 Session 2026-11-06-03 registered E-032 (D-033) without running it.
-Off-schedule 2026-11-06 ~15:21 ET ran E-032 unchanged: pass; laser sourced from diamantopoulos2021; 3 of 11 terms still not sourced, no total.
+Off-schedule 2026-11-06 ~15:21 ET ran E-032 (#254): pass; laser sourced from diamantopoulos2021; 3 of 11 terms still not sourced, no total.
+Session 2026-11-06-04 filed the STATUS/session report for that run.
