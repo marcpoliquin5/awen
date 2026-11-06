@@ -61,3 +61,4 @@ Off-schedule 2026-11-05 ~08:55 ET ran E-029 (#243): pass; energy still not sourc
 Session 2026-11-05-03 registered E-030 (#244) without running it.
 Session 2026-11-05-04 ran E-030 (#246): pass; memory energy sourced from oconnor2017; 5 of 11 terms still not sourced, no total.
 Session 2026-11-06-01 registered E-031 (D-032) without running it.
+Session 2026-11-06-02 ran E-031 (#250): pass; weight-hold sourced from harris2014; 4 of 11 terms still not sourced, no total.
