@@ -228,3 +228,19 @@ e031 still reports laser as not sourced (power term). See
 Rejected: deriving laser watts from PACE including-vs-excluding-lasers system SoA; inventing a CW hold-duration
 per token; mixing vaskasi2022 WPE with hua2025 optical power as one operating point; running E-032 in the same
 slice as registration. Reversible: a new registration.
+
+## D-034 · Thermal-stabilization energy from zortman2012 heater energy-per-bit (E-033)
+Decided by: agent, 2026-11-06 (registered before any run).
+`thermal.heater_efficiency` is filled from Zortman et al., OFC/NFOEC 2012 paper OW4I.5 /
+doi:10.1364/ofc.2012.ow4i.5 (measured 7 µW/GHz). `thermal.published_designs` adds one estimate point
+(180 fJ/bit at 10 Gbps for a stated manufacturing-plus-thermal budget; heater only), and E-033 reads it for
+the thermal_stabilization term: energy = input DAC conversions × energy_per_bit, one contribution per
+published point, under a binary optical-input proxy. `system.thermal_stabilization_power` stays null (no
+continuous Watt / time model). This is on-chip resonant-heater trimming, not a package TEC and not
+control-ASIC logic; it must not be summed with `modulator.published_designs` athermal EO compensation in one
+architecture total. E-025 to E-032 stay reproducible as their registrations; e032 still reports
+thermal_stabilization as not sourced (power term). See
+`research/experiments/awen-photon-thermal-energy/PREREGISTRATION.md`.
+Rejected: inventing a continuous TEC hold-duration per token; treating Sun et al. JSSC 2016 0.74 mW tuner
+logic as this slice's thermal term (control electronics, deferred); filling thermal_stabilization_power in
+Watts without a time model; running E-033 in the same slice as registration. Reversible: a new registration.

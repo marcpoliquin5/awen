@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 41
+    assert len(ALL_PARAMS) == 43
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -179,3 +179,22 @@ def test_laser_diamantopoulos2021_wpe_and_published_energy_per_bit():
     assert "0.17" in by["dc_energy_per_bit_25C"]["derivation"]
     assert DATA["sources"]["diamantopoulos2021"]["doi"] == "10.3390/photonics8020031"
     assert "19.565" in DATA["sources"]["diamantopoulos2021"]["note"]
+
+def test_thermal_zortman2012_heater_efficiency_and_published_energy_per_bit():
+    thermal = DATA["parameters"]["thermal"]
+    eff = thermal["heater_efficiency"]
+    assert eff["typical"] == 7.0 and eff["source"] == "zortman2012" and eff["unit"] == "uW/GHz"
+    p = thermal["published_designs"]
+    assert p["kind"] == "points" and p["type"] == "silicon_microdisk_heater" and p["unit"] == "fJ/bit"
+    assert p["source_type"] == "estimate" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"zortman2012"}
+    assert len(p["points"]) == 1
+    pt = p["points"][0]
+    assert pt["basis"] == "realistic_trim_plus_thermal_10Gbps"
+    assert pt["energy_per_bit_fJ"] == 180.0
+    assert pt["heater_efficiency_uW_per_GHz"] == 7.0
+    assert pt["data_rate_Gbps"] == 10.0
+    assert "180" in pt["derivation"] and "7" in pt["derivation"]
+    assert DATA["sources"]["zortman2012"]["doi"] == "10.1364/ofc.2012.ow4i.5"
+    assert "7" in DATA["sources"]["zortman2012"]["note"] and "180" in DATA["sources"]["zortman2012"]["note"]
+    # Continuous Watt field stays null; e032-style power readers stay not-sourced without a time model.
+    assert DATA["parameters"]["system"]["thermal_stabilization_power"]["typical"] is None
