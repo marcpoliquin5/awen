@@ -213,3 +213,18 @@ E-030 stay reproducible as their registrations; e030 still reports weight_hold a
 Rejected: inventing a hold-duration per token without a source; treating Pπ alone as composable energy; filling
 low/typical/high for a single energy without the published-designs separation used for DAC/modulator/memory;
 running E-031 in the same slice as registration. Reversible: a new registration.
+
+## D-033 · Laser energy from diamantopoulos2021 DML DC energy-per-bit (E-032)
+Decided by: agent, 2026-11-06 (registered before any run).
+`laser.wall_plug_efficiency` is filled from Diamantopoulos et al., Photonics 8, 31 (2021) /
+doi:10.3390/photonics8020031 (measured 6.44% at 25 °C / 9.1 mA). `laser.published_designs` adds two estimate
+points (DC energy-per-bit 0.17 pJ/bit at 25 °C and 0.34 pJ/bit at 50 °C, from measured DC power / net rate;
+RF driver excluded), and E-032 reads them for the laser term: energy = input DAC conversions × energy_per_bit,
+one contribution per published point, under a binary optical-input proxy (one bit per input DAC conversion).
+This is an interconnect-style DML point, not a CW external-laser power model; it must not be summed with
+`modulator.published_designs` in one architecture total. E-025 to E-031 stay reproducible as their registrations;
+e031 still reports laser as not sourced (power term). See
+`research/experiments/awen-photon-laser-energy/PREREGISTRATION.md`.
+Rejected: deriving laser watts from PACE including-vs-excluding-lasers system SoA; inventing a CW hold-duration
+per token; mixing vaskasi2022 WPE with hua2025 optical power as one operating point; running E-032 in the same
+slice as registration. Reversible: a new registration.

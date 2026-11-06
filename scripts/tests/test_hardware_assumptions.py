@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 40
+    assert len(ALL_PARAMS) == 41
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -161,3 +161,21 @@ def test_phase_shifter_harris2014_values_and_published_pi_energy():
     assert "Table I" in pt["derivation"] and "66.9" in pt["derivation"]
     assert DATA["sources"]["harris2014"]["doi"] == "10.1364/OE.22.010487"
     assert "24.77" in DATA["sources"]["harris2014"]["note"]
+
+
+def test_laser_diamantopoulos2021_wpe_and_published_energy_per_bit():
+    laser = DATA["parameters"]["laser"]
+    wpe = laser["wall_plug_efficiency"]
+    assert wpe["typical"] == 0.0644 and wpe["source"] == "diamantopoulos2021" and wpe["unit"] == "fraction"
+    p = laser["published_designs"]
+    assert p["kind"] == "points" and not {"low", "typical", "high"} & set(p) and p["unit"] == "pJ/bit"
+    assert p["source_type"] == "estimate" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"diamantopoulos2021"}
+    assert len(p["points"]) == 2
+    by = {pt["basis"]: pt for pt in p["points"]}
+    assert by["dc_energy_per_bit_25C"]["energy_per_bit_pJ"] == 0.17
+    assert by["dc_energy_per_bit_50C"]["energy_per_bit_pJ"] == 0.34
+    assert by["dc_energy_per_bit_25C"]["dc_power_mW"] == 19.565
+    assert by["dc_energy_per_bit_50C"]["dc_power_mW"] == 38.656
+    assert "0.17" in by["dc_energy_per_bit_25C"]["derivation"]
+    assert DATA["sources"]["diamantopoulos2021"]["doi"] == "10.3390/photonics8020031"
+    assert "19.565" in DATA["sources"]["diamantopoulos2021"]["note"]

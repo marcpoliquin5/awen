@@ -72,16 +72,42 @@ sources:
     doi: 10.1364/OE.22.010487
     type: measured
     note: "checked 2026-11-06 on Crossref and the arXiv:1410.3616 PDF (Optics Express electronic reprint). Measured Pπ 24.77 ± 0.43 mW (abstract, Table I, body text from MZI phase-vs-power). Measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, body text, lock-in). Table I τ 2.69 µs via the paper's single-pole τ = 0.35/f_3dB; Table I Pπ·τ product 66.9 mW·µs."
+  diamantopoulos2021:
+    citation: "N.-P. Diamantopoulos et al., 47.5 GHz Membrane-III-V-on-Si Directly Modulated Laser for Sub-pJ/bit 100-Gbps Transmission, Photonics 8, 31 (2021)"
+    doi: 10.3390/photonics8020031
+    type: measured
+    note: "checked 2026-11-06 on Crossref and the MDPI open-access PDF. At 25 °C / 9.1 mA: DC power 19.565 mW, wall-plug efficiency 6.44% (wide-apparatus photodetection without fiber), net 113.42 Gbps under KP4-FEC; paper estimates DC energy/bit 0.17 pJ/bit (= P_DC / net rate). At 50 °C: DC 38.656 mW, 0.34 pJ/bit. RF driver energy excluded."
 
 parameters:
   laser:
     channel_optical_power:
       {low: null, typical: null, high: 30.0, unit: mW, source: hua2025,
        notes: "per laser channel, 'sub-mW to about 30 mW' in the PACE system"}
-    wall_plug_efficiency: {low: null, typical: null, high: null, unit: fraction, source: null, notes: "no checked source yet"}
+    wall_plug_efficiency: {low: null, typical: 0.0644, high: null, unit: fraction, source: diamantopoulos2021,
+      notes: "measured 6.44% at 25 °C / 9.1 mA (wide-apparatus photodetection without fiber) at the same bias used for the 0.17 pJ/bit DC energy point; membrane III-V-on-Si DML"}
     rin: {low: null, typical: null, high: null, unit: dB/Hz, source: null,
           notes: "the noise contract default (-150 dB/Hz) is an illustrative operating point, not sourced"}
     linewidth: {low: null, typical: null, high: null, unit: Hz, source: null, notes: "no checked source yet"}
+    # Two published DML DC energy-per-bit points (laser bias only), NOT a CW-mesh laser and NOT interpolated.
+    published_designs:
+      kind: points
+      type: membrane_iii_v_on_si_dml
+      unit: pJ/bit
+      source: [diamantopoulos2021]
+      source_type: estimate
+      points:
+        - {source: diamantopoulos2021, basis: dc_energy_per_bit_25C, temperature_C: 25,
+           bias_mA: 9.1, dc_power_mW: 19.565, net_rate_Gbps: 113.42, energy_per_bit_pJ: 0.17,
+           derivation: "paper: DC energy-efficiency 0.17 pJ/bit at 25 °C from measured DC power 19.565 mW / net 113.42 Gbps (60 GBaud PAM-4 under KP4-FEC); RF driver excluded"}
+        - {source: diamantopoulos2021, basis: dc_energy_per_bit_50C, temperature_C: 50,
+           bias_mA: 15.1, dc_power_mW: 38.656, net_rate_Gbps: 113.42, energy_per_bit_pJ: 0.34,
+           derivation: "paper: DC energy-efficiency 0.34 pJ/bit at 50 °C from measured DC power 38.656 mW / net 113.42 Gbps; RF driver excluded"}
+      notes: >-
+        Membrane III-V-on-Si directly modulated laser DC energy per net information bit (Diamantopoulos et al. 2021).
+        Laser bias only; RF driver not included. This is an interconnect-style DML point (laser and modulation are
+        the same device), not a CW source power for an external-modulator photonic MAC. Do not add these joules to
+        modulator.published_designs in one architecture total without choosing one transmitter model. Convert to
+        per-token energy only as conversions x energy_per_bit under a registered bit-per-conversion rule.
   coupler:
     grating_coupler_loss:
       {low: null, typical: 1.0, high: null, unit: dB, source: hua2025,
