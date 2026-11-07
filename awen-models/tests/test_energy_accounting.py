@@ -516,3 +516,60 @@ def test_e034_check_catches_tampered_energy_and_rejects_hidden_total(doc):
     total["not_sourced"] = ["host_transfer"]
     total["total_J"] = 1e-9
     assert any("total emitted" in f for f in check(total))
+
+
+def test_e035_applies_published_host_link_energy_per_byte_width(doc):
+    from awen_models.energy_accounting import BITS_PER_BYTE, HOST_CODE_BYTES, TERMS_E035
+
+    host = rows(account(doc, POINT, TERMS_E035))["host_transfer"]
+    assert host["status"].startswith("sourced") and host["parameter"] == "host_link.published_designs"
+    assert host["source_type"] == "measured"
+    assert host["count_per_token"] == 114.0
+    assert host["bytes_per_token"] == {str(w): 114.0 * w for w in HOST_CODE_BYTES}
+    pts = doc["parameters"]["host_link"]["published_designs"]["points"]
+    assert len(host["designs"]) == len(pts) == 1
+    design = host["designs"][0]
+    assert design["source"] == "li2018" and design["basis"] == "phy_transceiver_tx_rx"
+    assert design["value"] == 7.5 and design["unit"] == "pJ"
+    assert design["bits_per_byte"] == BITS_PER_BYTE == 8
+    assert design["energy_per_byte_pJ"] == 60.0
+    assert design["per_token_J_by_width"]["1"] == pytest.approx(114.0 * 8 * 7.5e-12)
+    assert design["per_token_J_by_width"]["2"] == pytest.approx(228.0 * 8 * 7.5e-12)
+    assert "PHY transceiver" in host["caveat"] or "PCIe Gen4" in host["caveat"]
+    assert check(account(doc, POINT, TERMS_E035)) == []
+
+
+def test_e035_changes_only_the_host_transfer_term_from_e034_and_old_registrations_are_unchanged(doc):
+    from awen_models.energy_accounting import TERMS_E034, TERMS_E035
+
+    a, b = rows(account(doc, POINT, TERMS_E034)), rows(account(doc, POINT, TERMS_E035))
+    assert set(a) == set(b)
+    assert [t for t in a if a[t] != b[t]] == ["host_transfer"]
+    assert a["host_transfer"]["status"] == NOT_SOURCED
+    assert "designs" not in a["host_transfer"]
+    # Filling host_link.published_designs does not source e034 host (still null scalar).
+    assert "energy per byte is null" in a["host_transfer"]["reason"]
+    result = run(COUNTS, doc, "e035")
+    assert result["verdict"] == "pass" and result["accounting"] == "awen.energy-per-token-accounting.v11"
+    # All required terms sourced under e035 on synthetic counts; total still not emitted as a number.
+    assert result["points"][0]["not_sourced"] == []
+    assert result["points"][0]["total_J"] == "not defined by this registration"
+    assert run(COUNTS, doc, "e034")["accounting"] == "awen.energy-per-token-accounting.v10"
+    assert run(COUNTS, doc, "e034")["points"][0]["not_sourced"] == ["host_transfer"]
+    assert run(COUNTS, doc, "e025")["verdict"] == "pass"
+
+
+def test_e035_check_catches_tampered_energy_and_rejects_hidden_total(doc):
+    from awen_models.energy_accounting import TERMS_E035
+
+    point = account(doc, POINT, TERMS_E035)
+    bad = copy.deepcopy(point)
+    rows(bad)["host_transfer"]["designs"][0]["per_token_J_by_width"]["1"] = 1e-6
+    assert any("contribution does not recompute" in f for f in check(bad))
+    hidden = copy.deepcopy(point)
+    rows(hidden)["host_transfer"]["status"] = NOT_SOURCED
+    assert any("not sourced but has a contribution" in f for f in check(hidden))
+    total = copy.deepcopy(point)
+    total["not_sourced"] = ["host_transfer"]
+    total["total_J"] = 1e-9
+    assert any("total emitted" in f for f in check(total))

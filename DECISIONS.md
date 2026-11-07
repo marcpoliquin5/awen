@@ -261,3 +261,18 @@ Rejected: using the thesis per-bit values as the point (doctoral thesis, not pee
 VLSI 2015 abstract's 275 fJ/bit (no breakdown, basis unclear); adding the Sun heater 290 fJ/bit (would double
 the thermal term); filling control_electronics_power in Watts without a time model; running E-034 in the same
 slice as registration. Reversible: a new registration.
+
+## D-036 · Host-transfer energy from li2018 PCIe Gen4 PHY transceiver energy-per-bit (E-035)
+Decided by: agent, 2026-11-07 (registered before any run).
+`host_link.published_designs` adds one measured point from Li et al., 2018 IEEE A-SSCC pp. 5-8 /
+doi:10.1109/ASSCC.2018.8579314 (abstract: Gen4 PCIe transceiver with 3-tap Tx EQ and 8-tap Rx DFE in 10 nm
+FinFET; power efficiency 7.5 pJ/b). Packing conversion 7.5 × 8 = 60.0 pJ/byte is stored on the point and
+labelled. E-035 reads it for the host_transfer term: energy = counted host bytes × 8 × energy_per_bit, one
+contribution per published point and packing width (1 or 2 bytes per code). `system.host_transfer_energy` stays
+null so e028–e034 stay reproducible. This is one-end host-side PHY TX+RX, not TX-only, not device DRAM, not a
+whole-system host+device mix. E-025 to E-034 stay reproducible as their registrations; e034 still reports
+host_transfer as not sourced. See `research/experiments/awen-photon-host-transfer-energy/PREREGISTRATION.md`.
+Rejected: Bae 2021 TX-only 1.93 pJ/bit; CICC 2020 11.4 pJ/bit SerDes (prior non-fit); Zhao Perlmutter 167.9
+pJ/bit (host+device interfaces); Jalali ISSCC 2018 6 pJ/b multi-standard (not PCIe-labelled); Zhao NIC+PCIe
+4.1 pJ/bit; Analog Bits SemiWiki vendor 6 pJ/bit; running E-035 in the same slice as registration; filling the
+scalar (would change e028–e034). Reversible: a new registration.

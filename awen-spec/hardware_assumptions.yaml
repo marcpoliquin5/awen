@@ -88,6 +88,12 @@ sources:
     type: measured
     note: "checked 2026-11-07 on Crossref (vol 51, issue 4, pp 893-907) and the published abstract (full text closed). Abstract: the closed-loop bit-statistical microring tuner consumes 0.74 mW in the logic, 524 GHz tuning range at 3.8 µW/GHz heater efficiency, integrated with a 5 Gb/s 30 fJ/bit monolithic microring transmitter. Cross-check (not a value used here): the first author's open MIT PhD thesis (C. Sun, Silicon-Photonics for VLSI Systems, MIT 2015, hdl:1721.1/99784), Fig. 6-16, gives the same tuner's per-bit breakdown in the 5 Gb/s link: backend 152 fJ/bit, frontend (integrator, SAR ADC) 39 fJ/bit, heater 290 fJ/bit separate; 152 fJ/bit × 5 Gb/s ≈ 0.76 mW (our arithmetic), close to the 0.74 mW logic figure. The VLSI 2015 conference abstract (doi:10.1109/VLSIC.2015.7231348) states 275 fJ/bit for the thermal tuner without a breakdown; not used."
 
+  li2018:
+    citation: "S. Li, F. Spagna, J. Chen, X. Wang, L. Tong, et al., A Power and Area Efficient 2.5-16 Gbps Gen4 PCIe PHY in 10nm FinFET CMOS, 2018 IEEE Asian Solid-State Circuits Conference (A-SSCC), pp. 5-8"
+    doi: 10.1109/ASSCC.2018.8579314
+    type: measured
+    note: "checked 2026-11-07 on Crossref (doi 10.1109/asscc.2018.8579314; published Nov 2018, pages 5-8) and the published abstract via Semantic Scholar (full text closed; OpenAlex reports no open copy). Abstract: a 2.5-16 Gbps Gen4 PCIe transceiver with 3-tap Tx EQ and 8-tap Rx DFE in 10 nm FinFET CMOS; power efficiency 7.5 pJ/b; footprint 129.6×945.0 µm² per link. Intel authors (Shenggao Li et al.). This is a full PHY transceiver (TX+RX), not TX-only."
+
 parameters:
   laser:
     channel_optical_power:
@@ -291,7 +297,7 @@ parameters:
     control_electronics_power: {low: null, typical: null, high: null, unit: W, source: null,
       notes: "no continuous Watt source for all control electronics; one per-ring tuner-logic energy-per-bit point is in control.published_designs (sun2016)"}
     host_transfer_energy: {low: null, typical: null, high: null, unit: pJ/byte, source: null,
-      notes: "no checked source yet; 2026-11-05 search found PCIe PHY TX-only (~1.93 pJ/bit) and SerDes (~11.4 pJ/bit) figures that omit the host path, and a system measurement (~167.9 pJ/bit) that mixes host and device, so none fitted a host-link-only per-byte term"}
+      notes: "no single typical; one host-link PHY energy-per-bit point is in host_link.published_designs (li2018). Rejected 2026-11-05: PCIe PHY TX-only ~1.93 pJ/bit (Bae et al. Electronics 2021); SerDes ~11.4 pJ/bit (CICC 2020 Gen5, previously judged not host-link-only); system ~167.9 pJ/bit (Zhao et al. Perlmutter, host+device PCIe interfaces). Rejected 2026-11-07: Jalali ISSCC 2018 6 pJ/b multi-standard (not PCIe-labelled); Zhao NIC+PCIe 4.1±3.2 pJ/bit (NIC path, not host-accelerator); Analog Bits SemiWiki 6 pJ/bit (vendor blog, not peer-reviewed)"}
     thermal_stabilization_power: {low: null, typical: null, high: null, unit: W, source: null,
       notes: "no continuous Watt source yet; energy-per-bit points are in thermal.published_designs (zortman2012)"}
   # On-chip resonant-device thermal stabilization (heater), NOT a package TEC and NOT control-ASIC logic.
@@ -345,3 +351,25 @@ parameters:
         distribution and host interface are not included. One tuner serves one microring at one data rate; the
         per-bit figure assumes the logic power is spent at the 5 Gb/s transmitter rate stated in the abstract.
         Convert to per-token energy only as conversions × energy_per_bit under a registered bit-per-conversion rule.
+
+  # Host-side PCIe/CXL link PHY (one-end transceiver TX+RX). NOT device DRAM (memory.*),
+  # NOT a whole-system GPU+host mix, NOT PHY-TX-only.
+  host_link:
+    # One published Gen4 PCIe PHY transceiver energy-per-bit point (measured).
+    # Never interpolate; convert to per-byte only as × 8 bits/byte under a registered rule.
+    published_designs:
+      kind: points
+      type: pcie_gen4_phy_transceiver
+      unit: pJ/bit
+      source: [li2018]
+      source_type: measured
+      points:
+        - {source: li2018, technology: PCIe_Gen4_10nm_FinFET, basis: phy_transceiver_tx_rx,
+           data_rate_Gbps_max: 16.0, energy_per_bit_pJ: 7.5, energy_per_byte_pJ: 60.0,
+           derivation: "abstract measured power efficiency 7.5 pJ/b for the Gen4 PCIe transceiver (3-tap Tx EQ + 8-tap Rx DFE, CDR/clocking included in the reported efficiency); energy_per_byte_pJ = 7.5 × 8 bits/byte = 60.0 (packing conversion, labelled)"}
+      notes: >-
+        Host-side PCIe Gen4 PHY transceiver energy per bit (Li et al. A-SSCC 2018). One end of the link:
+        TX equalization plus RX DFE on the PHY (TX+RX), as stated in the abstract. Protocol layers above the
+        PHY, root-complex digital beyond the PHY, the far-end device PHY, device DRAM access, and whole-node
+        GPU uncore wake-up are not included. Convert to energy per byte as bits/byte × this value (8) under
+        a registered host-transfer byte rule; do not treat as HBM2 (oconnor2017) or as a system PCIe mix.
