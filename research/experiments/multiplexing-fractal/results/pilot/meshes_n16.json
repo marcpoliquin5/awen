@@ -1,0 +1,570 @@
+{
+  "study": "awen.fractal-meshes.v1",
+  "modes": 16,
+  "haar_targets": 8,
+  "optimizer": "Adam lr 0.05",
+  "steps": 800,
+  "restarts": 2,
+  "seed": 0,
+  "rows": [
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 4,
+      "mzis": 30,
+      "real_parameters": 76,
+      "max_mzis_per_path": 4,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.291446,
+      "fidelity_min": 0.227475,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00013529,
+          "first_order_prediction": 0.0001377
+        },
+        "0.01": {
+          "measured": 0.00054103,
+          "first_order_prediction": 0.00055078
+        },
+        "0.02": {
+          "measured": 0.0021622,
+          "first_order_prediction": 0.00220313
+        },
+        "0.05": {
+          "measured": 0.01343141,
+          "first_order_prediction": 0.01376953
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 5,
+      "mzis": 38,
+      "real_parameters": 92,
+      "max_mzis_per_path": 5,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.355196,
+      "fidelity_min": 0.297408,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00017255,
+          "first_order_prediction": 0.00017441
+        },
+        "0.01": {
+          "measured": 0.00068999,
+          "first_order_prediction": 0.00069766
+        },
+        "0.02": {
+          "measured": 0.00275683,
+          "first_order_prediction": 0.00279063
+        },
+        "0.05": {
+          "measured": 0.01709821,
+          "first_order_prediction": 0.01744141
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 6,
+      "mzis": 45,
+      "real_parameters": 106,
+      "max_mzis_per_path": 6,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.422574,
+      "fidelity_min": 0.352187,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.0002057,
+          "first_order_prediction": 0.00020654
+        },
+        "0.01": {
+          "measured": 0.00082255,
+          "first_order_prediction": 0.00082617
+        },
+        "0.02": {
+          "measured": 0.00328622,
+          "first_order_prediction": 0.00330469
+        },
+        "0.05": {
+          "measured": 0.02036117,
+          "first_order_prediction": 0.0206543
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 7,
+      "mzis": 53,
+      "real_parameters": 122,
+      "max_mzis_per_path": 7,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.471056,
+      "fidelity_min": 0.398948,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00023934,
+          "first_order_prediction": 0.00024326
+        },
+        "0.01": {
+          "measured": 0.00095704,
+          "first_order_prediction": 0.00097305
+        },
+        "0.02": {
+          "measured": 0.00382259,
+          "first_order_prediction": 0.00389219
+        },
+        "0.05": {
+          "measured": 0.02364604,
+          "first_order_prediction": 0.02432617
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 8,
+      "mzis": 60,
+      "real_parameters": 136,
+      "max_mzis_per_path": 8,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.542209,
+      "fidelity_min": 0.461761,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00027242,
+          "first_order_prediction": 0.00027539
+        },
+        "0.01": {
+          "measured": 0.00108929,
+          "first_order_prediction": 0.00110156
+        },
+        "0.02": {
+          "measured": 0.0043503,
+          "first_order_prediction": 0.00440625
+        },
+        "0.05": {
+          "measured": 0.02688044,
+          "first_order_prediction": 0.02753906
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 9,
+      "mzis": 68,
+      "real_parameters": 152,
+      "max_mzis_per_path": 9,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.605267,
+      "fidelity_min": 0.543627,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00031467,
+          "first_order_prediction": 0.00031211
+        },
+        "0.01": {
+          "measured": 0.00125821,
+          "first_order_prediction": 0.00124844
+        },
+        "0.02": {
+          "measured": 0.00502409,
+          "first_order_prediction": 0.00499375
+        },
+        "0.05": {
+          "measured": 0.030993,
+          "first_order_prediction": 0.03121094
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 10,
+      "mzis": 75,
+      "real_parameters": 166,
+      "max_mzis_per_path": 10,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.675546,
+      "fidelity_min": 0.616701,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00034191,
+          "first_order_prediction": 0.00034424
+        },
+        "0.01": {
+          "measured": 0.00136706,
+          "first_order_prediction": 0.00137695
+        },
+        "0.02": {
+          "measured": 0.0054578,
+          "first_order_prediction": 0.00550781
+        },
+        "0.05": {
+          "measured": 0.0336327,
+          "first_order_prediction": 0.03442383
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 11,
+      "mzis": 83,
+      "real_parameters": 182,
+      "max_mzis_per_path": 11,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.743786,
+      "fidelity_min": 0.707527,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00038692,
+          "first_order_prediction": 0.00038096
+        },
+        "0.01": {
+          "measured": 0.00154673,
+          "first_order_prediction": 0.00152383
+        },
+        "0.02": {
+          "measured": 0.00617189,
+          "first_order_prediction": 0.00609531
+        },
+        "0.05": {
+          "measured": 0.03793002,
+          "first_order_prediction": 0.0380957
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 12,
+      "mzis": 90,
+      "real_parameters": 196,
+      "max_mzis_per_path": 12,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.804379,
+      "fidelity_min": 0.776225,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00041866,
+          "first_order_prediction": 0.00041309
+        },
+        "0.01": {
+          "measured": 0.00167339,
+          "first_order_prediction": 0.00165234
+        },
+        "0.02": {
+          "measured": 0.00667496,
+          "first_order_prediction": 0.00660938
+        },
+        "0.05": {
+          "measured": 0.04095044,
+          "first_order_prediction": 0.04130859
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 13,
+      "mzis": 98,
+      "real_parameters": 212,
+      "max_mzis_per_path": 13,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.869876,
+      "fidelity_min": 0.823623,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00045517,
+          "first_order_prediction": 0.0004498
+        },
+        "0.01": {
+          "measured": 0.00181956,
+          "first_order_prediction": 0.00179922
+        },
+        "0.02": {
+          "measured": 0.00725916,
+          "first_order_prediction": 0.00719688
+        },
+        "0.05": {
+          "measured": 0.0445178,
+          "first_order_prediction": 0.04498047
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 14,
+      "mzis": 105,
+      "real_parameters": 226,
+      "max_mzis_per_path": 14,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.918073,
+      "fidelity_min": 0.906242,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00047868,
+          "first_order_prediction": 0.00048193
+        },
+        "0.01": {
+          "measured": 0.00191338,
+          "first_order_prediction": 0.00192773
+        },
+        "0.02": {
+          "measured": 0.00763177,
+          "first_order_prediction": 0.00771094
+        },
+        "0.05": {
+          "measured": 0.04674654,
+          "first_order_prediction": 0.04819336
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 15,
+      "mzis": 113,
+      "real_parameters": 242,
+      "max_mzis_per_path": 15,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.970031,
+      "fidelity_min": 0.941227,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00053794,
+          "first_order_prediction": 0.00051865
+        },
+        "0.01": {
+          "measured": 0.00215008,
+          "first_order_prediction": 0.00207461
+        },
+        "0.02": {
+          "measured": 0.00857302,
+          "first_order_prediction": 0.00829844
+        },
+        "0.05": {
+          "measured": 0.05239007,
+          "first_order_prediction": 0.05186523
+        }
+      }
+    },
+    {
+      "mesh": "clements",
+      "modes": 16,
+      "depth": 16,
+      "mzis": 120,
+      "real_parameters": 256,
+      "max_mzis_per_path": 16,
+      "max_crossings_per_path": 0,
+      "fidelity_mean": 0.991918,
+      "fidelity_min": 0.987209,
+      "fraction_fidelity_ge_0.99": 0.75,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00057129,
+          "first_order_prediction": 0.00055078
+        },
+        "0.01": {
+          "measured": 0.00228326,
+          "first_order_prediction": 0.00220313
+        },
+        "0.02": {
+          "measured": 0.0091021,
+          "first_order_prediction": 0.0088125
+        },
+        "0.05": {
+          "measured": 0.05553924,
+          "first_order_prediction": 0.05507813
+        }
+      }
+    },
+    {
+      "mesh": "butterfly",
+      "modes": 16,
+      "depth": 4,
+      "mzis": 32,
+      "real_parameters": 80,
+      "max_mzis_per_path": 4,
+      "max_crossings_per_path": 16,
+      "fidelity_mean": 0.354728,
+      "fidelity_min": 0.335216,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00014698,
+          "first_order_prediction": 0.00014688
+        },
+        "0.01": {
+          "measured": 0.00058778,
+          "first_order_prediction": 0.0005875
+        },
+        "0.02": {
+          "measured": 0.00234912,
+          "first_order_prediction": 0.00235
+        },
+        "0.05": {
+          "measured": 0.01459198,
+          "first_order_prediction": 0.0146875
+        }
+      }
+    },
+    {
+      "mesh": "butterfly",
+      "modes": 16,
+      "depth": 8,
+      "mzis": 64,
+      "real_parameters": 144,
+      "max_mzis_per_path": 8,
+      "max_crossings_per_path": 32,
+      "fidelity_mean": 0.80439,
+      "fidelity_min": 0.793529,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00029442,
+          "first_order_prediction": 0.00029375
+        },
+        "0.01": {
+          "measured": 0.00117708,
+          "first_order_prediction": 0.001175
+        },
+        "0.02": {
+          "measured": 0.00469937,
+          "first_order_prediction": 0.0047
+        },
+        "0.05": {
+          "measured": 0.02899541,
+          "first_order_prediction": 0.029375
+        }
+      }
+    },
+    {
+      "mesh": "butterfly",
+      "modes": 16,
+      "depth": 12,
+      "mzis": 96,
+      "real_parameters": 208,
+      "max_mzis_per_path": 12,
+      "max_crossings_per_path": 48,
+      "fidelity_mean": 0.979677,
+      "fidelity_min": 0.97151,
+      "fraction_fidelity_ge_0.99": 0.0,
+      "fraction_fidelity_ge_0.999": 0.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.0004547,
+          "first_order_prediction": 0.00044063
+        },
+        "0.01": {
+          "measured": 0.00181756,
+          "first_order_prediction": 0.0017625
+        },
+        "0.02": {
+          "measured": 0.00725038,
+          "first_order_prediction": 0.00705
+        },
+        "0.05": {
+          "measured": 0.0444571,
+          "first_order_prediction": 0.0440625
+        }
+      }
+    },
+    {
+      "mesh": "butterfly",
+      "modes": 16,
+      "depth": 16,
+      "mzis": 128,
+      "real_parameters": 272,
+      "max_mzis_per_path": 16,
+      "max_crossings_per_path": 64,
+      "fidelity_mean": 0.999905,
+      "fidelity_min": 0.99974,
+      "fraction_fidelity_ge_0.99": 1.0,
+      "fraction_fidelity_ge_0.999": 1.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00059579,
+          "first_order_prediction": 0.0005875
+        },
+        "0.01": {
+          "measured": 0.00238099,
+          "first_order_prediction": 0.00235
+        },
+        "0.02": {
+          "measured": 0.00948979,
+          "first_order_prediction": 0.0094
+        },
+        "0.05": {
+          "measured": 0.05784615,
+          "first_order_prediction": 0.05875
+        }
+      }
+    },
+    {
+      "mesh": "butterfly",
+      "modes": 16,
+      "depth": 20,
+      "mzis": 160,
+      "real_parameters": 336,
+      "max_mzis_per_path": 20,
+      "max_crossings_per_path": 80,
+      "fidelity_mean": 0.999956,
+      "fidelity_min": 0.99985,
+      "fraction_fidelity_ge_0.99": 1.0,
+      "fraction_fidelity_ge_0.999": 1.0,
+      "phase_noise_infidelity": {
+        "0.005": {
+          "measured": 0.00075518,
+          "first_order_prediction": 0.00073438
+        },
+        "0.01": {
+          "measured": 0.00301739,
+          "first_order_prediction": 0.0029375
+        },
+        "0.02": {
+          "measured": 0.01201544,
+          "first_order_prediction": 0.01175
+        },
+        "0.05": {
+          "measured": 0.07276242,
+          "first_order_prediction": 0.0734375
+        }
+      }
+    }
+  ],
+  "evidence": "lossless unitary simulation (float64); loss figures are bookkeeping, not measured"
+}
