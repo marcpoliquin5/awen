@@ -573,3 +573,107 @@ def test_e035_check_catches_tampered_energy_and_rejects_hidden_total(doc):
     total["not_sourced"] = ["host_transfer"]
     total["total_J"] = 1e-9
     assert any("total emitted" in f for f in check(total))
+
+
+def test_e036_emits_structured_total_with_both_transmitters_when_all_sourced(doc):
+    from awen_models.energy_accounting import TERMS_E035, TERMS_E036
+
+    assert TERMS_E036 == TERMS_E035
+    result = run(COUNTS, doc, "e036")
+    assert result["accounting"] == "awen.energy-per-token-accounting.v12" and result["verdict"] == "pass"
+    assert "scenario envelopes only" in result["claims"]
+    assert "no speedup or savings" in result["claims"]
+    point = result["points"][0]
+    assert point["not_sourced"] == []
+    total = point["total_J"]
+    assert isinstance(total, dict)
+    assert total["rule"] == "scenario_envelope_v1"
+    assert total["unit"] == "J"
+    assert "not one physical device" in total["disclosure"]
+    assert "no speedup/savings" in total["disclosure"]
+    assert set(total["by_transmitter"]) == {"dml_laser", "modulator_eo"}
+    assert "scenario envelopes under scenario_envelope_v1" in point["total_reason"]
+    assert check(point) == []
+
+
+def test_e036_dml_laser_excludes_modulator_and_modulator_eo_excludes_laser(doc):
+    point = run(COUNTS, doc, "e036")["points"][0]
+    r = rows(point)
+    dml = point["total_J"]["by_transmitter"]["dml_laser"]
+    eom = point["total_J"]["by_transmitter"]["modulator_eo"]
+    assert dml["excluded_terms"] == ["modulator"]
+    assert eom["excluded_terms"] == ["laser"]
+    laser_js = [d["per_token_J"] for d in r["laser"]["designs"]]
+    mod_js = [d["per_token_J"] for d in r["modulator"]["designs"]]
+    assert min(laser_js) > 0 and min(mod_js) > 0
+    # Common axes are shared, so the envelope gap equals the transmitter-term gap.
+    assert dml["min_J"] - eom["min_J"] == pytest.approx(min(laser_js) - min(mod_js))
+    assert dml["max_J"] - eom["max_J"] == pytest.approx(max(laser_js) - max(mod_js))
+    for env in (dml, eom):
+        for picks in (env["min_picks"], env["max_picks"]):
+            assert picks["dac_input"]["source"] == picks["dac_weight"]["source"]
+            assert "thermal_stabilization" in picks
+    assert "modulator" not in dml["min_picks"] and "modulator" not in dml["max_picks"]
+    assert "laser" in dml["min_picks"] and "laser" in dml["max_picks"]
+    assert "laser" not in eom["min_picks"] and "laser" not in eom["max_picks"]
+    assert "modulator" in eom["min_picks"] and "modulator" in eom["max_picks"]
+
+
+def test_e036_min_le_max_and_n_scenarios_matches_product(doc):
+    point = run(COUNTS, doc, "e036")["points"][0]
+    r = rows(point)
+    n_dac = len({d["source"] for d in r["dac_input"]["designs"]}
+                & {d["source"] for d in r["dac_weight"]["designs"]})
+    n_adc = len(r["adc"]["designs"])
+    n_floor = len(r["optical_detection_floor"]["values"])
+    n_hold = len(r["weight_hold"]["designs"])
+    n_control = len(r["control_electronics"]["designs"])
+    n_thermal = len(r["thermal_stabilization"]["designs"])
+    n_memory = sum(len(widths) for d in r["memory_movement"]["designs"]
+                   for widths in d["per_token_J_by_placement"].values())
+    n_host = sum(len(d["per_token_J_by_width"]) for d in r["host_transfer"]["designs"])
+    n_laser = len(r["laser"]["designs"])
+    n_mod = len(r["modulator"]["designs"])
+    expected_dml = n_dac * n_adc * n_floor * n_hold * n_control * n_thermal * n_memory * n_host * n_laser
+    expected_eom = n_dac * n_adc * n_floor * n_hold * n_control * n_thermal * n_memory * n_host * n_mod
+    assert (n_dac, n_adc, n_floor, n_memory, n_host, n_laser, n_mod) == (3, 2, 3, 4, 2, 2, 2)
+    dml = point["total_J"]["by_transmitter"]["dml_laser"]
+    eom = point["total_J"]["by_transmitter"]["modulator_eo"]
+    assert dml["n_scenarios"] == expected_dml == 288
+    assert eom["n_scenarios"] == expected_eom == 288
+    assert dml["min_J"] <= dml["max_J"] and eom["min_J"] <= eom["max_J"]
+
+
+def test_e036_leaves_older_registrations_unchanged(doc):
+    e036 = run(COUNTS, doc, "e036")
+    e035 = run(COUNTS, doc, "e035")
+    e034 = run(COUNTS, doc, "e034")
+    e025 = run(COUNTS, doc)
+    assert e035["accounting"] == "awen.energy-per-token-accounting.v11"
+    assert e035["points"][0]["not_sourced"] == []
+    assert e035["points"][0]["total_J"] == "not defined by this registration"
+    assert "partial table" in e035["claims"]
+    assert e034["accounting"] == "awen.energy-per-token-accounting.v10"
+    assert e034["points"][0]["not_sourced"] == ["host_transfer"]
+    assert e034["points"][0]["total_J"] is None
+    assert e025["verdict"] == "pass" and e025["accounting"] == "awen.energy-per-token-accounting.v1"
+    assert e025["points"][0]["total_J"] is None
+    assert isinstance(e036["points"][0]["total_J"], dict)
+
+
+def test_e036_check_catches_tampered_minmax_and_rejects_total_while_not_sourced(doc):
+    point = run(COUNTS, doc, "e036")["points"][0]
+    assert check(point) == []
+    bad_min = copy.deepcopy(point)
+    bad_min["total_J"]["by_transmitter"]["dml_laser"]["min_J"] *= 2
+    assert any("min_J" in f and "envelope" in f for f in check(bad_min))
+    bad_max = copy.deepcopy(point)
+    bad_max["total_J"]["by_transmitter"]["modulator_eo"]["max_J"] = 0.0
+    assert any("max_J" in f and "envelope" in f for f in check(bad_max))
+    missing = copy.deepcopy(point)
+    missing["not_sourced"] = ["host_transfer"]
+    assert any("total emitted" in f for f in check(missing))
+    hidden = copy.deepcopy(point)
+    hidden["not_sourced"] = ["host_transfer"]
+    hidden["total_J"] = 1e-9
+    assert any("total emitted" in f for f in check(hidden))

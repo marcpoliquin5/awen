@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-035).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-036).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -26,6 +26,13 @@ heater energy-per-bit contribution per input DAC conversion, per published point
 microring tuner-logic energy-per-bit contribution per input DAC conversion, per published point; logic only).
 ``--registration e035`` is E-034 plus the host-transfer energy read from ``host_link.published_designs`` (one
 PCIe Gen4 PHY transceiver energy-per-bit point, applied as counted host bytes × 8 × pJ/bit per packing width).
+``--registration e036`` is the same term set as E-035 plus a total-defining rule (D-037): when every term is
+sourced, ``total_J`` is a structured scenario-envelope object (``scenario_envelope_v1``) with separate envelopes
+for a DML-laser transmitter (laser included, modulator excluded) and a modulator-EO transmitter (modulator
+included, laser excluded). Thermal stabilization is included in both. Input and weight DAC points in each
+scenario share the same published source id. e025–e035 stay unchanged: they still emit no numeric total
+(``None`` while any term is not sourced, or the string ``"not defined by this registration"`` when every term
+is sourced under e035).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -33,7 +40,7 @@ ADC, control electronics, memory movement, host overhead, plus weight hold, ther
 stabilization and the optical detection floor), reports either a per-token contribution
 (per-token count times a sourced per-event energy, with the parameter path, value, unit,
 source and source type) or the status ``not sourced`` with the reason. Nothing is filled with a
-guess. While any term is not sourced there is no total and no speedup or savings figure.
+guess. While any term is not sourced there is no total and no speedup or savings figure. Under e036, a sourced table yields scenario envelopes only — labelled sums within one transmitter model, not one physical device and not a speedup or savings figure.
 
 Power terms (W or mW) need a time model, which is not registered, so they are never converted to
 energy here. Whole-system efficiency figures of other devices (``system.*_efficiency_*``) are
@@ -45,6 +52,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -132,6 +140,13 @@ TERMS_E035: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E034,
     "host_transfer": ("total", "host_link.published_designs", "host_points"),
 }
+# E-036: identical term set; adds a total-defining scenario envelope (D-037). E-035 stays reproducible.
+TERMS_E036 = TERMS_E035
+TOTAL_RULE_E036 = "scenario_envelope_v1"
+TRANSMITTER_MODELS = {
+    "dml_laser": ("modulator",),   # includes laser; laser caveat forbids summing with modulator
+    "modulator_eo": ("laser",),    # includes modulator; thermal may be included (modulator points are EO, not athermal)
+}
 BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
@@ -142,7 +157,8 @@ REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen
                  "e032": (TERMS_E032, "awen.energy-per-token-accounting.v8"),
                  "e033": (TERMS_E033, "awen.energy-per-token-accounting.v9"),
                  "e034": (TERMS_E034, "awen.energy-per-token-accounting.v10"),
-                 "e035": (TERMS_E035, "awen.energy-per-token-accounting.v11")}
+                 "e035": (TERMS_E035, "awen.energy-per-token-accounting.v11"),
+                 "e036": (TERMS_E036, "awen.energy-per-token-accounting.v12")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -278,14 +294,156 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
             "caveat": "optics only, one detection per ADC read; a lower bound on optical energy, not a system energy"}
 
 
+def _design_pick(design: Mapping[str, Any]) -> dict[str, Any]:
+    pick: dict[str, Any] = {"source": design["source"]}
+    if "basis" in design:
+        pick["basis"] = design["basis"]
+    return pick
+
+
+def _term_choices(row: Mapping[str, Any]) -> list[tuple[dict[str, Any], float]]:
+    """Labelled (pick, joules) options already computed on a term row."""
+    designs = row.get("designs") or []
+    if designs and any("per_token_J_by_placement" in d for d in designs):
+        choices = []
+        for design in designs:
+            base = _design_pick(design)
+            for placement, widths in design["per_token_J_by_placement"].items():
+                for width, joules in widths.items():
+                    choices.append(({**base, "placement": placement, "width": str(width)}, float(joules)))
+        return choices
+    if designs and any("per_token_J_by_width" in d for d in designs):
+        choices = []
+        for design in designs:
+            base = _design_pick(design)
+            for width, joules in design["per_token_J_by_width"].items():
+                choices.append(({**base, "width": str(width)}, float(joules)))
+        return choices
+    if designs:
+        return [(_design_pick(d), float(d["per_token_J"])) for d in designs if "per_token_J" in d]
+    if "values" in row:
+        return [({"effective_bits": str(key)}, float(val["per_token_J"])) for key, val in row["values"].items()]
+    if "per_token_J" in row:
+        return [({}, float(row["per_token_J"]))]
+    return []
+
+
+def _linked_dac_choices(dac_input: Mapping[str, Any],
+                        dac_weight: Mapping[str, Any]) -> list[tuple[dict[str, Any], float]]:
+    """One choice per published DAC source id, applied to both input and weight DACs."""
+    by_in: dict[str, list[tuple[dict[str, Any], float]]] = {}
+    for pick, joules in _term_choices(dac_input):
+        by_in.setdefault(pick["source"], []).append((pick, joules))
+    by_w: dict[str, list[tuple[dict[str, Any], float]]] = {}
+    for pick, joules in _term_choices(dac_weight):
+        by_w.setdefault(pick["source"], []).append((pick, joules))
+    choices = []
+    for source in by_in:
+        if source not in by_w:
+            continue
+        for in_pick, in_j in by_in[source]:
+            for w_pick, w_j in by_w[source]:
+                choices.append(({"dac_input": in_pick, "dac_weight": w_pick}, in_j + w_j))
+    return choices
+
+
+def _axis_envelope(axes: list[list[tuple[dict[str, Any], float]]],
+                   excluded: tuple[str, ...]) -> dict[str, Any]:
+    n_scenarios = 1
+    min_j, max_j = 0.0, 0.0
+    min_picks: dict[str, Any] = {}
+    max_picks: dict[str, Any] = {}
+    for choices in axes:
+        n_scenarios *= len(choices)
+        if not choices:
+            continue
+        lo = min(choices, key=lambda item: item[1])
+        hi = max(choices, key=lambda item: item[1])
+        min_j += lo[1]
+        max_j += hi[1]
+        min_picks.update(lo[0])
+        max_picks.update(hi[0])
+    return {"excluded_terms": list(excluded), "min_J": min_j, "max_J": max_j,
+            "n_scenarios": n_scenarios, "min_picks": min_picks, "max_picks": max_picks}
+
+
+def scenario_envelope_v1(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Min/max labelled sums per transmitter model, read from already-built term rows."""
+    by_term = {row["term"]: row for row in rows}
+    shared = ("adc", "optical_detection_floor", "weight_hold", "control_electronics",
+              "thermal_stabilization", "memory_movement", "host_transfer")
+    by_transmitter = {}
+    for name, excluded in TRANSMITTER_MODELS.items():
+        extra = "laser" if name == "dml_laser" else "modulator"
+        axes = [_linked_dac_choices(by_term["dac_input"], by_term["dac_weight"])]
+        for term in (*shared, extra):
+            axes.append([({term: pick}, joules) for pick, joules in _term_choices(by_term[term])])
+        by_transmitter[name] = _axis_envelope(axes, excluded)
+    return {"rule": TOTAL_RULE_E036, "unit": "J",
+            "disclosure": ("sums of labelled published points within one transmitter model; "
+                           "not one physical device; no speedup/savings claim"),
+            "by_transmitter": by_transmitter}
+
+
+def _envelope_close(got: float, expected: float) -> bool:
+    return abs(got - expected) <= 1e-18 * max(1.0, abs(got), abs(expected))
+
+
+def _check_scenario_envelope(point: Mapping[str, Any]) -> list[str]:
+    failures = []
+    total = point["total_J"]
+    if not isinstance(total, dict) or total.get("rule") != TOTAL_RULE_E036:
+        return ["total is not a scenario_envelope_v1 object"]
+    expected = scenario_envelope_v1(point["terms"])["by_transmitter"]
+    by = total.get("by_transmitter") or {}
+    for name, excluded in TRANSMITTER_MODELS.items():
+        got = by.get(name)
+        if not isinstance(got, dict):
+            failures.append(f"{name}: missing transmitter envelope")
+            continue
+        if list(got.get("excluded_terms") or []) != list(excluded):
+            failures.append(f"{name}: excluded_terms not respected")
+        exp = expected[name]
+        for key in ("min_J", "max_J"):
+            value = got.get(key)
+            if not isinstance(value, (int, float)) or not math.isfinite(value):
+                failures.append(f"{name}: {key} is not finite")
+            elif not _envelope_close(float(value), float(exp[key])):
+                failures.append(f"{name}: {key} does not match recomputed envelope")
+        n_got, n_exp = got.get("n_scenarios"), exp["n_scenarios"]
+        if not isinstance(n_got, int) or n_got < 1:
+            failures.append(f"{name}: n_scenarios < 1")
+        elif n_got != n_exp:
+            failures.append(f"{name}: n_scenarios does not match recomputed envelope")
+        min_j, max_j = got.get("min_J"), got.get("max_J")
+        if isinstance(min_j, (int, float)) and isinstance(max_j, (int, float)) and min_j > max_j:
+            failures.append(f"{name}: min_J > max_J")
+        for picks_key in ("min_picks", "max_picks"):
+            picks = got.get(picks_key) or {}
+            for term in excluded:
+                if term in picks:
+                    failures.append(f"{name}: {picks_key} includes excluded term {term}")
+    return failures
+
+
 def account(doc: Mapping[str, Any], point: Mapping[str, Any],
-            terms: Mapping[str, tuple[Optional[str], Optional[str], str]] = TERMS) -> dict[str, Any]:
+            terms: Mapping[str, tuple[Optional[str], Optional[str], str]] = TERMS,
+            total_rule: Optional[str] = None) -> dict[str, Any]:
     rows = [term_row(doc, term, point["per_token"], terms) for term in terms]
     missing = [row["term"] for row in rows if row["status"] == NOT_SOURCED]
+    if missing:
+        total_j: Any = None
+        total_reason = f"no total: {len(missing)} terms not sourced"
+    elif total_rule == TOTAL_RULE_E036:
+        total_j = scenario_envelope_v1(rows)
+        total_reason = ("scenario envelopes under scenario_envelope_v1 "
+                        "(dml_laser excludes modulator; modulator_eo excludes laser)")
+    else:
+        total_j = "not defined by this registration"
+        total_reason = "all terms sourced; total needs a new registration"
     return {"arch": point["arch"], "tile_k": point["tile_k"], "positions": point["positions"],
             "per_token_counts": dict(point["per_token"]), "terms": rows, "not_sourced": missing,
-            "total_J": None if missing else "not defined by this registration",
-            "total_reason": f"no total: {len(missing)} terms not sourced" if missing else "all terms sourced; total needs a new registration"}
+            "total_J": total_j, "total_reason": total_reason}
 
 
 def check(point: Mapping[str, Any]) -> list[str]:
@@ -347,17 +505,22 @@ def check(point: Mapping[str, Any]) -> list[str]:
             failures.append(f"{row['term']}: not sourced but has a contribution")
     if point["not_sourced"] and point["total_J"] is not None:
         failures.append("total emitted while terms are not sourced")
+    elif isinstance(point.get("total_J"), dict):
+        failures.extend(_check_scenario_envelope(point))
     return failures
 
 
 def run(counts: Mapping[str, Any], doc: Mapping[str, Any], registration: str = "e025") -> dict[str, Any]:
     terms, version = REGISTRATIONS[registration]
-    points = [account(doc, point, terms) for point in counts["points"]]
+    total_rule = TOTAL_RULE_E036 if registration == "e036" else None
+    points = [account(doc, point, terms, total_rule=total_rule) for point in counts["points"]]
     failures = {f"{p['arch']}/tile{p['tile_k']}/P{p['positions']}": f for p in points if (f := check(p))}
+    claims = ("none: scenario envelopes only, no speedup or savings figure" if registration == "e036"
+              else "none: partial table, no total, no speedup or savings figure")
     return {"accounting": version, "evidence_level": "L1", "assumption_set": doc["version"],
             "counts_source": counts["curve"], "excluded": {path: "whole-system figure of another device; not composable"
                                                            for path in EXCLUDED},
-            "claims": "none: partial table, no total, no speedup or savings figure",
+            "claims": claims,
             "verdict": "fail" if failures else "pass", "failures": failures, "points": points}
 
 
@@ -377,7 +540,8 @@ def main(argv: list[str] | None = None) -> int:
                              "e032 (e031 plus laser from DML published energy-per-bit points) "
                              "e033 (e032 plus thermal from heater published energy-per-bit points) "
                              "e034 (e033 plus control electronics from tuner-logic energy-per-bit points) "
-                             "or e035 (e034 plus host-transfer from host-link PHY energy-per-bit points)")
+                             "e035 (e034 plus host-transfer from host-link PHY energy-per-bit points) "
+                             "or e036 (e035 terms plus scenario-envelope totals under scenario_envelope_v1)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
