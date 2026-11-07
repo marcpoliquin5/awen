@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-034).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-035).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -24,6 +24,8 @@ contribution per input DAC conversion, per published point; DML interconnect-sty
 heater energy-per-bit contribution per input DAC conversion, per published point; heater only, no control ASIC).
 ``--registration e034`` is E-033 plus the control-electronics term read from ``control.published_designs`` (one
 microring tuner-logic energy-per-bit contribution per input DAC conversion, per published point; logic only).
+``--registration e035`` is E-034 plus the host-transfer energy read from ``host_link.published_designs`` (one
+PCIe Gen4 PHY transceiver energy-per-bit point, applied as counted host bytes × 8 × pJ/bit per packing width).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -125,6 +127,11 @@ TERMS_E034: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E033,
     "control_electronics": ("dac_input", "control.published_designs", "points"),
 }
+# E-035: host transfer energy from published host-link PHY energy-per-bit points (D-036); E-034 stays reproducible.
+TERMS_E035: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E034,
+    "host_transfer": ("total", "host_link.published_designs", "host_points"),
+}
 BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
@@ -134,7 +141,8 @@ REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen
                  "e031": (TERMS_E031, "awen.energy-per-token-accounting.v7"),
                  "e032": (TERMS_E032, "awen.energy-per-token-accounting.v8"),
                  "e033": (TERMS_E033, "awen.energy-per-token-accounting.v9"),
-                 "e034": (TERMS_E034, "awen.energy-per-token-accounting.v10")}
+                 "e034": (TERMS_E034, "awen.energy-per-token-accounting.v10"),
+                 "e035": (TERMS_E035, "awen.energy-per-token-accounting.v11")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -145,6 +153,7 @@ CAVEATS = {
     "laser": "membrane III-V-on-Si DML DC energy per net bit (laser bias only, RF driver excluded); one bit per input DAC conversion under a binary optical-input proxy; not a CW external-laser power model; do not sum with modulator.published_designs in one architecture total",
     "thermal_stabilization": "silicon microdisk heater energy per bit for resonant trim/thermal (heater only, no control ASIC or package TEC); one bit per input DAC conversion under a binary optical-input proxy; paper estimate for a stated manufacturing+thermal budget at 10 Gbps; do not sum with modulator.published_designs athermal EO compensation in one architecture total",
     "control_electronics": "closed-loop microring wavelength-lock tuner logic only (heater, tuner frontend, modulator driver, system controller, sequencer, clocking and host interface excluded); one bit per input DAC conversion under a binary optical-input proxy; estimate from measured logic power / 5 Gb/s; not a whole-accelerator control power",
+    "host_transfer": "one-end PCIe Gen4 PHY transceiver (TX EQ + RX DFE) energy per bit; protocol above PHY, far-end device PHY, device DRAM and whole-node GPU uncore not included; bytes × 8 × pJ/bit under the registered host byte rule",
 }
 _BIT_VALUE_KEYS = (("energy_per_bit_pJ", "pJ"),)
 _POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"),
@@ -233,6 +242,24 @@ def term_row(doc: Mapping[str, Any], term: str, per_token: Mapping[str, float],
                                "per_token_J": codes * width * value * _J_PER_UNIT[unit]} for width in HOST_CODE_BYTES}
         return {**counted, "status": "sourced (per packing width)", "source": source,
                 "source_type": _label(doc, entry, source), "values": values}
+    if rule == "host_points":
+        codes = sum(per_token[key] for key in ("dac_input", "dac_weight", "adc"))
+        counted = {**row, "count_per_token": codes, "byte_rule": HOST_BYTE_RULE,
+                   "bytes_per_token": {str(width): codes * width for width in HOST_CODE_BYTES}}
+        designs = []
+        for point in entry["points"]:
+            key, unit = next((k, u) for k, u in _BIT_VALUE_KEYS if k in point)
+            by_width = {
+                str(w): counted["bytes_per_token"][str(w)] * BITS_PER_BYTE
+                * point[key] * _J_PER_UNIT[unit] for w in HOST_CODE_BYTES
+            }
+            extra = {k: point[k] for k in ("technology", "basis") if k in point}
+            designs.append({"source": point["source"], **extra, "value": point[key], "unit": unit,
+                            "derivation": point["derivation"], "bits_per_byte": BITS_PER_BYTE,
+                            "energy_per_byte_pJ": point.get("energy_per_byte_pJ", point[key] * BITS_PER_BYTE),
+                            "per_token_J_by_width": by_width})
+        return {**counted, "parameter": path, "status": "sourced (per published design and packing width, not interpolated)",
+                "source_type": entry["source_type"], "designs": designs, "caveat": CAVEATS[term]}
     if rule == "per_event":
         value, source = entry.get("typical"), entry.get("source")
         if value is None or not source:
@@ -278,6 +305,15 @@ def check(point: Mapping[str, Any]) -> list[str]:
             for v in row.get("values", {}).values():
                 if abs(v["bytes_per_token"] * v["value"] * _J_PER_UNIT[v["unit"]] - v["per_token_J"]) > 1e-12 * abs(v["per_token_J"]):
                     failures.append(f"{row['term']}: contribution does not recompute")
+            for design in row.get("designs", []):
+                by = design.get("per_token_J_by_width")
+                if by is None:
+                    continue
+                bits = design.get("bits_per_byte", BITS_PER_BYTE)
+                for w, joules in by.items():
+                    expected = row["bytes_per_token"][w] * bits * design["value"] * _J_PER_UNIT[design["unit"]]
+                    if abs(expected - joules) > 1e-12 * abs(joules or expected or 1.0):
+                        failures.append(f"{row['term']}: width@{w} contribution does not recompute")
         if "placements" in row:
             counts = point["per_token_counts"]
             for name, (reads, writes) in MEMORY_PLACEMENTS.items():
@@ -340,7 +376,8 @@ def main(argv: list[str] | None = None) -> int:
                              "e031 (e030 plus weight-hold from phase-shifter published designs) "
                              "e032 (e031 plus laser from DML published energy-per-bit points) "
                              "e033 (e032 plus thermal from heater published energy-per-bit points) "
-                             "or e034 (e033 plus control electronics from tuner-logic energy-per-bit points)")
+                             "e034 (e033 plus control electronics from tuner-logic energy-per-bit points) "
+                             "or e035 (e034 plus host-transfer from host-link PHY energy-per-bit points)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())

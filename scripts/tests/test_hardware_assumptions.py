@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 45
+    assert len(ALL_PARAMS) == 46
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -220,3 +220,24 @@ def test_control_sun2016_tuner_logic_power_and_published_energy_per_bit():
     # Continuous Watt field stays null; e033-style power readers stay not-sourced without a time model.
     assert DATA["parameters"]["system"]["control_electronics_power"]["typical"] is None
 
+
+
+def test_host_link_li2018_published_energy_per_bit():
+    assert DATA["parameters"]["system"]["host_transfer_energy"]["typical"] is None, (
+        "scalar stays null so e028-e034 keep host energy not sourced; points are separate"
+    )
+    p = DATA["parameters"]["host_link"]["published_designs"]
+    assert p["kind"] == "points" and p["type"] == "pcie_gen4_phy_transceiver" and p["unit"] == "pJ/bit"
+    assert p["source_type"] == "measured" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"li2018"}
+    assert len(p["points"]) == 1
+    pt = p["points"][0]
+    assert pt["basis"] == "phy_transceiver_tx_rx"
+    assert pt["energy_per_bit_pJ"] == 7.5
+    assert pt["energy_per_byte_pJ"] == 60.0
+    assert pt["energy_per_bit_pJ"] * 8 == pt["energy_per_byte_pJ"]
+    assert "7.5" in pt["derivation"] and "60" in pt["derivation"]
+    src = DATA["sources"]["li2018"]
+    assert src["doi"] == "10.1109/ASSCC.2018.8579314" and src["type"] == "measured"
+    assert "7.5" in src["note"] and "transceiver" in src["note"].lower()
+    notes = DATA["parameters"]["system"]["host_transfer_energy"]["notes"]
+    assert "li2018" in notes and "1.93" in notes and "167.9" in notes
