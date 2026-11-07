@@ -78,3 +78,4 @@ Session 2026-11-07-03 filed the STATUS/session report for that run.
 Session 2026-11-07-04 registered E-035 (D-036) without running it.
 Session 2026-11-07-04 filed the STATUS/session report for that registration.
 Off-schedule 2026-11-07 ~15:34 ET ran E-035: pass; host transfer sourced from li2018; 0 of 11 terms not sourced; total not defined by this registration.
+Session 2026-11-07-05 filed the STATUS/session report for the E-035 run.
