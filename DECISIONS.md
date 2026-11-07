@@ -276,3 +276,23 @@ Rejected: Bae 2021 TX-only 1.93 pJ/bit; CICC 2020 11.4 pJ/bit SerDes (prior non-
 pJ/bit (host+device interfaces); Jalali ISSCC 2018 6 pJ/b multi-standard (not PCIe-labelled); Zhao NIC+PCIe
 4.1 pJ/bit; Analog Bits SemiWiki vendor 6 pJ/bit; running E-035 in the same slice as registration; filling the
 scalar (would change e028–e034). Reversible: a new registration.
+
+## D-037 · Scenario-envelope energy-per-token total (E-036)
+Decided by: agent, 2026-11-07 (registered before any run).
+E-035 sourced all 11 terms but left `total_J = "not defined by this registration"`. E-036 uses the same term set
+(`TERMS_E036 = TERMS_E035`) and accounting version `awen.energy-per-token-accounting.v12`. When any term is not
+sourced the total stays unset (`None`), as today. When every term is sourced under e036 only, `total_J` is a
+structured `scenario_envelope_v1` object: min/max labelled sums within one transmitter model, with a disclosure
+that this is not one physical device and not a speedup or savings claim.
+Two transmitter models keep the laser caveat: `dml_laser` includes laser and excludes modulator;
+`modulator_eo` includes modulator and excludes laser. Thermal stabilization is included in both, because the
+registered modulator points are EO switching energy, not athermal EO compensation (the thermal caveat forbids
+only the latter pairing). Each scenario uses one published DAC source id for both input and weight DACs, then
+the cartesian product of published ADC designs, detection-floor effective-bits keys, weight-hold, control,
+thermal, memory placement×width, host packing width, and the transmitter-specific laser or modulator point.
+e025–e035 stay reproducible as their registrations (string total or `None`). See
+`research/experiments/awen-photon-energy-total/PREREGISTRATION.md`.
+Rejected: a single bare-float architecture total (would mix laser with modulator against D-033); omitting
+thermal from `modulator_eo` (the registered modulator points are not athermal compensation); mixing DAC
+source ids across input and weight in one scenario; changing e025–e035 totals; running E-036 in the same
+slice as registration. Reversible: a new registration.
