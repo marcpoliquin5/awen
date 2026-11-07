@@ -244,3 +244,20 @@ thermal_stabilization as not sourced (power term). See
 Rejected: inventing a continuous TEC hold-duration per token; treating Sun et al. JSSC 2016 0.74 mW tuner
 logic as this slice's thermal term (control electronics, deferred); filling thermal_stabilization_power in
 Watts without a time model; running E-033 in the same slice as registration. Reversible: a new registration.
+
+## D-035 · Control-electronics energy from sun2016 microring tuner-logic energy-per-bit (E-034)
+Decided by: agent, 2026-11-07 (registered before any run).
+`control.tuner_logic_power` is filled from Sun et al., IEEE JSSC 51(4), 893-907 (2016) /
+doi:10.1109/JSSC.2016.2519390 (measured 0.74 mW tuner logic, from the abstract). `control.published_designs`
+adds one estimate point (0.74 mW / 5 Gb/s = 148 fJ/bit; logic only), and E-034 reads it for the
+control_electronics term: energy = input DAC conversions × energy_per_bit, one contribution per published
+point, under a binary optical-input proxy. `system.control_electronics_power` stays null (no whole-system
+Watt / time model). The first author's open MIT thesis (hdl:1721.1/99784, Fig. 6-16: backend 152 fJ/bit,
+frontend 39 fJ/bit at 5 Gb/s) is recorded as a cross-check only. This is per-ring wavelength-lock logic, not a
+system controller, sequencer, clocking or host interface; the heater stays the thermal term (zortman2012).
+E-025 to E-033 stay reproducible as their registrations; e033 still reports control_electronics as not sourced
+(power term). See `research/experiments/awen-photon-control-energy/PREREGISTRATION.md`.
+Rejected: using the thesis per-bit values as the point (doctoral thesis, not peer-reviewed; no DOI); using the
+VLSI 2015 abstract's 275 fJ/bit (no breakdown, basis unclear); adding the Sun heater 290 fJ/bit (would double
+the thermal term); filling control_electronics_power in Watts without a time model; running E-034 in the same
+slice as registration. Reversible: a new registration.

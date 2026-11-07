@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 43
+    assert len(ALL_PARAMS) == 45
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -198,3 +198,25 @@ def test_thermal_zortman2012_heater_efficiency_and_published_energy_per_bit():
     assert "7" in DATA["sources"]["zortman2012"]["note"] and "180" in DATA["sources"]["zortman2012"]["note"]
     # Continuous Watt field stays null; e032-style power readers stay not-sourced without a time model.
     assert DATA["parameters"]["system"]["thermal_stabilization_power"]["typical"] is None
+
+
+def test_control_sun2016_tuner_logic_power_and_published_energy_per_bit():
+    control = DATA["parameters"]["control"]
+    logic = control["tuner_logic_power"]
+    assert logic["typical"] == 0.74 and logic["source"] == "sun2016" and logic["unit"] == "mW"
+    p = control["published_designs"]
+    assert p["kind"] == "points" and p["type"] == "microring_tuner_logic" and p["unit"] == "fJ/bit"
+    assert p["source_type"] == "estimate" and set(p["source"]) == {pt["source"] for pt in p["points"]} == {"sun2016"}
+    assert len(p["points"]) == 1
+    pt = p["points"][0]
+    assert pt["basis"] == "tuner_logic_power_over_5Gbps"
+    assert pt["energy_per_bit_fJ"] == 148.0
+    # The point is the stated formula: logic power / data rate.
+    assert pt["logic_power_mW"] * 1e-3 / (pt["data_rate_Gbps"] * 1e9) * 1e15 == pytest.approx(pt["energy_per_bit_fJ"])
+    assert "0.74" in pt["derivation"] and "148" in pt["derivation"]
+    src = DATA["sources"]["sun2016"]
+    assert src["doi"] == "10.1109/JSSC.2016.2519390" and src["type"] == "measured"
+    assert "0.74 mW" in src["note"] and "1721.1/99784" in src["note"]
+    # Continuous Watt field stays null; e033-style power readers stay not-sourced without a time model.
+    assert DATA["parameters"]["system"]["control_electronics_power"]["typical"] is None
+
