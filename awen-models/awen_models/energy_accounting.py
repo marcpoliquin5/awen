@@ -1,4 +1,4 @@
-"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-033).
+"""Energy-per-token accounting for the E-024 conversion counts, sourced terms only (E-025 to E-034).
 
     python -m awen_models.energy_accounting \
         --counts results/conversions-per-token/results.json \
@@ -22,6 +22,8 @@ contribution per published point, per placement and byte width; bits-per-byte co
 contribution per input DAC conversion, per published point; DML interconnect-style, RF driver excluded).
 ``--registration e033`` is E-032 plus the thermal-stabilization term read from ``thermal.published_designs`` (one
 heater energy-per-bit contribution per input DAC conversion, per published point; heater only, no control ASIC).
+``--registration e034`` is E-033 plus the control-electronics term read from ``control.published_designs`` (one
+microring tuner-logic energy-per-bit contribution per input DAC conversion, per published point; logic only).
 
 Reads the stored E-024 per-token counts and ``awen-spec/hardware_assumptions.yaml`` and, for every
 term the system accounting needs (Master Prompt v2 sections 2 and 9: lasers, modulators, DAC,
@@ -118,6 +120,11 @@ TERMS_E033: dict[str, tuple[Optional[str], Optional[str], str]] = {
     **TERMS_E032,
     "thermal_stabilization": ("dac_input", "thermal.published_designs", "points"),
 }
+# E-034: control electronics from published microring tuner-logic energy-per-bit points (D-035); E-033 stays reproducible.
+TERMS_E034: dict[str, tuple[Optional[str], Optional[str], str]] = {
+    **TERMS_E033,
+    "control_electronics": ("dac_input", "control.published_designs", "points"),
+}
 BITS_PER_BYTE = 8  # packing conversion from bit energy to byte counts; not a device value
 REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen.energy-per-token-accounting.v2"),
                  "e027": (TERMS_E027, "awen.energy-per-token-accounting.v3"),
@@ -126,7 +133,8 @@ REGISTRATIONS = {"e025": (TERMS, ACCOUNTING_VERSION), "e026": (TERMS_E026, "awen
                  "e030": (TERMS_E030, "awen.energy-per-token-accounting.v6"),
                  "e031": (TERMS_E031, "awen.energy-per-token-accounting.v7"),
                  "e032": (TERMS_E032, "awen.energy-per-token-accounting.v8"),
-                 "e033": (TERMS_E033, "awen.energy-per-token-accounting.v9")}
+                 "e033": (TERMS_E033, "awen.energy-per-token-accounting.v9"),
+                 "e034": (TERMS_E034, "awen.energy-per-token-accounting.v10")}
 CAVEATS = {
     "adc": "standalone ADC designs; their ENOB and sample rate are not those of the simulated contract",
     "dac_input": "standalone DAC designs; their resolution, rate and load are not those of a photonic driver",
@@ -136,6 +144,7 @@ CAVEATS = {
     "weight_hold": "one π thermal reconfiguration (Pπ×τ) per weight DAC conversion; continuous hold during compute not included; actual phase deltas vary",
     "laser": "membrane III-V-on-Si DML DC energy per net bit (laser bias only, RF driver excluded); one bit per input DAC conversion under a binary optical-input proxy; not a CW external-laser power model; do not sum with modulator.published_designs in one architecture total",
     "thermal_stabilization": "silicon microdisk heater energy per bit for resonant trim/thermal (heater only, no control ASIC or package TEC); one bit per input DAC conversion under a binary optical-input proxy; paper estimate for a stated manufacturing+thermal budget at 10 Gbps; do not sum with modulator.published_designs athermal EO compensation in one architecture total",
+    "control_electronics": "closed-loop microring wavelength-lock tuner logic only (heater, tuner frontend, modulator driver, system controller, sequencer, clocking and host interface excluded); one bit per input DAC conversion under a binary optical-input proxy; estimate from measured logic power / 5 Gb/s; not a whole-accelerator control power",
 }
 _BIT_VALUE_KEYS = (("energy_per_bit_pJ", "pJ"),)
 _POINT_VALUE_KEYS = (("energy_per_conversion_pJ", "pJ"), ("energy_per_symbol_fJ", "fJ"),
@@ -330,7 +339,8 @@ def main(argv: list[str] | None = None) -> int:
                              "e030 (e029 plus memory energy from published designs) "
                              "e031 (e030 plus weight-hold from phase-shifter published designs) "
                              "e032 (e031 plus laser from DML published energy-per-bit points) "
-                             "or e033 (e032 plus thermal from heater published energy-per-bit points)")
+                             "e033 (e032 plus thermal from heater published energy-per-bit points) "
+                             "or e034 (e033 plus control electronics from tuner-logic energy-per-bit points)")
     parser.add_argument("--out", help="write the JSON result here (default: stdout)")
     args = parser.parse_args(argv)
     doc = yaml.safe_load(Path(args.assumptions or find_assumptions()).read_text())
