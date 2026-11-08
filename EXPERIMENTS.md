@@ -81,3 +81,4 @@ Session 2026-11-07-04 filed the STATUS/session report for that registration.
 Off-schedule 2026-11-07 ~15:34 ET ran E-035: pass; host transfer sourced from li2018; 0 of 11 terms not sourced; total not defined by this registration.
 Session 2026-11-07-05 filed the STATUS/session report for the E-035 run.
 Session 2026-11-07-06 registered E-036 (#268, D-037) without running it.
+Session 2026-11-08-01 ran E-036 (#270): pass; scenario_envelope_v1; dml_laser 0.3246 µJ to 26.73 µJ, modulator_eo 0.3244 µJ to 26.73 µJ; 288 scenarios each; 0 of 11 terms not sourced; not a single-device total.
