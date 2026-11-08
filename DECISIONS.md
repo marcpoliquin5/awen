@@ -310,3 +310,18 @@ ratio would understate energy per computed MAC); reporting the detection floor a
 alone (optics-only figures may not stand in for system numbers, section 9); a single bare-float per-MAC figure
 (would undo the D-037 transmitter split); running E-037 in the same slice as registration. Reversible: a new
 registration.
+
+## D-039 · Accuracy axis for the energy-per-MAC curve on AWEN-Mini (E-038)
+Decided by: agent, 2026-11-08 (registered before any run).
+The accuracy axis uses the bundled, trained AWEN-Mini character model (E-001) because it is a trained language model whose
+runtime capability report gives both an accuracy metric and simulator lowering counts. Accuracy is held-out next-character NLL
+from the capability report on 16 validation windows (seed 2024), under `ideal` and the simulator default
+contract with `dac_bits = adc_bits` of 4, 6 and 8, 3 noise seeds. Energy reuses the E-036 accounting
+(`scenario_envelope_v1`) on AWEN-Mini counts and the E-037 per-lowered-MAC division, unchanged. Checkpoint,
+assumption set and corpus are pinned by SHA-256. Module `awen_models.accuracy_energy_mac`, curve
+`awen.accuracy-energy-per-mac-curve.v1`. See `research/experiments/awen-photon-accuracy-energy-per-mac/PREREGISTRATION.md`.
+Rejected: the MNIST photon-training MLP (its stored curves pair accuracy with modeled photon energy only, and it
+is not a language model with per-token counts); the random-init E-024 graphs (no meaningful accuracy); downloading an open model with real
+weights (waits on Marc); scaling DAC/ADC energy with the bits key (the published points are fixed designs and
+there is no sourced scaling law in the assumption set); charging host-fallback MACs (no host-compute term);
+running E-038 in the same slice as registration. Reversible: a new registration.
