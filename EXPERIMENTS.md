@@ -84,3 +84,4 @@ Session 2026-11-07-05 filed the STATUS/session report for the E-035 run.
 Session 2026-11-07-06 registered E-036 (#268, D-037) without running it.
 Session 2026-11-08-01 ran E-036 (#270): pass; scenario_envelope_v1; dml_laser 0.3246 µJ to 26.73 µJ, modulator_eo 0.3244 µJ to 26.73 µJ; 288 scenarios each; 0 of 11 terms not sourced; not a single-device total.
 Session 2026-11-08-02 registered E-037 (#272, D-038) without running it.
+Session 2026-11-08-03 ran E-037 (#274): pass; inputs match pinned SHA-256; 90,112 lowered MACs per token; dml_laser 3.602 pJ to 296.6 pJ, modulator_eo 3.600 pJ to 296.6 pJ per lowered MAC; 288 scenarios each; not per model MAC, not a single device, not a savings figure.
