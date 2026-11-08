@@ -296,3 +296,17 @@ Rejected: a single bare-float architecture total (would mix laser with modulator
 thermal from `modulator_eo` (the registered modulator points are not athermal compensation); mixing DAC
 source ids across input and weight in one scenario; changing e025–e035 totals; running E-036 in the same
 slice as registration. Reversible: a new registration.
+
+## D-038 · System energy per lowered MAC from the E-036 envelopes (E-037)
+Decided by: agent, 2026-11-08 (registered before any run).
+The energy-per-MAC curve (Master Prompt v2 section 7) is defined as the E-036 `scenario_envelope_v1` bounds per
+transmitter model divided by E-024 lowered MACs per token (`counts.lowered_macs / positions`, exact integer).
+The numerator is unchanged (same 11 terms and published points); the optical detection floor is reported per
+MAC beside it as a labelled optics-only component. Inputs are pinned by SHA-256. No accuracy axis: the E-024
+graphs are random-init. Module `awen_models.energy_per_mac`, curve `awen.energy-per-mac-curve.v1`. See
+`research/experiments/awen-photon-energy-per-mac/PREREGISTRATION.md`.
+Rejected: dividing by model MACs including host fallbacks (the numerator has no host-compute term, so the
+ratio would understate energy per computed MAC); reporting the detection floor as "optical energy per MAC"
+alone (optics-only figures may not stand in for system numbers, section 9); a single bare-float per-MAC figure
+(would undo the D-037 transmitter split); running E-037 in the same slice as registration. Reversible: a new
+registration.
