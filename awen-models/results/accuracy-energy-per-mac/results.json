@@ -1,0 +1,330 @@
+{
+  "accounting": "awen.energy-per-token-accounting.v12",
+  "accuracy": {
+    "bits4": {
+      "cpu_nll_nats": 1.4294921178622086,
+      "min_tile_effective_bits": [
+        3.7476044586470376,
+        3.7476044586470376,
+        3.7476044586470376
+      ],
+      "nll_diff_nats": {
+        "ci95_half_width": 0.021291666192804926,
+        "mean": 5.706901622382329,
+        "n": 3,
+        "sd": 0.008570357337609745
+      },
+      "optical_detection_floor_J_per_mac": 5.125e-19,
+      "sim_nll_nats": {
+        "ci95_half_width": 0.021291666192804926,
+        "mean": 7.1363937402445385,
+        "n": 3,
+        "sd": 0.008570357337609745
+      }
+    },
+    "bits6": {
+      "cpu_nll_nats": 1.4294921178622086,
+      "min_tile_effective_bits": [
+        5.235934574881954,
+        5.235934574881954,
+        5.235934574881954
+      ],
+      "nll_diff_nats": {
+        "ci95_half_width": 0.04993089657829736,
+        "mean": 3.173133129714157,
+        "n": 3,
+        "sd": 0.02009826858960679
+      },
+      "optical_detection_floor_J_per_mac": 8.203125e-18,
+      "sim_nll_nats": {
+        "ci95_half_width": 0.04993089657829736,
+        "mean": 4.602625247576365,
+        "n": 3,
+        "sd": 0.02009826858960679
+      }
+    },
+    "bits8": {
+      "cpu_nll_nats": 1.4294921178622086,
+      "min_tile_effective_bits": [
+        5.543519656019143,
+        5.543519656019143,
+        5.543519656019143
+      ],
+      "nll_diff_nats": {
+        "ci95_half_width": 0.23093883634108858,
+        "mean": 2.8269112609431013,
+        "n": 3,
+        "sd": 0.0929578893756912
+      },
+      "optical_detection_floor_J_per_mac": 1.3109375e-16,
+      "sim_nll_nats": {
+        "ci95_half_width": 0.23093883634108858,
+        "mean": 4.25640337880531,
+        "n": 3,
+        "sd": 0.0929578893756912
+      }
+    },
+    "ideal": {
+      "cpu_nll_nats": 1.4294921178622086,
+      "min_tile_effective_bits": [
+        null,
+        null,
+        null
+      ],
+      "nll_diff_nats": {
+        "ci95_half_width": 0.0,
+        "mean": -7.4106865088907625e-09,
+        "n": 3,
+        "sd": 0.0
+      },
+      "sim_nll_nats": {
+        "ci95_half_width": 0.0,
+        "mean": 1.4294921104515221,
+        "n": 3,
+        "sd": 0.0
+      }
+    }
+  },
+  "accuracy_metric": "held-out next-character NLL, nats per character (lower is better)",
+  "assumption_set": "awen.hardware-assumptions.v0",
+  "claims": "none: an L1 curve, no speedup or savings figure",
+  "counts": {
+    "adc": 1966080,
+    "dac_input": 573440,
+    "dac_weight": 983040,
+    "lowered_macs": 125829120
+  },
+  "curve": "awen.accuracy-energy-per-mac-curve.v1",
+  "disclosure": "accuracy is held-out next-character NLL of one small trained model on the photonic simulator (L1); energy is the E-036 scenario envelope on this model's counts divided by its lowered MACs per token (E-037 rule); sums of labelled published points within one transmitter model; not one physical device; host compute is not a term; no speedup or savings claim",
+  "energy_per_lowered_mac": {
+    "arch": "awen-mini",
+    "by_transmitter": {
+      "dml_laser": {
+        "excluded_terms": [
+          "modulator"
+        ],
+        "max_J_per_mac": 6.367488515625e-12,
+        "max_J_per_token": 6.2594959104e-06,
+        "max_picks": {
+          "adc": {
+            "source": "ramkaj2020"
+          },
+          "control_electronics": {
+            "basis": "tuner_logic_power_over_5Gbps",
+            "source": "sun2016"
+          },
+          "dac_input": {
+            "source": "palmers2010"
+          },
+          "dac_weight": {
+            "source": "palmers2010"
+          },
+          "host_transfer": {
+            "basis": "phy_transceiver_tx_rx",
+            "source": "li2018",
+            "width": "2"
+          },
+          "laser": {
+            "basis": "dc_energy_per_bit_50C",
+            "source": "diamantopoulos2021"
+          },
+          "memory_movement": {
+            "basis": "access_per_bit",
+            "placement": "weights_streamed",
+            "source": "oconnor2017",
+            "width": "2"
+          },
+          "optical_detection_floor": {
+            "effective_bits": "8"
+          },
+          "thermal_stabilization": {
+            "basis": "realistic_trim_plus_thermal_10Gbps",
+            "source": "zortman2012"
+          },
+          "weight_hold": {
+            "basis": "pi_reconfiguration_P_times_tau",
+            "source": "harris2014"
+          }
+        },
+        "min_J_per_mac": 3.00914504375e-12,
+        "min_J_per_token": 2.9581099438080003e-06,
+        "min_picks": {
+          "adc": {
+            "source": "lagos2021"
+          },
+          "control_electronics": {
+            "basis": "tuner_logic_power_over_5Gbps",
+            "source": "sun2016"
+          },
+          "dac_input": {
+            "source": "sedighi2012"
+          },
+          "dac_weight": {
+            "source": "sedighi2012"
+          },
+          "host_transfer": {
+            "basis": "phy_transceiver_tx_rx",
+            "source": "li2018",
+            "width": "1"
+          },
+          "laser": {
+            "basis": "dc_energy_per_bit_25C",
+            "source": "diamantopoulos2021"
+          },
+          "memory_movement": {
+            "basis": "access_per_bit",
+            "placement": "weights_resident",
+            "source": "oconnor2017",
+            "width": "1"
+          },
+          "optical_detection_floor": {
+            "effective_bits": "4"
+          },
+          "thermal_stabilization": {
+            "basis": "realistic_trim_plus_thermal_10Gbps",
+            "source": "zortman2012"
+          },
+          "weight_hold": {
+            "basis": "pi_reconfiguration_P_times_tau",
+            "source": "harris2014"
+          }
+        },
+        "n_scenarios": 288
+      },
+      "modulator_eo": {
+        "excluded_terms": [
+          "laser"
+        ],
+        "max_J_per_mac": 6.365955670572917e-12,
+        "max_J_per_token": 6.2579890624e-06,
+        "max_picks": {
+          "adc": {
+            "source": "ramkaj2020"
+          },
+          "control_electronics": {
+            "basis": "tuner_logic_power_over_5Gbps",
+            "source": "sun2016"
+          },
+          "dac_input": {
+            "source": "palmers2010"
+          },
+          "dac_weight": {
+            "source": "palmers2010"
+          },
+          "host_transfer": {
+            "basis": "phy_transceiver_tx_rx",
+            "source": "li2018",
+            "width": "2"
+          },
+          "memory_movement": {
+            "basis": "access_per_bit",
+            "placement": "weights_streamed",
+            "source": "oconnor2017",
+            "width": "2"
+          },
+          "modulator": {
+            "basis": "per_full_swing_transition",
+            "source": "timurdogan2014"
+          },
+          "optical_detection_floor": {
+            "effective_bits": "8"
+          },
+          "thermal_stabilization": {
+            "basis": "realistic_trim_plus_thermal_10Gbps",
+            "source": "zortman2012"
+          },
+          "weight_hold": {
+            "basis": "pi_reconfiguration_P_times_tau",
+            "source": "harris2014"
+          }
+        },
+        "min_J_per_mac": 3.0083744513020834e-12,
+        "min_J_per_token": 2.9573524206080003e-06,
+        "min_picks": {
+          "adc": {
+            "source": "lagos2021"
+          },
+          "control_electronics": {
+            "basis": "tuner_logic_power_over_5Gbps",
+            "source": "sun2016"
+          },
+          "dac_input": {
+            "source": "sedighi2012"
+          },
+          "dac_weight": {
+            "source": "sedighi2012"
+          },
+          "host_transfer": {
+            "basis": "phy_transceiver_tx_rx",
+            "source": "li2018",
+            "width": "1"
+          },
+          "memory_movement": {
+            "basis": "access_per_bit",
+            "placement": "weights_resident",
+            "source": "oconnor2017",
+            "width": "1"
+          },
+          "modulator": {
+            "basis": "per_bit_nrz_ook",
+            "source": "timurdogan2014"
+          },
+          "optical_detection_floor": {
+            "effective_bits": "4"
+          },
+          "thermal_stabilization": {
+            "basis": "realistic_trim_plus_thermal_10Gbps",
+            "source": "zortman2012"
+          },
+          "weight_hold": {
+            "basis": "pi_reconfiguration_P_times_tau",
+            "source": "harris2014"
+          }
+        },
+        "n_scenarios": 288
+      }
+    },
+    "conversions_per_mac": 0.027994791666666668,
+    "conversions_per_token": 27520.0,
+    "lowered_macs_per_token": 983040,
+    "optical_detection_floor_J_per_mac": {
+      "by_effective_bits": {
+        "4": 5.125e-19,
+        "6": 8.203125e-18,
+        "8": 1.3109375e-16
+      },
+      "caveat": "optics only, a lower bound on optical energy; a component, not a system figure"
+    },
+    "positions": 128,
+    "tile_k": 64
+  },
+  "evidence_level": "L1",
+  "failures": {},
+  "grid": {
+    "contracts": [
+      "ideal",
+      "bits4",
+      "bits6",
+      "bits8"
+    ],
+    "positions": 128,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "tile_k": 64,
+    "window_seed": 2024,
+    "windows": 16
+  },
+  "host_mac_fraction": 0.14903047091412747,
+  "input_sha256": {
+    "assumptions": "e0965ba697e23559d0638fdbf31a405f497f898215ec75a3349a0330651d246f",
+    "checkpoint": "3a4e2158c139e86a0905cfc40d063001f09565f09af3e04253840f063a04b003",
+    "corpus": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed"
+  },
+  "model": "awen-mini",
+  "per_mac_rule": "lowered MACs per token = counts.lowered_macs / positions (E-024; GEMM MACs routed to the photonic simulator only, host-fallback MACs not counted)",
+  "registration": "e038",
+  "verdict": "pass"
+}
