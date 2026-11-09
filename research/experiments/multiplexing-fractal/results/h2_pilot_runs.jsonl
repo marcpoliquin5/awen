@@ -1,0 +1,8 @@
+{"variant": "baseline", "seed": 1, "stored_parameters": 818048, "train_wall_time_s": 143.6, "val_loss": 1.72089, "forward_latency_ms_b1": 1.25}
+{"variant": "monarch", "seed": 1, "stored_parameters": 824192, "train_wall_time_s": 673.4, "val_loss": 1.765, "forward_latency_ms_b1": 3.585}
+{"variant": "kron3", "seed": 1, "stored_parameters": 817792, "train_wall_time_s": 742.8, "val_loss": 1.72315, "forward_latency_ms_b1": 10.622}
+{"variant": "recursive", "seed": 1, "stored_parameters": 839680, "train_wall_time_s": 473.5, "val_loss": 1.61527, "forward_latency_ms_b1": 3.274}
+{"variant": "baseline", "seed": 2, "stored_parameters": 818048, "train_wall_time_s": 152.5, "val_loss": 1.71541, "forward_latency_ms_b1": 1.459}
+{"variant": "monarch", "seed": 2, "stored_parameters": 824192, "train_wall_time_s": 675.5, "val_loss": 1.73982, "forward_latency_ms_b1": 3.515}
+{"variant": "kron3", "seed": 2, "stored_parameters": 817792, "train_wall_time_s": 755.1, "val_loss": 1.70822, "forward_latency_ms_b1": 11.423}
+{"variant": "recursive", "seed": 2, "stored_parameters": 839680, "train_wall_time_s": 478.8, "val_loss": 1.60752, "forward_latency_ms_b1": 3.208}
