@@ -94,6 +94,12 @@ sources:
     type: measured
     note: "checked 2026-11-07 on Crossref (doi 10.1109/asscc.2018.8579314; published Nov 2018, pages 5-8) and the published abstract via Semantic Scholar (full text closed; OpenAlex reports no open copy). Abstract: a 2.5-16 Gbps Gen4 PCIe transceiver with 3-tap Tx EQ and 8-tap Rx DFE in 10 nm FinFET CMOS; power efficiency 7.5 pJ/b; footprint 129.6×945.0 µm² per link. Intel authors (Shenggao Li et al.). This is a full PHY transceiver (TX+RX), not TX-only."
 
+  elmas2025:
+    citation: "G. Elmas, I. A. Litvin, P. Kohl, J. Nötzel, Modeling and analysis of phase instability in a photonic processor, Applied Optics 64(14), 3995 (2025)"
+    doi: 10.1364/AO.560370
+    type: measured
+    note: "checked 2026-11-09 on Crossref (Applied Optics vol 64, issue 14, page 3995, published 2025-05-06; authors Elmas, Litvin, Kohl, Nötzel) and the accepted manuscript arXiv:2606.25196v1 (HTML, read in full). 8-mode silicon MZI-mesh processor; relative phase between two input signals extracted from four output powers (Eq. 7), about 125 readings/s per channel. Sec. 2, Eq. 2: Brownian model var(phi(dt)) = sigma^2 dt. Sec. 4 and Fig. 3 caption: 35 experiments of 300 s each; simulations with sigma = 0.25 [sec]^-1/2 reproduce the measured phase distribution (discrepancy about 9%; Fig. 4 spectra about 12%). Sec. 6 and Fig. 6 caption: a separate feedback-control run (38 Hz correction, feedback off for the first 60 s) is matched with sigma = 0.15 [sec]^-1/2. The instability is attributed to air-cooling-fan airflow vibrating the input optical fibers (input path, not on-chip weights); no active temperature control of the fiber is described. Both sigma values are the authors' Brownian-model parameters matched to their measurements, not a directly reported measured statistic."
+
 parameters:
   laser:
     channel_optical_power:
@@ -373,3 +379,26 @@ parameters:
         PHY, root-complex digital beyond the PHY, the far-end device PHY, device DRAM access, and whole-node
         GPU uncore wake-up are not included. Convert to energy per byte as bits/byte × this value (8) under
         a registered host-transfer byte rule; do not treat as HBM2 (oconnor2017) or as a system PCIe mix.
+
+  # Phase random-walk (Brownian) rates from one published processor. NOT on-chip weight drift, NOT thermal
+  # drift of programmed phase shifters; input-fiber relative phase in one unstabilized lab setup.
+  drift:
+    # Two separate published model-fit points; never interpolate, never average.
+    # Use as a recalibration time axis only through a registered phase-to-weight rule (E-039, D-040).
+    published_designs:
+      kind: points
+      type: input_fiber_relative_phase_random_walk
+      unit: rad/sqrt(s)
+      source: [elmas2025]
+      source_type: measured
+      points:
+        - {source: elmas2025, basis: brownian_fit_to_phase_distribution, sigma_rad_per_sqrt_s: 0.25,
+           evidence: "Sec. 4 text and Fig. 3 caption: 35 measured runs x 300 s; simulated distribution with sigma = 0.25 [sec]^-1/2 differs from the measured one by about 9%"}
+        - {source: elmas2025, basis: brownian_fit_to_feedback_trace, sigma_rad_per_sqrt_s: 0.15,
+           evidence: "Sec. 6 text and Fig. 6 caption: feedback-control run (38 Hz, off for first 60 s) simulated with sigma = 0.15 [sec]^-1/2"}
+      notes: >-
+        Brownian phase random walk, var(phi(t)) = sigma^2 t with phi in rad and t in s (Elmas et al. Applied Optics
+        2025, Eq. 2). Each sigma is the authors' model parameter matched to measured data (source type measured
+        refers to the experiment; the number itself is a fitted model value). The disturbance is relative phase
+        between two input fibers driven by cooling-fan airflow, outside the chip; it is not drift of programmed
+        mesh phases or weights, not temperature drift, and depends on that lab's packaging and environment.

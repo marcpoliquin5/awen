@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 46
+    assert len(ALL_PARAMS) == 47
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -241,3 +241,18 @@ def test_host_link_li2018_published_energy_per_bit():
     assert "7.5" in src["note"] and "transceiver" in src["note"].lower()
     notes = DATA["parameters"]["system"]["host_transfer_energy"]["notes"]
     assert "li2018" in notes and "1.93" in notes and "167.9" in notes
+
+
+def test_drift_elmas2025_published_phase_random_walk_points():
+    p = DATA["parameters"]["drift"]["published_designs"]
+    assert p["kind"] == "points" and p["type"] == "input_fiber_relative_phase_random_walk"
+    assert p["unit"] == "rad/sqrt(s)" and p["source_type"] == "measured"
+    assert set(p["source"]) == {pt["source"] for pt in p["points"]} == {"elmas2025"}
+    assert sorted(pt["sigma_rad_per_sqrt_s"] for pt in p["points"]) == [0.15, 0.25]
+    for pt in p["points"]:
+        assert pt["basis"].startswith("brownian_fit_to_") and "Fig." in pt["evidence"]
+    src = DATA["sources"]["elmas2025"]
+    assert src["doi"] == "10.1364/AO.560370" and src["type"] == "measured"
+    assert "2606.25196" in src["note"] and "not a directly reported measured statistic" in src["note"]
+    # A proxy for the E-023 time axis only: not on-chip weight drift.
+    assert "not drift of programmed" in p["notes"]
