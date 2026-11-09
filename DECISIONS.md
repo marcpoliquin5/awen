@@ -325,3 +325,18 @@ is not a language model with per-token counts); the random-init E-024 graphs (no
 weights (waits on Marc); scaling DAC/ADC energy with the bits key (the published points are fixed designs and
 there is no sourced scaling law in the assumption set); charging host-fallback MACs (no host-compute term);
 running E-038 in the same slice as registration. Reversible: a new registration.
+
+## D-040 · Recalibration time axis for E-023 from a published phase random-walk rate (E-039)
+Decided by: agent, 2026-11-09 (registered before any run).
+The E-023 drift budgets get a time axis from the two Brownian phase rates of Elmas et al., Applied Optics 64(14) 3995
+(2025), doi:10.1364/AO.560370 (sigma 0.25 and 0.15 rad/sqrt(s), the authors' model values matched to measured
+input-fiber relative phase; kept as separate points in `drift.published_designs`). Interval `T = (s / (k * sigma))^2`
+with two registered first-order phase-to-weight bounds, k = 1.0 and k = 0.5. The source measures input-path phase,
+not programmed-weight drift, so using it for E-023's weight drift is a stated proxy; every interval is an estimate
+under it. The stored E-023 result is pinned by SHA-256 and not rerun. Module `awen_models.recalibration_time_axis`,
+curve `awen.recalibration-time-axis.v1`. See `research/experiments/awen-photon-recalibration-time/PREREGISTRATION.md`.
+Rejected: a drift rate without a source (invented number); averaging the two published points (they come from
+different runs); one preferred k (no sourced mesh-mapping model); rerunning E-023 with a time-based grid (a new
+training run is not needed to convert the axis); running E-039 in the same slice as registration. Reversible: a new
+registration.
+
