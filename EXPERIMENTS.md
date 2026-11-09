@@ -87,3 +87,4 @@ Session 2026-11-08-01 ran E-036 (#270): pass; scenario_envelope_v1; dml_laser 0.
 Session 2026-11-08-02 registered E-037 (#272, D-038) without running it.
 Session 2026-11-08-03 ran E-037 (#274): pass; inputs match pinned SHA-256; 90,112 lowered MACs per token; dml_laser 3.602 pJ to 296.6 pJ, modulator_eo 3.600 pJ to 296.6 pJ per lowered MAC; 288 scenarios each; not per model MAC, not a single device, not a savings figure.
 Session 2026-11-08-04 registered E-038 (#276, D-039) without running it.
+Session 2026-11-09-01 ran E-038 (#278): pass; inputs match pinned SHA-256; AWEN-Mini CPU NLL 1.4295 nats/char; simulator ideal 1.4295, bits8 4.256 ± 0.231, bits6 4.603 ± 0.050, bits4 7.136 ± 0.021 (unsourced default contract); 983,040 lowered MACs per token; dml_laser 3.009 pJ to 6.367 pJ, modulator_eo 3.008 pJ to 6.366 pJ per lowered MAC; not a device prediction, not a savings figure.
