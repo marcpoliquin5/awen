@@ -49,10 +49,10 @@ def test_inventory_summary():
                                                   "awen-lab", "awen-studio"))
     assert len(INVENTORY["entries"]) == 236
     assert Counter(e["status"] for e in INVENTORY["entries"]) == {
-        "unsourced": 154,
+        "unsourced": 152,
         "numeric_guard": 27,
         "definitional": 48,
-        "differs_from_assumption": 6,
+        "differs_from_assumption": 8,
         "matches_assumption": 1,
     }
     assert sum(e["field"].startswith("expr:") for e in INVENTORY["entries"]) == 38 + 26

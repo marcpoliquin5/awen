@@ -174,6 +174,23 @@ def test_phase_shifter_harris2014_insertion_loss_is_per_device_not_mzi_or_path()
     assert DATA["parameters"]["mzi"]["insertion_loss"]["typical"] is None
 
 
+def test_photodetector_chen2016_bandwidth_and_dark_current():
+    pd = DATA["parameters"]["photodetector"]
+    bw, dark = pd["bandwidth"], pd["dark_current"]
+    assert (bw["low"], bw["typical"], bw["high"]) == (None, 67.0, None)
+    assert bw["unit"] == "GHz" and bw["source"] == "chen2016" and "source_type" not in bw
+    assert "-1 V, 1550 nm" in bw["notes"] and "not a whole-receiver" in bw["notes"]
+    assert (dark["low"], dark["typical"], dark["high"]) == (2.0, 2.4, 2.8)
+    assert dark["low"] == pytest.approx(2.4 - 0.4) and dark["high"] == pytest.approx(2.4 + 0.4)
+    assert dark["unit"] == "nA" and dark["source"] == "chen2016" and "source_type" not in dark
+    src = DATA["sources"]["chen2016"]
+    assert src["doi"] == "10.1364/OE.24.004622" and src["type"] == "measured"
+    assert "Optics Express 24(5), 4622 (2016)" in src["citation"]
+    assert "2.4 nA (sd 0.4 nA)" in src["note"] and "~67 GHz at -1 V, 1550 nm" in src["note"]
+    # responsivity keeps its hua2025 value; chen2016 responsivity is noted in the source only
+    assert pd["responsivity"]["source"] == "hua2025"
+
+
 def test_laser_diamantopoulos2021_wpe_and_published_energy_per_bit():
     laser = DATA["parameters"]["laser"]
     wpe = laser["wall_plug_efficiency"]

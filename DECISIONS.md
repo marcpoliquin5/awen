@@ -350,3 +350,19 @@ not an MZI insertion loss (the two MMIs are excluded) and not the noise contract
 `insertion_loss_db`, so `mzi.insertion_loss` stays null and no default changes.
 Rejected: filling `mzi.insertion_loss` or the contract default from this value (different quantity); multiplying it by a
 mesh depth to get a path loss (no registered composition rule; a future registration can add one). Reversible.
+
+## D-042 · Measured Ge photodetector bandwidth and dark current (chen2016); the opt-in contract applies the bandwidth
+Decided by: agent, 2026-11-10 (data only; no experiment registered or run; no default changed).
+`photodetector.bandwidth` = typical 67 GHz (low/high null) and `photodetector.dark_current` = {2.0, 2.4, 2.8} nA come from
+Chen et al., Optics Express 24(5) 4622 (2016), doi:10.1364/OE.24.004622 (Crossref checked; author manuscript in the Ghent
+University repository read in full; abstract matches the published one). The bandwidth is one device at -1 V and 1550 nm on a
+67 GHz VNA (~67 GHz, at the instrument range); the dark current is the wafer-scale mean ± one standard deviation at -1 V.
+The 1550 nm point is kept because the shot-noise entry already uses 1550 nm; the 1310 nm wafer-scale 44 ± 2.2 GHz is noted only.
+`PhotonicNoiseContract::default()` and the PACE-like descriptor keep 10 GHz and 20 GHz. The existing opt-in mapping
+(`with_assumptions`, #135) now applies 67 GHz to `detection_bandwidth_hz` at the typical corner only (labelled chen2016,
+measured); low/high keep the built-in 10 GHz. A detector 3-dB bandwidth is an upper bound on, not the same as, a whole
+receiver's noise bandwidth (TIA and ADC are not in it); a registered receiver model can replace this mapping later.
+Rejected: low/high from the 1550 nm wafer data (">50 GHz" is a VNA limit, not a spread); the 1310 nm wafer mean (different
+wavelength from the rest of the set); changing the default or the descriptor (no registered run); linking the runtime
+`dark_count_hz` defaults (a current is not a count rate without a registered conversion); removing the opt-in mapping for
+this field (it is the #135 design, and opt-in callers get a labelled value). Reversible.
