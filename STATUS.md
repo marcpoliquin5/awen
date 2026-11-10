@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-11-09 ET (time of this commit). Latest: `055ae06` (#283, session report for the E-039 run), after `fed7c1a` (#282, E-039 run, pass; PR gate run 42665569436 passed on head `67144a7`). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-11-09 ET (time of this commit). Latest: `cf07d2f` (#284, STATUS.md history moved verbatim to `docs/history/`, 219 to 146 lines, 150-line limit checked by `scripts/tests/test_status_file.py`; PR gate run 42720943093 passed on head `d81dfb1`), after `055ae06` (#283), after `fed7c1a` (#282, E-039 run, pass; PR gate run 42665569436 passed on head `67144a7`). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 The full merge chain and gate-run list from `0235668` (#125) to `fed7c1a` (#282) moved to [docs/history/status-2026-11-09.md](docs/history/status-2026-11-09.md) (section 1).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9` (gate runs for those commits: same file, section 1).
 
@@ -126,10 +126,10 @@ CI note (2026-11-01, #201): the MLIR install step now has its own 15-min limit a
 1. Phase 2 (needs no decision from Marc): E-039 is run (#282, pass). Next, source a verified on-chip phase-shifter
    drift rate (programmed mesh phases, not input-path phase; read the full text and check Crossref before use), or
    sourced values for the simulator default contract's noise terms, and register its use before any run. Lead not
-   yet verified: Chaboyer et al., Optics Express 25(26) 33056 (2017), doi:10.1364/OE.25.033056 (Crossref checked;
-   full text not read, publisher page blocked automated access), laser-written glass MZIs, abstract says no drift
-   over more than 12 h and short-term stability better than 6 mrad; that is a bound with no stated rate, so it may
-   not give a sigma. The real-weight open-model run waits on Marc (download, model choice). P1-7's CUDA
+   yet verified: Chaboyer et al., Optics Express 25(26) 33056 (2017), doi:10.1364/OE.25.033056 (full text still
+   not read; abstract gives a bound, no drift over more than 12 h and short-term stability better than 6 mrad, no
+   rate). Checked and not usable: Ceccarelli et al., J. Lightwave Technol. 37(17) 4275 (2019), doi:10.1109/JLT.2019.2923126 (Crossref checked),
+   arXiv:2006.08707 (full text read 2026-11-09; heater resistance stability only, no phase drift rate). The real-weight open-model run waits on Marc (download, model choice). P1-7's CUDA
    log is still Marc's laptop run: `python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json` (not run).
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1, which also
    unblocks P1-4), on the PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7,
