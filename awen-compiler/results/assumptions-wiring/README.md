@@ -15,3 +15,8 @@ the estimate's energy and latency are identical at all three corners. v0 has a v
 value is kept (`from_assumptions: false`, no source label). The applied `dac_bits` is labeled `source: hua2025`, `source_type: measured`. The opted-in cost model differs only by one provenance entry naming the set
 and corner; its source is derived from the applied cost fields (none in v0, so `assumed`). The defaults behind these numbers are illustrative and unsourced (`awen-spec/hardcoded_device_defaults.yaml`).
 They are not device predictions.
+
+Later change (D-042, 2026-11-10): the assumption set now has a value for a second mapped field, `photodetector.bandwidth`
+(chen2016, typical 67 GHz, low/high null). Opting in at the typical corner therefore sets `detection_bandwidth_hz` to 67 GHz,
+which changes the noisy GEMM outputs at that corner. `after.json` above is the record of the #135 head and was not regenerated.
+The default contract is unchanged (checked by `awen-compiler/tests/assumption_report.rs`).

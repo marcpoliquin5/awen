@@ -30,7 +30,7 @@ fn mismatched_units_and_fractional_bits_are_rejected() {
 }
 
 #[test]
-fn defaults_are_unchanged_by_the_v0_set_at_every_corner() {
+fn opting_in_changes_only_sourced_fields_and_never_the_default() {
     let set = bundled();
     let default = PhotonicNoiseContract::default();
     let x: Vec<f64> = (0..4 * 64).map(|i| (i as f64 * 0.37).sin()).collect();
@@ -39,19 +39,29 @@ fn defaults_are_unchanged_by_the_v0_set_at_every_corner() {
     let (y_default, _) = photonic_gemm(&x, &w, shape, &default, 16, 7).unwrap();
     for corner in Corner::ALL {
         let (contract, report) = default.with_assumptions(&set, corner).unwrap();
-        assert_eq!(contract, default, "{corner:?}");
         let applied: Vec<_> = report.applied().map(|f| f.field.as_str()).collect();
-        assert_eq!(
-            applied,
-            if corner == Corner::Typical {
-                vec!["dac_bits"]
-            } else {
-                vec![]
-            }
-        );
-        let (y, _) = photonic_gemm(&x, &w, shape, &contract, 16, 7).unwrap();
-        assert_eq!(y, y_default);
+        if corner == Corner::Typical {
+            // dac_bits 8 equals the default; photodetector.bandwidth (chen2016, typical only) is
+            // the one opted-in value that differs from the default contract (D-042)
+            assert_eq!(applied, vec!["dac_bits", "detection_bandwidth_hz"]);
+            let mut expected = default.clone();
+            expected.detection_bandwidth_hz = 67.0e9;
+            assert_eq!(contract, expected);
+            // a wider RIN integration bandwidth changes the noisy outputs at this corner
+            let (y, _) = photonic_gemm(&x, &w, shape, &contract, 16, 7).unwrap();
+            assert_ne!(y, y_default);
+        } else {
+            assert_eq!(applied, Vec::<&str>::new(), "{corner:?}");
+            assert_eq!(contract, default, "{corner:?}");
+            let (y, _) = photonic_gemm(&x, &w, shape, &contract, 16, 7).unwrap();
+            assert_eq!(y, y_default);
+        }
     }
+    // the default contract itself never reads the file
+    assert_eq!(
+        PhotonicNoiseContract::default().detection_bandwidth_hz,
+        10.0e9
+    );
 }
 
 #[test]
@@ -115,6 +125,10 @@ fn applied_fields_carry_their_source_and_unapplied_ones_none() {
         let label = (field.source.as_deref(), field.source_type);
         if field.field == "dac_bits" {
             assert_eq!(label, (Some("hua2025"), Some(SourceType::Measured)));
+        } else if field.field == "detection_bandwidth_hz" {
+            assert_eq!(label, (Some("chen2016"), Some(SourceType::Measured)));
+            assert!(field.from_assumptions);
+            assert_eq!(field.value, 67.0e9);
         } else {
             assert_eq!(label, (None, None), "{}", field.field);
         }

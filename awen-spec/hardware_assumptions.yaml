@@ -94,6 +94,12 @@ sources:
     type: measured
     note: "checked 2026-11-07 on Crossref (doi 10.1109/asscc.2018.8579314; published Nov 2018, pages 5-8) and the published abstract via Semantic Scholar (full text closed; OpenAlex reports no open copy). Abstract: a 2.5-16 Gbps Gen4 PCIe transceiver with 3-tap Tx EQ and 8-tap Rx DFE in 10 nm FinFET CMOS; power efficiency 7.5 pJ/b; footprint 129.6×945.0 µm² per link. Intel authors (Shenggao Li et al.). This is a full PHY transceiver (TX+RX), not TX-only."
 
+  chen2016:
+    citation: "H. Chen, P. Verheyen, P. De Heyn, G. Lepage, J. De Coster, S. Balakrishnan, P. Absil, W. Yao, L. Shen, G. Roelkens, J. Van Campenhout, -1 V bias 67 GHz bandwidth Si-contacted germanium waveguide p-i-n photodetector for optical links at 56 Gbps and beyond, Optics Express 24(5), 4622 (2016)"
+    doi: 10.1364/OE.24.004622
+    type: measured
+    note: "checked 2026-11-10 on Crossref (Optics Express vol 24, issue 5, page 4622, issued 2016-02-24; 11 authors as cited; Optica open-access licence) and the author manuscript in the Ghent University repository (biblio.ugent.be/publication/7276522, PDF read in full with pdftotext; the publisher HTML is behind a captcha). The manuscript's abstract matches the published one (67 GHz at -1 V, 6.8 fF, dark current below 4 nA, 0.74 A/W at 1550 nm, 0.93 A/W at 1310 nm). Section 3.1: wafer-scale dark current mean 2.4 nA (sd 0.4 nA) at -1 V and 3.6 nA (sd 0.8 nA) at -2 V; wafer-scale responsivity mean 0.74 A/W (1550 nm) and 0.93 A/W (1310 nm), sd 0.05 A/W. Section 3.2: wafer-scale bandwidth >50 GHz at 1550 nm (50 GHz VNA limit), 44 GHz mean (sd 2.2 GHz) at 1310 nm and -1 V; on a 67 GHz VNA one device shows ~67 GHz at -1 V, 1550 nm. Mean junction capacitance 6.8 fF at -1 V."
+
   elmas2025:
     citation: "G. Elmas, I. A. Litvin, P. Kohl, J. Nötzel, Modeling and analysis of phase instability in a photonic processor, Applied Optics 64(14), 3995 (2025)"
     doi: 10.1364/AO.560370
@@ -213,8 +219,10 @@ parameters:
   photodetector:
     responsivity: {low: null, typical: 1.0, high: null, unit: A/W, source: hua2025,
                    notes: "germanium detectors, around 1 A/W"}
-    dark_current: {low: null, typical: null, high: null, unit: nA, source: null, notes: "no checked source yet"}
-    bandwidth: {low: null, typical: null, high: null, unit: GHz, source: null, notes: "no checked source yet"}
+    dark_current: {low: 2.0, typical: 2.4, high: 2.8, unit: nA, source: chen2016,
+      notes: "measured wafer-scale dark current at -1 V: mean 2.4 nA, standard deviation 0.4 nA (Section 3.1 body text, Fig. 3(b)); low/high = mean ± one standard deviation. Si-contacted Ge waveguide p-i-n detector, 14.2 um long, 0.5 um wide, 160 nm Ge (imec platform). At -2 V: mean 3.6 nA, sd 0.8 nA (not stored). A current, not a dark-count rate: the runtime dark_count_hz defaults are not linked to it."}
+    bandwidth: {low: null, typical: 67.0, high: null, unit: GHz, source: chen2016,
+      notes: "measured opto-electrical 3-dB bandwidth ~67 GHz at -1 V, 1550 nm, one device on a 67 GHz VNA (Section 3.2 body text, Fig. 6(a)); the value is at the VNA range, and the paper reports beyond 67 GHz at -2 V and -3 V. Same Si-contacted Ge waveguide p-i-n detector as dark_current. Wafer-scale data on a 50 GHz VNA (Fig. 5(c)): >50 GHz at 1550 nm (-1 V, -2 V), and at 1310 nm, -1 V, mean 44 GHz with standard deviation 2.2 GHz (not stored; different wavelength). Low/high null: no wafer-scale spread at 1550 nm. A photodetector 3-dB bandwidth, not a whole-receiver (TIA, ADC) noise bandwidth; the opt-in noise contract maps it to detection_bandwidth_hz (D-042)."}
   adc:
     # Two published designs, NOT a curve of energy per conversion vs bits: energy also depends on
     # sample rate, process node and architecture, so do not interpolate between them.
