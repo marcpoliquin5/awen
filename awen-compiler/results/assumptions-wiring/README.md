@@ -20,3 +20,7 @@ Later change (D-042, 2026-11-10): the assumption set now has a value for a secon
 (chen2016, typical 67 GHz, low/high null). Opting in at the typical corner therefore sets `detection_bandwidth_hz` to 67 GHz,
 which changes the noisy GEMM outputs at that corner. `after.json` above is the record of the #135 head and was not regenerated.
 The default contract is unchanged (checked by `awen-compiler/tests/assumption_report.rs`).
+
+Later change (D-043, 2026-11-10): the set now stores `mzi.extinction_ratio` (demarinis2021, 22.9/26.8/42.5 dB). It is not a
+mapped field, and `mzi.crosstalk` stays null, so opting in still leaves `crosstalk_db` at the built-in -35 dB at every corner
+(checked by `awen-compiler/tests/assumption_report.rs`).
