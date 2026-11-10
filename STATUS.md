@@ -1,6 +1,6 @@
 # AWEN status
 
-Updated 2026-11-10 ET (time of this commit). Latest: `2af62e1` (#286, measured phase-shifter insertion loss 0.23 ± 0.13 dB from harris2014 added as `phase_shifter.thermo_optic_insertion_loss`, D-041, no default changed; PR gate run 42763327193 passed on head `71ea513`), after `3708e1f` (#285), after `cf07d2f` (#284, STATUS.md history moved to `docs/history/`, 150-line limit checked by `scripts/tests/test_status_file.py`). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
+Updated 2026-11-10 ET (time of this commit). Latest: `e8488c9` (#288, measured Ge photodetector bandwidth 67 GHz and dark current 2.4 ± 0.4 nA from chen2016 added as `photodetector.bandwidth`/`dark_current`, D-042, no default changed; the opt-in contract applies 67 GHz at the typical corner; PR gate run 42808039721 passed on head `56d4d88`), after `03fa65c` (#287), after `2af62e1` (#286, harris2014 phase-shifter insertion loss, D-041). Governing brief: AWEN Master Prompt v2 (Marc, 2026-10-18).
 The full merge chain and gate-run list from `0235668` (#125) to `fed7c1a` (#282) moved to [docs/history/status-2026-11-09.md](docs/history/status-2026-11-09.md) (section 1).
 Truth-table test counts were measured at `0235668`; the inventory counts at `14385b9` (gate runs for those commits: same file, section 1).
 
@@ -48,7 +48,7 @@ command shown.
 | Lab Agent (simulation only, refuses hardware) | `awen-lab` | L1 | 11 tests, measured @ 0235668: `cd awen-lab && pytest -q` |
 | Studio (local web app) | `awen-studio` | L1 (wraps simulators) | 13 passed + 1 skipped, measured @ 0235668: `cd awen-studio && pytest -q` |
 | Benchmark harness with sealed evidence records | `awen-models/awen_models/bench.py` | measured (CPU) / L1 | `benchmarks/results/` |
-| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`); loader `awen_compiler::assumptions` merged #134 (`243acef`); opt-in `with_assumptions` for the noise contract and cost inputs, with before/after outputs in `awen-compiler/results/assumptions-wiring/`, merged #135 (`950a859`); phase-shifter insertion loss (harris2014, per heater, not an MZI or path loss) merged #286 (`2af62e1`) |
+| Hardware assumptions file | `awen-spec/hardware_assumptions.yaml` | L0 (spec data) | v0 merged #126 (`840f5c5`); section 9 follow-up merged #130 (`132d4d9`); loader `awen_compiler::assumptions` merged #134 (`243acef`); opt-in `with_assumptions` for the noise contract and cost inputs, with before/after outputs in `awen-compiler/results/assumptions-wiring/`, merged #135 (`950a859`); phase-shifter insertion loss (harris2014, per heater, not an MZI or path loss) merged #286 (`2af62e1`); Ge photodetector bandwidth and dark current (chen2016; opt-in typical corner applies 67 GHz) merged #288 (`e8488c9`) |
 | Inventory of hard-coded device defaults, checked in CI | `awen-spec/hardcoded_device_defaults.yaml`, `scripts/hardcoded_defaults.py` | L0 (spec data) | 236 entries (compiler 145 in 36 functions, runtime 66 in 28 functions, awen-mlir 2, awen-models 8, awen-systems 5, awen-qphotonic 3, awen-lab 3, awen-studio 1, awen-ecosystem 3; 154 unsourced, 27 numeric guards, 48 definitional, 6 differ from the assumption set, 1 matches); scanned forms and the not-covered list are in [docs/history/status-2026-11-09.md](docs/history/status-2026-11-09.md) (section 2); `python scripts/hardcoded_defaults.py --check` |
 
 Count commands (run at `0235668`):
@@ -102,7 +102,7 @@ C2: sed -n '/fn all_kernel_kinds/,/^}/p' awen-compiler/src/awenblas/kernels.rs |
 - Release artifacts have no cryptographic signatures, only `SHA256SUMS`.
 - Device energies and noise defaults are still hard-coded: 236 inventoried entries across the Rust crates, awen-mlir and
   the Python packages (counts in the truth table), all listed in `awen-spec/hardcoded_device_defaults.yaml`. The compiler
-  can read `hardware_assumptions.yaml` opt-in (#135), but the defaults themselves are unchanged. 138 of the 211 compiler
+  can read `hardware_assumptions.yaml` opt-in (#135), but the defaults themselves are unchanged. 134 of the 211 compiler
   and runtime entries have no checked value in the assumption set yet, so wiring them needs sourced values first, never
   guesses. Per-package detail: [docs/history/status-2026-11-09.md](docs/history/status-2026-11-09.md) (section 5).
 
@@ -127,20 +127,20 @@ CI note (2026-11-01, #201): the MLIR install step now has its own 15-min limit a
    drift rate (programmed mesh phases, not input-path phase; read the full text and check Crossref before use), or
    sourced values for the simulator default contract's noise terms, and register its use before any run. Lead not
    yet verified: Chaboyer et al., Optics Express 25(26) 33056 (2017), doi:10.1364/OE.25.033056 (full text still
-   not read, publisher captcha again 2026-11-10, no arXiv version; abstract gives a bound, no drift over more than 12 h and short-term stability better than 6 mrad, no
+   not read, publisher captcha again 2026-11-10 06:24 ET, no arXiv or repository copy version; abstract gives a bound, no drift over more than 12 h and short-term stability better than 6 mrad, no
    rate). Checked and not usable: Ceccarelli et al., J. Lightwave Technol. 37(17) 4275 (2019), doi:10.1109/JLT.2019.2923126 (Crossref checked),
    arXiv:2006.08707 (full text read 2026-11-09; heater resistance stability only, no phase drift rate). Sourced so far for the
-   default contract's loss terms: per-heater insertion loss only (#286); `mzi.insertion_loss` and the total path loss stay null. The real-weight open-model run waits on Marc (download, model choice). P1-7's CUDA
+   default contract: per-heater insertion loss only (#286; `mzi.insertion_loss` and the total path loss stay null) and the detector 3-dB bandwidth (#288, chen2016, typical 67 GHz; default stays 10 GHz). Still unsourced: total path loss, phase sigma, RIN, thermal noise, crosstalk, ADC bits, QE. The real-weight open-model run waits on Marc (download, model choice). P1-7's CUDA
    log is still Marc's laptop run: `python scripts/phase1_devices.py --require-cuda --out phase1-devices-cuda.json` (not run).
 2. Get Marc's answers on D-007 to D-012 (starting with the AWEN-Mini base model, Phase 1 session P1-1, which also
    unblocks P1-4), on the PACE reference-descriptor proposal in draft #138 (DAC 10 to 8 bits, effective bits 8 to 7,
-   ADC 4.0 to 6.35 pJ), and on the agent decisions D-018 to D-041 (H2 counting rule, amendments A1 and A2, H4
+   ADC 4.0 to 6.35 pJ), and on the agent decisions D-018 to D-042 (H2 counting rule, amendments A1 and A2, H4
    definitions, cu129 lockfile, sim-to-real model B, recalibration drift model, conversions counting rule,
    energy accounting rule, DAC published designs, modulator points, host-transfer byte rule, memory-movement byte
    rule, HBM2 memory energy point, harris2014 weight-hold energy, diamantopoulos2021 laser energy-per-bit,
    zortman2012 thermal heater energy-per-bit, sun2016 tuner-logic control energy-per-bit, li2018 host-link PHY
    energy-per-bit, scenario_envelope_v1 total rule, energy per lowered MAC,
-   AWEN-Mini accuracy axis, recalibration time axis, phase-shifter insertion loss as a per-heater value).
+   AWEN-Mini accuracy axis, recalibration time axis, phase-shifter insertion loss as a per-heater value, chen2016 detector bandwidth applied opt-in).
 3. Get Marc's answer on landing the research stacks on main as research code: H3 (#136, then #144), H1 (#137,
    #148, #150), H2 (#153) and H4 (#161, verdict kept).
 
