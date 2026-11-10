@@ -340,3 +340,13 @@ different runs); one preferred k (no sourced mesh-mapping model); rerunning E-02
 training run is not needed to convert the axis); running E-039 in the same slice as registration. Reversible: a new
 registration.
 
+
+## D-041 · Phase-shifter insertion loss stored as a per-device value, not an MZI or path loss
+Decided by: agent, 2026-11-10 (data only; no experiment registered or run).
+`phase_shifter.thermo_optic_insertion_loss` holds the measured 0.23 ± 0.13 dB of Harris et al., Optics Express 22(9)
+10487 (2014), doi:10.1364/OE.22.010487 (Crossref re-checked; arXiv:1410.3616 full text read): 21 devices on one 8-inch
+SOI wafer, one 61.6-um heater section, low/high = mean ± the reported spread (same convention as the Pπ entry). It is
+not an MZI insertion loss (the two MMIs are excluded) and not the noise contract's total laser-to-detector
+`insertion_loss_db`, so `mzi.insertion_loss` stays null and no default changes.
+Rejected: filling `mzi.insertion_loss` or the contract default from this value (different quantity); multiplying it by a
+mesh depth to get a path loss (no registered composition rule; a future registration can add one). Reversible.

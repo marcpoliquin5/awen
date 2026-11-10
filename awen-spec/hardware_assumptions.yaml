@@ -71,7 +71,7 @@ sources:
     citation: "N. C. Harris et al., Efficient, compact and low loss thermo-optic phase shifter in silicon, Optics Express 22, 10487-10493 (2014); arXiv:1410.3616 (OSA electronic reprint)"
     doi: 10.1364/OE.22.010487
     type: measured
-    note: "checked 2026-11-06 on Crossref and the arXiv:1410.3616 PDF (Optics Express electronic reprint). Measured Pπ 24.77 ± 0.43 mW (abstract, Table I, body text from MZI phase-vs-power). Measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, body text, lock-in). Table I τ 2.69 µs via the paper's single-pole τ = 0.35/f_3dB; Table I Pπ·τ product 66.9 mW·µs."
+    note: "checked 2026-11-06 on Crossref and the arXiv:1410.3616 PDF (Optics Express electronic reprint). Measured Pπ 24.77 ± 0.43 mW (abstract, Table I, body text from MZI phase-vs-power). Measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, body text, lock-in). Measured phase-shifter insertion loss 0.23 ± 0.13 dB over 21 devices across an 8-inch wafer (abstract, Section 4 body text, Fig. 3(d)); re-read 2026-11-10 in the arXiv:1410.3616 PDF and Crossref re-checked (vol 22, issue 9, page 10487). Table I τ 2.69 µs via the paper's single-pole τ = 0.35/f_3dB; Table I Pπ·τ product 66.9 mW·µs."
   diamantopoulos2021:
     citation: "N.-P. Diamantopoulos et al., 47.5 GHz Membrane-III-V-on-Si Directly Modulated Laser for Sub-pJ/bit 100-Gbps Transmission, Photonics 8, 31 (2021)"
     doi: 10.3390/photonics8020031
@@ -181,6 +181,8 @@ parameters:
       notes: "measured Pπ (power for π rad phase shift) 24.77 ± 0.43 mW; low/high = mean ± reported uncertainty; abstract, Table I, body text (MZI phase vs dissipated power; Fig. 3(b) per caption)"}
     thermo_optic_reconfiguration_time: {low: null, typical: 2.69, high: null, unit: us, source: harris2014,
       notes: "Table I τ = 2.69 µs from the paper's single-pole approximation τ = 0.35/f_3dB applied to the measured -3 dB bandwidth 130.0 ± 5.59 kHz (abstract, lock-in body text; Fig. 3(c) per caption). Not a direct time-domain rise/fall measurement."}
+    thermo_optic_insertion_loss: {low: 0.10, typical: 0.23, high: 0.36, unit: dB, source: harris2014,
+      notes: "measured phase-shifter insertion loss 0.23 ± 0.13 dB over 21 devices on one 8-inch SOI wafer (abstract; Section 4 body text, spectra normalized to grating-coupler, MMI and waveguide propagation loss; Fig. 3(d) histogram per caption); low/high = mean ± the reported spread (the paper does not say whether it is one standard deviation). One 61.6-um heater section only: not an MZI insertion loss (excludes the two MMIs) and not the total laser-to-detector loss of the noise contract (`insertion_loss_db`), so `mzi.insertion_loss` stays null and the default contract is unchanged."}
     # One published thermo-optic point: continuous Pπ and a π-reconfiguration energy from the paper's Pπ·τ product.
     # Never interpolate; energy is an estimate (Pπ × τ), not a separately measured switching joule.
     published_designs:
