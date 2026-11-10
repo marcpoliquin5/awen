@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 47
+    assert len(ALL_PARAMS) == 48
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -161,6 +161,17 @@ def test_phase_shifter_harris2014_values_and_published_pi_energy():
     assert "Table I" in pt["derivation"] and "66.9" in pt["derivation"]
     assert DATA["sources"]["harris2014"]["doi"] == "10.1364/OE.22.010487"
     assert "24.77" in DATA["sources"]["harris2014"]["note"]
+
+
+def test_phase_shifter_harris2014_insertion_loss_is_per_device_not_mzi_or_path():
+    loss = DATA["parameters"]["phase_shifter"]["thermo_optic_insertion_loss"]
+    assert (loss["low"], loss["typical"], loss["high"]) == (0.10, 0.23, 0.36)
+    assert loss["low"] == pytest.approx(0.23 - 0.13) and loss["high"] == pytest.approx(0.23 + 0.13)
+    assert loss["source"] == "harris2014" and loss["unit"] == "dB" and "source_type" not in loss
+    assert "21 devices" in loss["notes"] and "not an MZI insertion loss" in loss["notes"]
+    assert "0.23 ± 0.13 dB" in DATA["sources"]["harris2014"]["note"]
+    # a per-heater loss is not the MZI loss nor the contract's total laser-to-detector loss
+    assert DATA["parameters"]["mzi"]["insertion_loss"]["typical"] is None
 
 
 def test_laser_diamantopoulos2021_wpe_and_published_energy_per_bit():
