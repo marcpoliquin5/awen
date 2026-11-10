@@ -35,7 +35,12 @@ fn bundled_set_parses_ranges_only() {
         (dac.source.as_deref(), dac.source_type),
         (Some("hua2025"), Some(SourceType::Measured))
     );
-    assert_eq!(set.parameters["laser.rin"].source_type, None);
+    // laser.rin has only a measured upper bound (vaskasi2022, D-044), stored at the high corner
+    assert_eq!(
+        set.parameters["laser.rin"].source_type,
+        Some(SourceType::Measured)
+    );
+    assert_eq!(set.parameters["mzi.crosstalk"].source_type, None);
     // sweeps, keyed and point entries and the channel rule are not ranges
     for name in [
         "shot_noise.shot_noise_energy_per_detection_J",

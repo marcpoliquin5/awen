@@ -381,3 +381,20 @@ path loss (6 dB), the lossless cost fallback and the runtime device default, so 
 Rejected: copying -ER into `mzi.crosstalk` (unregistered composition rule; it would change opt-in outputs); low/high as
 mean ± sigma (our arithmetic, when the paper reports the extremes); the silicon nitride chip's 12.8 dB (different platform
 from the rest of the set; noted in the source only); filling `mzi.insertion_loss` now (see above). Reversible.
+
+## D-044 · Measured laser RIN upper bound and linewidth points (vaskasi2022); RIN stored at the high corner only
+Decided by: agent, 2026-11-10 (data only; no experiment registered or run; no default and no noisy output changed).
+`laser.rin` = high -150 dB/Hz (low/typical null) and `laser.linewidth` = {28000, null, 440000} Hz come from Rahimi Vaskasi
+et al., Optics Express 30(15) 27983 (2022), doi:10.1364/OE.462051 (Crossref checked; published PDF read in full). One
+III-V-on-silicon C-band DFB laser: RIN "below -150 dB/Hz up to 6 GHz" at 50 and 60 mA, 20 °C, is a stated upper bound, so
+it fills only the high (noisiest) corner; the paper states no level, so typical stays null. The linewidth points are the
+intrinsic linewidths at 60 mA at 20 °C (440 kHz) and 22 °C (28 kHz, external-feedback phase tuned), two operating points of
+one device, not a spread. The bound equals the noise contract's illustrative -150 dB/Hz, so the inventory entry becomes
+`matches_assumption` (unsourced 152 -> 151) and the opt-in `with_assumptions` at the high corner applies the same number
+with the vaskasi2022 label; the default contract is unchanged. The contract integrates RIN flat over
+`detection_bandwidth_hz` (10 GHz built-in, 67 GHz at the opt-in typical corner); the bound covers 0-6 GHz only, so its use
+over a wider band is an extrapolation, stated in the notes.
+Rejected: typical = -150 (a bound is not a level); reading a level off Fig. 6 (not stated in the text); other RIN values
+found in the same search (an IEEE conference abstract, <-140 dB/Hz, full text not read; a review's Intel O-band "below -150"
+statement, secondary); storing the 16% wall-plug efficiency (laser.wall_plug_efficiency keeps diamantopoulos2021; a
+different laser and a separate change). Reversible.

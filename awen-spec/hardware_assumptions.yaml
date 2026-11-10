@@ -106,6 +106,12 @@ sources:
     type: measured
     note: "checked 2026-11-10 on Crossref (Applied Sciences vol 11, issue 13, article 6232, issued 2021-07-05; 6 authors as cited; CC BY 4.0) and the published PDF (University of Pisa repository copy of the MDPI version, read in full with pdftotext). Two thermally tuned 4x4 MZI linear processors, one device per platform. Section 4.1 (silicon-on-insulator, Applied Nanotools e-beam MPW, MMI 3-dB couplers, 150 um heaters, Reck SU(4) plus diagonal section): each MZI has a loss of approximately 0.7 dB and an average extinction ratio (ER) of 26.8 dB, both near 1550 nm; best MZI 42.5 dB (MZI 6, cross state) and worst 22.9 dB (MZI 9, bar state) at 1550 nm; Table 1 gives the ER spread as sigma = 4.2 dB; average Pi 55 mW (sigma 2.1 mW); longest path 4.5 dB over 6 MZIs plus 6.5 dB per grating coupler. Section 4.2 (silicon nitride, LioniX TriPleX, directional couplers, Clements): average MZI loss 1.5 dB, average ER 12.8 dB (sigma 1.7 dB), best 16.1 dB, worst 7.5 dB (not stored: different platform from the rest of the set). Section 5.2 defines the plotted ER as the minimum of bar and cross port ERs; Sections 4.1-4.2 do not state which definition the averages use."
 
+  vaskasi2022:
+    citation: "J. Rahimi Vaskasi, N. Singh, J. Van Kerrebrouck, J. Bauwelinck, G. Roelkens, G. Morthier, High wall-plug efficiency and narrow linewidth III-V-on-silicon C-band DFB laser diodes, Optics Express 30(15), 27983 (2022)"
+    doi: 10.1364/OE.462051
+    type: measured
+    note: "checked 2026-11-10 on Crossref (Optics Express vol 30, issue 15, page 27983, issued 2022-07-15; 6 authors as cited; Optica open-access licence) and the published PDF (Ghent University photonics group copy, pub_4860.pdf, read in full with pdftotext). One adhesively bonded III-V-on-SOI C-band DFB laser, 180 um cavity, lasing at 1567 nm, SMSR around 55 dB at 60 mA. Section 3.1: RIN measured at 20 °C with an electrical spectrum analyzer up to 20 GHz (thermal noise of the link subtracted; receiver shot noise around -177 dB/Hz); Fig. 6 shows 50 mA and 60 mA; text, abstract and conclusion: the laser RIN is below -150 dB/Hz up to 6 GHz (an upper bound over 0-6 GHz; no value above 6 GHz is stated in the text). Frequency noise at 60 mA (OE4000, no isolator): white-noise PSD 140 x 10^3 Hz^2/Hz at 20 °C, intrinsic (Lorentzian) linewidth 440 kHz (PSD x pi); at 22 °C (external-feedback phase tuned by stage temperature) PSD 8870 Hz^2/Hz, intrinsic linewidth 28 kHz. Wall-plug efficiency above 16% below 40 mA at 20 °C (not stored; laser.wall_plug_efficiency keeps diamantopoulos2021). Modulation bandwidth about 14 GHz at 50 mA, 20 °C."
+
   elmas2025:
     citation: "G. Elmas, I. A. Litvin, P. Kohl, J. Nötzel, Modeling and analysis of phase instability in a photonic processor, Applied Optics 64(14), 3995 (2025)"
     doi: 10.1364/AO.560370
@@ -119,9 +125,10 @@ parameters:
        notes: "per laser channel, 'sub-mW to about 30 mW' in the PACE system"}
     wall_plug_efficiency: {low: null, typical: 0.0644, high: null, unit: fraction, source: diamantopoulos2021,
       notes: "measured 6.44% at 25 °C / 9.1 mA (wide-apparatus photodetection without fiber) at the same bias used for the 0.17 pJ/bit DC energy point; membrane III-V-on-Si DML"}
-    rin: {low: null, typical: null, high: null, unit: dB/Hz, source: null,
-          notes: "the noise contract default (-150 dB/Hz) is an illustrative operating point, not sourced"}
-    linewidth: {low: null, typical: null, high: null, unit: Hz, source: null, notes: "no checked source yet"}
+    rin: {low: null, typical: null, high: -150.0, unit: dB/Hz, source: vaskasi2022,
+          notes: "measured upper bound: RIN below -150 dB/Hz up to 6 GHz for one III-V-on-Si DFB laser at 50 and 60 mA, 20 °C (Section 3.1, abstract, conclusion). Stored as high (the noisiest value the bound allows); low/typical null because the paper states a bound, not a level. The bound covers 0-6 GHz only: the noise contract applies RIN flat over detection_bandwidth_hz (10 GHz built-in), so using it above 6 GHz is an extrapolation, not a measured figure. Equals the contract's illustrative -150 dB/Hz, so opting in at the high corner applies the same number with this label (D-044)."}
+    linewidth: {low: 28000.0, typical: null, high: 440000.0, unit: Hz, source: vaskasi2022,
+      notes: "measured intrinsic (Lorentzian) linewidth of the same laser at 60 mA, from the white frequency-noise PSD x pi (Section 3.1): 440 kHz at 20 °C and 28 kHz at 22 °C after tuning the external-feedback phase by temperature. low/high are these two operating points of one device, not a spread; typical null. Not read by any simulator (D-044)."}
     # Two published DML DC energy-per-bit points (laser bias only), NOT a CW-mesh laser and NOT interpolated.
     published_designs:
       kind: points
