@@ -366,3 +366,18 @@ Rejected: low/high from the 1550 nm wafer data (">50 GHz" is a VNA limit, not a 
 wavelength from the rest of the set); changing the default or the descriptor (no registered run); linking the runtime
 `dark_count_hz` defaults (a current is not a count rate without a registered conversion); removing the opt-in mapping for
 this field (it is the #135 design, and opt-in callers get a labelled value). Reversible.
+
+## D-043 · Measured per-MZI extinction ratio (demarinis2021) as a new data entry; `mzi.crosstalk` stays null
+Decided by: agent, 2026-11-10 (data only; no experiment registered or run; no default and no opt-in output changed).
+New `mzi.extinction_ratio` = {22.9, 26.8, 42.5} dB from De Marinis et al., Applied Sciences 11(13) 6232 (2021),
+doi:10.3390/app11136232 (Crossref checked; published PDF read in full): the average extinction ratio of the MZIs in one
+thermally tuned 4x4 silicon-on-insulator processor near 1550 nm (typical), with the worst (22.9 dB) and best (42.5 dB) MZIs
+the paper reports at 1550 nm as low/high (Table 1 gives sigma 4.2 dB). The noise contract's `crosstalk_db` (-35 dB) is a
+tile-level adjacent-output-channel power coupling; a per-MZI bar/cross contrast is a different quantity, and how per-MZI
+leakage adds up over mesh depth and programmed phases needs a registered rule, so `mzi.crosstalk` stays null and the
+opt-in `with_assumptions` mapping (`mzi.crosstalk` to `crosstalk_db`) still applies nothing. The paper's per-MZI loss
+(~0.7 dB, "approximately") is kept in the source note only: the inventory maps `mzi.insertion_loss` to the contract's total
+path loss (6 dB), the lossless cost fallback and the runtime device default, so filling it would need those links fixed first.
+Rejected: copying -ER into `mzi.crosstalk` (unregistered composition rule; it would change opt-in outputs); low/high as
+mean ± sigma (our arithmetic, when the paper reports the extremes); the silicon nitride chip's 12.8 dB (different platform
+from the rest of the set; noted in the source only); filling `mzi.insertion_loss` now (see above). Reversible.

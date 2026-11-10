@@ -162,3 +162,32 @@ fn cost_provenance_source_is_derived_from_the_applied_fields() {
         assert_eq!(opted.provenance.last().unwrap().source, expected, "{label}");
     }
 }
+
+#[test]
+fn mzi_extinction_ratio_is_stored_but_never_applied_as_crosstalk() {
+    // D-043: demarinis2021 per-MZI extinction ratio is data only; `mzi.crosstalk` stays null
+    let set = bundled();
+    let expected = [
+        (Corner::Low, 22.9),
+        (Corner::Typical, 26.8),
+        (Corner::High, 42.5),
+    ];
+    for (corner, er) in expected {
+        assert_eq!(
+            set.value("mzi.extinction_ratio", "dB", corner).unwrap(),
+            Some(er)
+        );
+        assert_eq!(set.value("mzi.crosstalk", "dB", corner).unwrap(), None);
+        let (contract, report) = PhotonicNoiseContract::default()
+            .with_assumptions(&set, corner)
+            .unwrap();
+        assert_eq!(contract.crosstalk_db, Some(-35.0));
+        let field = report
+            .fields
+            .iter()
+            .find(|f| f.field == "crosstalk_db")
+            .unwrap();
+        assert!(!field.from_assumptions);
+        assert_eq!(field.source, None);
+    }
+}

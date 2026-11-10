@@ -100,6 +100,12 @@ sources:
     type: measured
     note: "checked 2026-11-10 on Crossref (Optics Express vol 24, issue 5, page 4622, issued 2016-02-24; 11 authors as cited; Optica open-access licence) and the author manuscript in the Ghent University repository (biblio.ugent.be/publication/7276522, PDF read in full with pdftotext; the publisher HTML is behind a captcha). The manuscript's abstract matches the published one (67 GHz at -1 V, 6.8 fF, dark current below 4 nA, 0.74 A/W at 1550 nm, 0.93 A/W at 1310 nm). Section 3.1: wafer-scale dark current mean 2.4 nA (sd 0.4 nA) at -1 V and 3.6 nA (sd 0.8 nA) at -2 V; wafer-scale responsivity mean 0.74 A/W (1550 nm) and 0.93 A/W (1310 nm), sd 0.05 A/W. Section 3.2: wafer-scale bandwidth >50 GHz at 1550 nm (50 GHz VNA limit), 44 GHz mean (sd 2.2 GHz) at 1310 nm and -1 V; on a 67 GHz VNA one device shows ~67 GHz at -1 V, 1550 nm. Mean junction capacitance 6.8 fF at -1 V."
 
+  demarinis2021:
+    citation: "L. De Marinis, M. Cococcioni, O. Liboiron-Ladouceur, G. Contestabile, P. Castoldi, N. Andriolli, Photonic Integrated Reconfigurable Linear Processors as Neural Network Accelerators, Applied Sciences 11(13), 6232 (2021)"
+    doi: 10.3390/app11136232
+    type: measured
+    note: "checked 2026-11-10 on Crossref (Applied Sciences vol 11, issue 13, article 6232, issued 2021-07-05; 6 authors as cited; CC BY 4.0) and the published PDF (University of Pisa repository copy of the MDPI version, read in full with pdftotext). Two thermally tuned 4x4 MZI linear processors, one device per platform. Section 4.1 (silicon-on-insulator, Applied Nanotools e-beam MPW, MMI 3-dB couplers, 150 um heaters, Reck SU(4) plus diagonal section): each MZI has a loss of approximately 0.7 dB and an average extinction ratio (ER) of 26.8 dB, both near 1550 nm; best MZI 42.5 dB (MZI 6, cross state) and worst 22.9 dB (MZI 9, bar state) at 1550 nm; Table 1 gives the ER spread as sigma = 4.2 dB; average Pi 55 mW (sigma 2.1 mW); longest path 4.5 dB over 6 MZIs plus 6.5 dB per grating coupler. Section 4.2 (silicon nitride, LioniX TriPleX, directional couplers, Clements): average MZI loss 1.5 dB, average ER 12.8 dB (sigma 1.7 dB), best 16.1 dB, worst 7.5 dB (not stored: different platform from the rest of the set). Section 5.2 defines the plotted ER as the minimum of bar and cross port ERs; Sections 4.1-4.2 do not state which definition the averages use."
+
   elmas2025:
     citation: "G. Elmas, I. A. Litvin, P. Kohl, J. Nötzel, Modeling and analysis of phase instability in a photonic processor, Applied Optics 64(14), 3995 (2025)"
     doi: 10.1364/AO.560370
@@ -210,7 +216,10 @@ parameters:
   mzi:
     insertion_loss: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
     splitter_imbalance: {low: null, typical: null, high: null, unit: fraction, source: null, notes: "no checked source yet"}
-    crosstalk: {low: null, typical: null, high: null, unit: dB, source: null, notes: "no checked source yet"}
+    crosstalk: {low: null, typical: null, high: null, unit: dB, source: null,
+      notes: "no checked source yet. mzi.extinction_ratio (demarinis2021) is a per-MZI bar/cross contrast, not the noise contract's tile-level adjacent-channel coupling (crosstalk_db); it is not copied here because no registered rule composes per-MZI leakage over mesh depth and programmed states (D-043)"}
+    extinction_ratio: {low: 22.9, typical: 26.8, high: 42.5, unit: dB, source: demarinis2021,
+      notes: "measured per-MZI extinction ratio of a thermally tuned 4x4 silicon-on-insulator MZI processor (MMI couplers), near 1550 nm (Section 4.1 body text; Table 1 sigma 4.2 dB): typical = average 26.8 dB; low/high = the worst (22.9 dB, MZI 9 bar state) and best (42.5 dB, MZI 6 cross state) MZIs reported at 1550 nm, not mean ± sigma. One device. A contrast in dB (positive), not a crosstalk; the same paper's per-MZI loss (~0.7 dB) is in the source note only, so mzi.insertion_loss stays null (D-043)."}
   microring:
     quality_factor: {low: null, typical: null, high: null, unit: dimensionless, source: null, notes: "no checked source yet"}
     thermal_tuning_power: {low: null, typical: null, high: null, unit: mW, source: null,

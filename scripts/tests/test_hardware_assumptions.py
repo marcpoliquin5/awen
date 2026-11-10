@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 48
+    assert len(ALL_PARAMS) == 49
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -172,6 +172,24 @@ def test_phase_shifter_harris2014_insertion_loss_is_per_device_not_mzi_or_path()
     assert "0.23 ± 0.13 dB" in DATA["sources"]["harris2014"]["note"]
     # a per-heater loss is not the MZI loss nor the contract's total laser-to-detector loss
     assert DATA["parameters"]["mzi"]["insertion_loss"]["typical"] is None
+
+
+def test_mzi_demarinis2021_extinction_ratio_is_not_a_crosstalk():
+    mzi = DATA["parameters"]["mzi"]
+    er = mzi["extinction_ratio"]
+    assert (er["low"], er["typical"], er["high"]) == (22.9, 26.8, 42.5)
+    assert er["low"] < er["typical"] < er["high"]
+    assert er["unit"] == "dB" and er["source"] == "demarinis2021" and "source_type" not in er
+    assert "not mean ± sigma" in er["notes"] and "not a crosstalk" in er["notes"]
+    src = DATA["sources"]["demarinis2021"]
+    assert src["doi"] == "10.3390/app11136232" and src["type"] == "measured"
+    assert "Applied Sciences 11(13), 6232 (2021)" in src["citation"]
+    for quoted in ("26.8 dB", "42.5 dB", "22.9 dB", "sigma = 4.2 dB", "approximately 0.7 dB"):
+        assert quoted in src["note"], quoted
+    # the contract's tile-level crosstalk and the MZI loss stay unsourced (D-043)
+    for name in ("crosstalk", "insertion_loss"):
+        assert (mzi[name]["low"], mzi[name]["typical"], mzi[name]["high"]) == (None, None, None), name
+    assert "D-043" in mzi["crosstalk"]["notes"]
 
 
 def test_photodetector_chen2016_bandwidth_and_dark_current():
