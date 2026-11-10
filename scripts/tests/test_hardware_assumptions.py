@@ -192,6 +192,24 @@ def test_mzi_demarinis2021_extinction_ratio_is_not_a_crosstalk():
     assert "D-043" in mzi["crosstalk"]["notes"]
 
 
+def test_laser_vaskasi2022_rin_bound_and_linewidth_points():
+    laser = DATA["parameters"]["laser"]
+    rin, lw = laser["rin"], laser["linewidth"]
+    # a stated upper bound, not a level: only the high (noisiest) corner is filled (D-044)
+    assert (rin["low"], rin["typical"], rin["high"]) == (None, None, -150.0)
+    assert rin["unit"] == "dB/Hz" and rin["source"] == "vaskasi2022" and "source_type" not in rin
+    assert "up to 6 GHz" in rin["notes"] and "extrapolation" in rin["notes"] and "D-044" in rin["notes"]
+    assert (lw["low"], lw["typical"], lw["high"]) == (28000.0, None, 440000.0)
+    assert lw["unit"] == "Hz" and lw["source"] == "vaskasi2022" and "not a spread" in lw["notes"]
+    src = DATA["sources"]["vaskasi2022"]
+    assert src["doi"] == "10.1364/OE.462051" and src["type"] == "measured"
+    assert "Optics Express 30(15), 27983 (2022)" in src["citation"]
+    for quoted in ("below -150 dB/Hz up to 6 GHz", "440 kHz", "28 kHz", "8870 Hz^2/Hz", "140 x 10^3 Hz^2/Hz"):
+        assert quoted in src["note"], quoted
+    # the wall-plug efficiency entry keeps its earlier source
+    assert laser["wall_plug_efficiency"]["source"] == "diamantopoulos2021"
+
+
 def test_photodetector_chen2016_bandwidth_and_dark_current():
     pd = DATA["parameters"]["photodetector"]
     bw, dark = pd["bandwidth"], pd["dark_current"]

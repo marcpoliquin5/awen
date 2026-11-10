@@ -24,3 +24,8 @@ The default contract is unchanged (checked by `awen-compiler/tests/assumption_re
 Later change (D-043, 2026-11-10): the set now stores `mzi.extinction_ratio` (demarinis2021, 22.9/26.8/42.5 dB). It is not a
 mapped field, and `mzi.crosstalk` stays null, so opting in still leaves `crosstalk_db` at the built-in -35 dB at every corner
 (checked by `awen-compiler/tests/assumption_report.rs`).
+
+Later change (D-044, 2026-11-10): `laser.rin` now has a measured upper bound (vaskasi2022: below -150 dB/Hz up to 6 GHz),
+stored at the high corner only. Opting in at the high corner therefore applies `rin_db_per_hz` = -150 dB/Hz with that label;
+it equals the built-in value, so no noisy output changes at any corner (checked by `awen-compiler/tests/assumption_report.rs`).
+`laser.linewidth` (28 kHz / 440 kHz, same source) is not a mapped field.

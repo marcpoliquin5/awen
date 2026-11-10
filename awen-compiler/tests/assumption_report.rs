@@ -51,7 +51,13 @@ fn opting_in_changes_only_sourced_fields_and_never_the_default() {
             let (y, _) = photonic_gemm(&x, &w, shape, &contract, 16, 7).unwrap();
             assert_ne!(y, y_default);
         } else {
-            assert_eq!(applied, Vec::<&str>::new(), "{corner:?}");
+            // laser.rin (vaskasi2022 bound, high corner only) equals the default -150 dB/Hz (D-044)
+            let expected: Vec<&str> = if corner == Corner::High {
+                vec!["rin_db_per_hz"]
+            } else {
+                Vec::new()
+            };
+            assert_eq!(applied, expected, "{corner:?}");
             assert_eq!(contract, default, "{corner:?}");
             let (y, _) = photonic_gemm(&x, &w, shape, &contract, 16, 7).unwrap();
             assert_eq!(y, y_default);
@@ -189,5 +195,36 @@ fn mzi_extinction_ratio_is_stored_but_never_applied_as_crosstalk() {
             .unwrap();
         assert!(!field.from_assumptions);
         assert_eq!(field.source, None);
+    }
+}
+
+#[test]
+fn laser_rin_bound_applies_only_at_the_high_corner_and_equals_the_default() {
+    // D-044: vaskasi2022 states RIN below -150 dB/Hz up to 6 GHz, stored as laser.rin high only
+    let set = bundled();
+    let rin = &set.parameters["laser.rin"];
+    assert_eq!(rin.source.as_deref(), Some("vaskasi2022"));
+    for (corner, stored, applied) in [
+        (Corner::Low, None, false),
+        (Corner::Typical, None, false),
+        (Corner::High, Some(-150.0), true),
+    ] {
+        assert_eq!(set.value("laser.rin", "dB/Hz", corner).unwrap(), stored);
+        let (contract, report) = PhotonicNoiseContract::default()
+            .with_assumptions(&set, corner)
+            .unwrap();
+        // the bound equals the built-in illustrative value, so no corner changes the number
+        assert_eq!(contract.rin_db_per_hz, Some(-150.0));
+        assert_eq!(
+            contract.rin_db_per_hz,
+            PhotonicNoiseContract::default().rin_db_per_hz
+        );
+        let field = report
+            .fields
+            .iter()
+            .find(|f| f.field == "rin_db_per_hz")
+            .unwrap();
+        assert_eq!(field.from_assumptions, applied);
+        assert_eq!(field.source.as_deref(), applied.then_some("vaskasi2022"));
     }
 }
