@@ -228,3 +228,33 @@ fn laser_rin_bound_applies_only_at_the_high_corner_and_equals_the_default() {
         assert_eq!(field.source.as_deref(), applied.then_some("vaskasi2022"));
     }
 }
+
+#[test]
+fn photodetector_quantum_efficiency_estimate_is_stored_but_not_applied() {
+    // D-045: eta = 0.79990 * R from the chen2016 responsivity at 1550 nm is data only
+    let set = bundled();
+    assert_eq!(
+        set.parameters["photodetector.quantum_efficiency"].source_type,
+        Some(SourceType::Estimate)
+    );
+    let expected = [
+        (Corner::Low, 0.552),
+        (Corner::Typical, 0.592),
+        (Corner::High, 0.632),
+    ];
+    for (corner, eta) in expected {
+        assert_eq!(
+            set.value("photodetector.quantum_efficiency", "fraction", corner)
+                .unwrap(),
+            Some(eta)
+        );
+        let (contract, report) = PhotonicNoiseContract::default()
+            .with_assumptions(&set, corner)
+            .unwrap();
+        assert_eq!(contract.quantum_efficiency, 0.8);
+        assert!(report
+            .fields
+            .iter()
+            .all(|f| f.field != "quantum_efficiency"));
+    }
+}

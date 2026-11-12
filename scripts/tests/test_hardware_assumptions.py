@@ -102,7 +102,7 @@ MODULATOR_TYPES = {"tfln_mzm", "silicon_ring", "silicon_mzm", "silicon_unspecifi
 
 
 def test_parameter_count():
-    assert len(ALL_PARAMS) == 49
+    assert len(ALL_PARAMS) == 50
 
 
 def test_modulator_entries_have_device_type_and_separate_bandwidth():
@@ -320,3 +320,19 @@ def test_drift_elmas2025_published_phase_random_walk_points():
     assert "2606.25196" in src["note"] and "not a directly reported measured statistic" in src["note"]
     # A proxy for the E-023 time axis only: not on-chip weight drift.
     assert "not drift of programmed" in p["notes"]
+
+
+def test_photodetector_quantum_efficiency_is_an_estimate_from_chen2016_responsivity():
+    h, c, q = 6.62607015e-34, 299792458.0, 1.602176634e-19
+    k = h * c / (q * 1550e-9)  # W/A, about 0.79990
+    pd = DATA["parameters"]["photodetector"]
+    qe = pd["quantum_efficiency"]
+    assert qe["unit"] == "fraction" and qe["source"] == "chen2016" and qe["source_type"] == "estimate"
+    for corner, responsivity in (("low", 0.69), ("typical", 0.74), ("high", 0.79)):
+        assert qe[corner] == round(k * responsivity, 3), corner
+        assert 0.0 < qe[corner] <= 1.0
+    assert "0.79990" in qe["notes"] and "D-045" in qe["notes"] and "not a reported value" in qe["notes"]
+    note = DATA["sources"]["chen2016"]["note"]
+    assert "mean 0.74 A/W (1550 nm)" in note and "sd 0.05 A/W" in note
+    # the measured responsivity entry and its source are untouched
+    assert pd["responsivity"]["typical"] == 1.0 and pd["responsivity"]["source"] == "hua2025"

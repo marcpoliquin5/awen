@@ -398,3 +398,18 @@ Rejected: typical = -150 (a bound is not a level); reading a level off Fig. 6 (n
 found in the same search (an IEEE conference abstract, <-140 dB/Hz, full text not read; a review's Intel O-band "below -150"
 statement, secondary); storing the 16% wall-plug efficiency (laser.wall_plug_efficiency keeps diamantopoulos2021; a
 different laser and a separate change). Reversible.
+
+## D-045 · Photodetector quantum efficiency as an AWEN estimate from the chen2016 responsivity; not mapped
+Decided by: agent, 2026-11-12 (data only; no experiment registered or run; no default and no opt-in output changed).
+New `photodetector.quantum_efficiency` = {0.552, 0.592, 0.632} (fraction, `source_type: estimate`) is derived by AWEN with
+eta = R * h * c / (q * lambda) at lambda = 1550 nm (h c / (q lambda) = 0.79990 W/A, exact SI constants) from the chen2016
+measured wafer-scale responsivity at -1 V, 1550 nm: mean 0.74 A/W, standard deviation 0.05 A/W (Optics Express 24(5) 4622,
+Section 3.1; the author manuscript already read for D-042). Low/high are eta at mean ± one standard deviation, the same
+convention as `photodetector.dark_current`. The responsivity is referred to the received optical power; the text does not
+state how grating-coupler loss was removed, so this is a detector-side efficiency that excludes coupler and path loss.
+The two inventoried 0.8 defaults (`PhotonicNoiseContract::default()` and the runtime HAL detector calibration) now point
+at this entry as `differs_from_assumption` (unsourced 151 -> 149). The opt-in `with_assumptions` does not read it.
+Rejected: mapping it into `with_assumptions` now (it would change opt-in noisy outputs without a registered use; a later
+registration can add it); replacing `photodetector.responsivity` (hua2025's ~1 A/W is a separate, rounded statement);
+using the single-device 0.72 A/W (the wafer-scale mean is the better-supported number); a 1310 nm value (the rest of the
+set is at 1550 nm). Reversible.
