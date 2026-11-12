@@ -29,3 +29,7 @@ Later change (D-044, 2026-11-10): `laser.rin` now has a measured upper bound (va
 stored at the high corner only. Opting in at the high corner therefore applies `rin_db_per_hz` = -150 dB/Hz with that label;
 it equals the built-in value, so no noisy output changes at any corner (checked by `awen-compiler/tests/assumption_report.rs`).
 `laser.linewidth` (28 kHz / 440 kHz, same source) is not a mapped field.
+
+Later change (D-045, 2026-11-12): the set now stores `photodetector.quantum_efficiency` (0.552/0.592/0.632), an AWEN estimate
+from the chen2016 measured responsivity at 1550 nm. It is not a mapped field, so opting in still leaves `quantum_efficiency`
+at the built-in 0.8 at every corner (checked by `awen-compiler/tests/assumption_report.rs`).
